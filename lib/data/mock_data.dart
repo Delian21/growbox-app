@@ -444,6 +444,35 @@ class MockVendors {
           vendorName: 'Real Green',
           pricingType: PricingType.byWeight,
         ),
+        VendorProduct(
+          image: PlaceholderImages.potatoes,
+          name: 'Potatoes',
+          description: 'Fresh Irish potatoes for stews, fries and soups',
+          price: 1500,
+          category: 'TUBERS',
+          vendorName: 'Real Green',
+          pricingType: PricingType.byWeight,
+        ),
+        VendorProduct(
+          image: PlaceholderImages.scentLeaves,
+          name: 'Scent Leaves',
+          description: 'Fresh scent leaves (efirin) for soups and stews',
+          price: 500,
+          category: 'HERBS',
+          vendorName: 'Real Green',
+          pricingType: PricingType.byUnit,
+          bulkMultipliers: {10: 0.95, 20: 0.90},
+        ),
+        VendorProduct(
+          image: PlaceholderImages.scentLeaves,
+          name: 'Curry Leaves',
+          description: 'Fresh curry leaves to season rice and sauces',
+          price: 400,
+          category: 'HERBS',
+          vendorName: 'Real Green',
+          pricingType: PricingType.byUnit,
+          bulkMultipliers: {10: 0.95, 20: 0.90},
+        ),
       ],
     },
     {
@@ -483,10 +512,90 @@ class MockVendors {
         ),
       ],
     },
+    {
+      'name': 'Golden Oils',
+      'image': PlaceholderImages.goldenOils,
+      'logo': PlaceholderImages.goldenOilsLogo,
+      'percentage': '95%',
+      'reviews': '(18)',
+      'price': 4000.0,
+      'rating': 95.0,
+      'searchProducts': [
+        'Palm Oil',
+        'Groundnut Oil',
+        'Vegetable Oil',
+        'Cooking Oil',
+        'Oils',
+      ],
+      'categories': ['Oils'],
+      'products': [
+        VendorProduct(
+          image: PlaceholderImages.palmOil,
+          name: 'Palm Oil',
+          description: 'Rich, unrefined red palm oil for stews and soups',
+          price: 4500,
+          category: 'OILS',
+          vendorName: 'Golden Oils',
+          pricingType: PricingType.byUnit,
+          bulkMultipliers: {3: 0.97, 6: 0.95},
+        ),
+        VendorProduct(
+          image: PlaceholderImages.groundnutOil,
+          name: 'Groundnut Oil',
+          description: 'Pure groundnut (peanut) oil for frying and dressings',
+          price: 6000,
+          category: 'OILS',
+          vendorName: 'Golden Oils',
+          pricingType: PricingType.byUnit,
+          bulkMultipliers: {3: 0.97, 6: 0.95},
+        ),
+        VendorProduct(
+          image: PlaceholderImages.vegetableOil,
+          name: 'Vegetable Oil',
+          description: 'Light blended vegetable oil for everyday frying and baking',
+          price: 3500,
+          category: 'OILS',
+          vendorName: 'Golden Oils',
+          pricingType: PricingType.byUnit,
+          bulkMultipliers: {3: 0.97, 6: 0.95},
+        ),
+      ],
+    },
   ];
 
-  /// Returns vendor products for a given vendor name and category.
-  /// Filters from the single source-of-truth [vendors] list.
+  /// Top-level browse categories (the category chips on the browse screen)
+  /// mapped to the fine-grained product categories that belong under them.
+  static const Map<String, List<String>> browseCategoryBuckets = {
+    'GRAINS': ['GRAINS', 'CEREALS'],
+    'FRUITS': ['FRUITS'],
+    'LEGUMES': ['LEGUMES'],
+    'TUBERS': ['TUBERS'],
+    'VEGETABLES': ['VEGETABLES'],
+    'PROTEINS': ['MEAT', 'FISH', 'POULTRY'],
+    'HERBS': ['HERBS'],
+    'OILS': ['OILS'],
+  };
+
+  /// Returns the top-level browse categories a vendor genuinely sells,
+  /// derived from its products so a category chip never leads to an
+  /// empty vendor list or empty vendor page.
+  static List<String> topLevelCategoriesFor(String vendorName) {
+    final vendor = vendors.firstWhere(
+      (v) => v['name'] == vendorName,
+      orElse: () => {},
+    );
+    if (vendor.isEmpty) return [];
+    final categories = (vendor['products'] as List<VendorProduct>)
+        .map((p) => p.category)
+        .toSet();
+    return [
+      for (final entry in browseCategoryBuckets.entries)
+        if (entry.value.any(categories.contains)) entry.key,
+    ];
+  }
+
+  /// Returns the products a vendor offers under a top-level browse
+  /// category. Filters from the single source-of-truth [vendors] list.
   static List<VendorProduct> productsForVendor(
     String vendorName,
     String category,
@@ -498,57 +607,19 @@ class MockVendors {
     if (vendor.isEmpty) return [];
     final products = (vendor['products'] as List<VendorProduct>?) ?? [];
     if (category.isEmpty) return products;
-    return products.where((p) => p.category == category).toList();
+    final bucket = browseCategoryBuckets[category] ?? [category];
+    return products.where((p) => bucket.contains(p.category)).toList();
   }
 
-  /// Returns sub-categories for a given top-level category
-  static List<String> categoriesForVendor(String category) {
-    switch (category) {
-      case 'GRAINS AND CEREALS':
-        return const ['Grains', 'Cereals', 'Legumes'];
-      case 'FRUITS':
-        return const ['Fruits', 'Vegetables'];
-      case 'VEGETABLES':
-        return const ['Vegetables', 'Fruits', 'Herbs'];
-      case 'FRESH PROTEINS':
-        return const ['Meat', 'Fish', 'Poultry'];
-      default:
-        return const ['Fruits', 'Vegetables'];
-    }
-  }
-
-  /// Vendor list for CategoryVendorsScreen
+  /// Vendor list for CategoryVendorsScreen, derived from the canonical
+  /// catalog so each vendor's categories always match its real products.
   static List<Map<String, dynamic>> get categoryVendors => [
-    {
-      'name': 'Green Farm',
-      'image': PlaceholderImages.greenFarm,
-      'categories': ['GRAINS AND CEREALS'],
-    },
-    {
-      'name': 'Yummy Bunch',
-      'image': PlaceholderImages.yummyBunch,
-      'categories': ['FRUITS'],
-    },
-    {
-      'name': 'Fresh off Flesh',
-      'image': PlaceholderImages.freshOffFlesh,
-      'categories': ['FRESH PROTEINS'],
-    },
-    {
-      'name': 'Heart of Red',
-      'image': PlaceholderImages.heartOfRed,
-      'categories': ['FRUITS'],
-    },
-    {
-      'name': 'Real Green',
-      'image': PlaceholderImages.realGreen,
-      'categories': ['VEGETABLES'],
-    },
-    {
-      'name': 'Cereals Greetings',
-      'image': PlaceholderImages.cerealsGreetings,
-      'categories': ['GRAINS AND CEREALS'],
-    },
+    for (final vendor in vendors)
+      {
+        'name': vendor['name'],
+        'image': vendor['image'],
+        'categories': topLevelCategoriesFor(vendor['name'] as String),
+      },
   ];
 }
 

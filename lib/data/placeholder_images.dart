@@ -18,6 +18,7 @@ class PlaceholderImages {
   static String get heartOfRed => _asset('apples'); // red apples
   static String get realGreen => _asset('vegetables'); // veggies
   static String get cerealsGreetings => _asset('wheat'); // wheat ears
+  static String get goldenOils => _asset('oil_market'); // market stall with palm oil
 
   // ============================================================
   // VENDOR LOGOS
@@ -28,6 +29,7 @@ class PlaceholderImages {
   static String get heartOfRedLogo => _asset('apples');
   static String get realGreenLogo => _asset('vegetables');
   static String get cerealsGreetingsLogo => _asset('wheat');
+  static String get goldenOilsLogo => _asset('oil_market');
 
   // ============================================================
   // PRODUCT IMAGES - GRAINS
@@ -48,6 +50,23 @@ class PlaceholderImages {
   static String get peppers => _asset('peppers'); // chili peppers
   static String get onions => _asset('onions'); // onions
   static String get cabbage => _asset('cabbage'); // cabbage
+
+  // ============================================================
+  // PRODUCT IMAGES - HERBS
+  // ============================================================
+  static String get scentLeaves => _asset('herbs'); // fresh herbs
+
+  // ============================================================
+  // PRODUCT IMAGES - TUBERS & ROOTS
+  // ============================================================
+  static String get potatoes => _asset('potatoes'); // potatoes
+
+  // ============================================================
+  // PRODUCT IMAGES - OILS
+  // ============================================================
+  static String get palmOil => _asset('palm_oil'); // bottles of red palm oil
+  static String get groundnutOil => _asset('groundnut_oil'); // peanut oil bottle
+  static String get vegetableOil => _asset('vegetable_oil'); // vegetable oil bottle
 
   // ============================================================
   // PRODUCT IMAGES - FRUITS

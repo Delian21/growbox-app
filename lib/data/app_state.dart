@@ -764,8 +764,13 @@ class StockTracker {
     _stock['Heart of Red:Fresh Apples'] = 22;
     // Real Green
     _stock['Real Green:Fresh Vegetables'] = 2;
+    _stock['Real Green:Potatoes'] = 9;
     // Cereals Greetings
     _stock['Cereals Greetings:Maize'] = 15;
+    // Golden Oils
+    _stock['Golden Oils:Palm Oil'] = 24;
+    _stock['Golden Oils:Groundnut Oil'] = 5;
+    _stock['Golden Oils:Vegetable Oil'] = 30;
   }
 
   /// Returns the quantity remaining for a product, or -1 if unknown.

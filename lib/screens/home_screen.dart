@@ -11,6 +11,7 @@ import 'location_screen.dart';
 import 'menu_screen.dart';
 import 'vendor_screen.dart';
 import 'search_screen.dart';
+import 'category_vendors_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'Tubers': Icons.grass,
     'Proteins': Icons.set_meal,
     'Herbs': Icons.local_florist,
+    'Oils': Icons.oil_barrel,
   };
 
   // Category tint colors for visual distinction.
@@ -42,10 +44,11 @@ class _HomeScreenState extends State<HomeScreen> {
     'Tubers': const Color(0xFF8D6E63),
     'Proteins': const Color(0xFFEF5350),
     'Herbs': const Color(0xFF66BB6A),
+    'Oils': const Color(0xFFF9A825),
   };
 
   static const List<String> _categoryNames = [
-    'Grains', 'Fruits', 'Vegetables', 'Legumes', 'Tubers', 'Proteins', 'Herbs',
+    'Grains', 'Fruits', 'Vegetables', 'Legumes', 'Tubers', 'Proteins', 'Herbs', 'Oils',
   ];
 
   @override
@@ -150,7 +153,10 @@ class _HomeScreenState extends State<HomeScreen> {
           return GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const MenuScreen()),
+              MaterialPageRoute(
+                builder: (_) =>
+                    CategoryVendorsScreen(category: name.toUpperCase()),
+              ),
             ),
             child: SizedBox(
               width: 70,

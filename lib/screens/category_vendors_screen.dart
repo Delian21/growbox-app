@@ -109,6 +109,13 @@ class CategoryVendorsScreen extends StatelessWidget {
     required String image,
     required String category,
   }) {
+    // Only show the products the vendor actually sells under this
+    // category, and build the tabs from those products so every tab
+    // has items.
+    final products = MockVendors.productsForVendor(name, category);
+    final tabCategories = {
+      for (final p in products) p.category,
+    }.toList();
     return TapFeedback(
       onTap: () => Navigator.push(
         context,
@@ -118,8 +125,8 @@ class CategoryVendorsScreen extends StatelessWidget {
             vendorCoverImage: image,
             vendorLogoImage: image,
             initialOpen: true,
-            categories: _vendorCategories(category),
-            products: _vendorProducts(name, category),
+            categories: tabCategories,
+            products: products,
           ),
         ),
       ),
@@ -165,13 +172,5 @@ class CategoryVendorsScreen extends StatelessWidget {
       alignment: Alignment.center,
       child: const Icon(Icons.storefront_outlined, size: 48, color: AppColors.grey500),
     );
-  }
-
-  List<String> _vendorCategories(String category) {
-    return MockVendors.categoriesForVendor(category);
-  }
-
-  List<VendorProduct> _vendorProducts(String vendorName, String category) {
-    return MockVendors.productsForVendor(vendorName, category);
   }
 }

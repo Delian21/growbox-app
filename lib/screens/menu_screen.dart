@@ -52,6 +52,8 @@ class _MenuScreenState extends State<MenuScreen> {
             return productName.contains('herb') || productName.contains('spice');
           case 'nuts and seeds':
             return productName.contains('nut') || productName.contains('seed');
+          case 'oils':
+            return productName.contains('oil');
           default:
             return true;
         }
@@ -252,6 +254,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           _CategoryChip(icon: Icons.eco, label: 'Vegetables', color: Color(0xFF4CAF50)),
                           _CategoryChip(icon: Icons.set_meal, label: 'Proteins', color: Color(0xFFE53935)),
                           _CategoryChip(icon: Icons.local_florist, label: 'Herbs', color: Color(0xFF2E7D32)),
+                          _CategoryChip(icon: Icons.oil_barrel, label: 'Oils', color: Color(0xFFF9A825)),
                         ],
                       ),
                     ),
@@ -268,7 +271,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             itemBuilder: (context) {
                               return ['All Produce', 'Grains and cereals', 'Fruits', 'Legumes and Pulses',
                                   'Vegetables', 'Tuber and Roots', 'Fresh Proteins', 'Mushrooms',
-                                  'Herbs and Spices', 'Nuts and Seeds']
+                                  'Herbs and Spices', 'Nuts and Seeds', 'Oils']
                                   .map((type) => PopupMenuItem(value: type, child: Text(type)))
                                   .toList();
                             },
