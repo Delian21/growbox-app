@@ -1,0 +1,15 @@
+# Netlify build configuration for the GROWBOX consumer app (Flutter web).
+#
+# Every push to the connected GitHub branch triggers this build. Netlify's
+# build image does not ship the Flutter SDK, so netlify-build.sh installs the
+# pinned stable SDK and produces the standard web bundle in build/web.
+#
+# To update the live site later: commit, push to the connected branch, done.
+
+[build]
+  command = "bash ./netlify-build.sh"
+  publish = "build/web"
+
+[build.environment]
+  # Keep in sync with the Flutter SDK you develop with (flutter --version).
+  FLUTTER_VERSION = "3.47.0"
