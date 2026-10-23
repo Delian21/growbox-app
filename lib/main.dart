@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'theme.dart';
 import 'data/app_state.dart';
 import 'data/mock_data.dart';
+import 'data/orders.dart';
 import 'screens/splash_screen.dart';
 import 'routes.dart';
 import 'widgets/page_transitions.dart';
@@ -31,6 +32,10 @@ void main() async {
     restoreFavorites(),
     restoreOrders(),
   ]);
+
+  // Orders are read through the repository-backed store; warm it up so the
+  // home banner and orders screen have data on their first frame.
+  await ordersStore.load();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

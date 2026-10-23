@@ -191,8 +191,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('#GBX-900'), findsOneWidget);
-      expect(find.text('Order placed'), findsOneWidget);
+      // A freshly recorded order is 'confirmed', so it lands in the Active
+      // tab, under the vendor it was bought from.
+      expect(find.text('Confirmed'), findsOneWidget);
+      expect(find.text('Green Farm'), findsWidgets);
+      // Rice (₦2,550) + ₦1,500 delivery — unique to this order.
+      expect(find.text('₦4,050'), findsOneWidget);
     });
   });
 }

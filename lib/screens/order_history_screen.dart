@@ -1,124 +1,159 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme.dart';
-import '../widgets/animated_entrance.dart';
+
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../data/orders.dart';
+import '../routes.dart';
+import '../theme.dart';
+import '../widgets/animated_entrance.dart';
 import 'order_details_screen.dart';
 
+/// Which half of the orders list is showing.
+enum OrdersTab { active, past }
+
+/// Orders screen: in-flight deliveries under "Active", everything finished
+/// (delivered or cancelled) under "Past".
+///
+/// All data comes from an [OrdersRepository] via [OrdersStore]; nothing here
+/// knows that the orders are currently mocked.
 class OrderHistoryScreen extends StatefulWidget {
-    const OrderHistoryScreen({super.key});
+  final OrdersTab initialTab;
+
+  /// Optional store for tests / alternative repositories. Falls back to the
+  /// app-wide [ordersStore].
+  final OrdersStore? store;
+
+  const OrderHistoryScreen({
+    super.key,
+    this.initialTab = OrdersTab.active,
+    this.store,
+  });
+
   @override
   State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
 }
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
-  String selectedFilter = 'All';
+  static const String _fallbackAddress =
+      'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria';
 
-  // Order history is sourced from the persisted store: mock seeds on first
-  // launch (resolved from the canonical catalog by name) + real orders
-  // recorded at checkout.
-  List<Map<String, dynamic>> get orderHistory =>
-      storedOrders.map(_orderToCard).toList();
+  late OrdersTab _tab = widget.initialTab;
 
-  static Map<String, dynamic> _orderToCard(StoredOrder o) => {
-        'orderNumber': '#${o.orderNumber}',
-        'amount': '₦${formatPrice(o.total)}',
-        'items': '${o.itemCount} item${o.itemCount == 1 ? '' : 's'}',
-        'date': _formatDate(o.placedAt),
-        'status': o.status,
-        'statusColor': _statusColor(o.status),
-        'category': o.category,
-        'paymentStatus': o.paymentStatus,
-        'products': o.items
-            .map((i) => VendorProduct(
-                  image: i.image,
-                  name: i.name,
-                  description: i.name,
-                  price: i.price,
-                  category: i.category,
-                  vendorName: i.vendorName,
-                ))
-            .toList(),
-        'quantities': o.items.map((i) => i.quantity).toList(),
-        'stored': o,
-      };
+  OrdersStore get _store => widget.store ?? ordersStore;
 
-  static Color _statusColor(String status) {
-    switch (status) {
-      case 'Delivered':
-        return AppColors.success;
-      case 'Cancelled':
-        return AppColors.error;
-      case 'Pending':
-        return AppColors.warning;
-      default: // 'Order placed'
-        return AppColors.success;
-    }
+  @override
+  void initState() {
+    super.initState();
+    // Refetch on open, the way a screen backed by a server would. Deferred a
+    // frame because the store notifies synchronously about its loading state.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _store.load(force: true);
+    });
   }
 
-  static const List<String> _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
+  // ── Formatting ──────────────────────────────────────────────────────────
 
-  static String _formatDate(DateTime d) =>
-      '${_months[d.month - 1]} ${d.day}, ${d.year}';
+  static Color _statusColor(BuildContext context, OrderStatus status) =>
+      switch (status) {
+        OrderStatus.confirmed => C.primary(context),
+        OrderStatus.packing => C.accentOrange(context),
+        OrderStatus.onTheWay => C.accentOrange(context),
+        OrderStatus.delivered => C.success(context),
+        OrderStatus.cancelled => C.error(context),
+      };
 
-  void _reorderItems(List<VendorProduct> products, List<int> quantities) {
+  // ── Actions ─────────────────────────────────────────────────────────────
+
+  void _openDetails(Order order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderDetailsScreen(
+          orderNumber: '#${order.id}',
+          date: _formatOrderDate(order.createdAt),
+          status: order.status.label,
+          statusColor: _statusColor(context, order.status),
+          paymentStatus:
+              order.status == OrderStatus.cancelled ? 'Refunded' : 'Paid',
+          deliveryAddress: order.deliveryAddress.isEmpty
+              ? _fallbackAddress
+              : order.deliveryAddress,
+          subtotal: order.subtotal,
+          deliveryFee: order.deliveryFee,
+          total: order.total,
+          products: order.items,
+        ),
+      ),
+    );
+  }
+
+  /// Adds every line of [order] back to the box, respecting live stock.
+  void _reorder(Order order) {
+    final cart = context.read<CartNotifier>();
     int added = 0;
     int skipped = 0;
-    for (int i = 0; i < products.length; i++) {
-      final product = products[i];
-      final qty = quantities[i];
-      for (int j = 0; j < qty; j++) {
-        if (StockTracker.isAvailable(product.vendorName, product.name)) {
-          StockTracker.decrement(product.vendorName, product.name);
-          context.read<CartNotifier>().add(product);
+
+    for (final line in order.items) {
+      // Rebuild a catalog product from the order snapshot so the cart works
+      // with normal products even if the catalog changed since.
+      final product = VendorProduct(
+        image: line.image,
+        name: line.name,
+        description: line.name,
+        price: line.price,
+        category: line.category,
+        vendorName: line.vendorName,
+      );
+      for (int unit = 0; unit < line.quantity; unit++) {
+        if (StockTracker.isAvailable(line.vendorName, line.name)) {
+          StockTracker.decrement(line.vendorName, line.name);
+          cart.add(product);
           added++;
         } else {
           skipped++;
         }
       }
     }
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     if (skipped == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('$added item${added == 1 ? '' : 's'} added to your box'),
-          backgroundColor: AppColors.primary,
-          duration:   Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadii.sm))));
+      _showSnack(
+        '$added item${added == 1 ? '' : 's'} added to your box',
+        C.success(context),
+      );
     } else if (added == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:   Text('All items are out of stock'),
-          backgroundColor: AppColors.error,
-          duration:   Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadii.sm))));
+      _showSnack('All items are out of stock', C.error(context));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('$added added, $skipped out of stock'),
-          backgroundColor: AppColors.warning,
-          duration:   Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadii.sm))));
+      _showSnack('$added added, $skipped out of stock', C.warning(context));
     }
     setState(() {});
   }
 
+  void _showSnack(String message, Color background) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: background,
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+      ),
+    ));
+  }
+
+  void _startShopping() {
+    // Same hand-off the bottom nav uses for a tab switch.
+    AppRoutes.pushReplaceAll(context, AppRoutes.home);
+  }
+
+  // ── Build ───────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final hp = AppSizing.horizontalPadding(context);
-    final filteredOrders = selectedFilter == 'All'
-        ? orderHistory
-        : orderHistory
-            .where((order) => order['category'] == selectedFilter)
-            .toList();
 
     return Scaffold(
       backgroundColor: C.background(context),
@@ -131,139 +166,160 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               child: Row(
                 children: [
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => Navigator.pop(context),
-                    child:   Icon(Icons.arrow_back,
-                        size: 24, color: C.textPrimary(context)),
-                  ),
-                    Expanded(
-                    child: Center(
-                      child: Text(
-                        'Order History',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_back,
+                          size: 24,
                           color: C.textPrimary(context),
                         ),
                       ),
                     ),
                   ),
-                    SizedBox(width: 24),
+                  Expanded(
+                    child: Text(
+                      'Your Orders',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.title
+                          .copyWith(color: C.textPrimary(context)),
+                    ),
+                  ),
+                  const SizedBox(width: 40),
                 ],
               ),
             ),
-
-              SizedBox(height: AppSpacing.lg),
-
-            // ── Filter Tabs ─────────────────────────────────────
+            const SizedBox(height: AppSpacing.lg),
+            // ── Active / Past tabs ──────────────────────────────
             Padding(
               padding: EdgeInsets.symmetric(horizontal: hp),
-              child: Container(
-                padding:   EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: C.surfaceLight(context),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    _FilterTab(
-                        title: 'All',
-                        selected: selectedFilter == 'All',
-                        onTap: () =>
-                            setState(() => selectedFilter = 'All')),
-                    _FilterTab(
-                        title: 'Active',
-                        selected: selectedFilter == 'Active',
-                        onTap: () =>
-                            setState(() => selectedFilter = 'Active')),
-                    _FilterTab(
-                        title: 'Completed',
-                        selected: selectedFilter == 'Completed',
-                        onTap: () =>
-                            setState(() => selectedFilter = 'Completed')),
-                    _FilterTab(
-                        title: 'Cancelled',
-                        selected: selectedFilter == 'Cancelled',
-                        onTap: () =>
-                            setState(() => selectedFilter = 'Cancelled')),
-                  ],
-                ),
+              child: _OrdersTabBar(
+                selected: _tab,
+                onChanged: (tab) => setState(() => _tab = tab),
               ),
             ),
-
-              SizedBox(height: AppSpacing.lg),
-
-            // ── Orders List ─────────────────────────────────────
+            const SizedBox(height: AppSpacing.lg),
+            // ── Orders ──────────────────────────────────────────
             Expanded(
-              child: filteredOrders.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.receipt_long_outlined,
-                              size: 48, color: AppColors.grey400),
-                            SizedBox(height: AppSpacing.md),
-                          Text(
-                            'No orders found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: C.textMuted(context),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      physics:   BouncingScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(hp, 0, hp, 30),
-                      itemCount: filteredOrders.length,
-                      itemBuilder: (context, index) {
-                        final order = filteredOrders[index];
-                        return AnimatedEntrance(index: index, child: _OrderCard(
-                          orderNumber: order['orderNumber'],
-                          amount: order['amount'],
-                          items: order['items'],
-                          date: order['date'],
-                          status: order['status'],
-                          statusColor: order['statusColor'],
-                          onViewOrder: () {
-                            final stored =
-                                order['stored'] as StoredOrder;
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => OrderDetailsScreen(
-                                        orderNumber:
-                                            order['orderNumber'] as String,
-                                        date: order['date'] as String,
-                                        status: order['status'] as String,
-                                        statusColor:
-                                            order['statusColor'] as Color,
-                                        paymentStatus: order['paymentStatus']
-                                            as String,
-                                        deliveryAddress:
-                                            stored.deliveryAddress.isEmpty
-                                                ? 'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria'
-                                                : stored.deliveryAddress,
-                                        subtotal: stored.subtotal,
-                                        deliveryFee: stored.deliveryFee,
-                                        total: stored.total,
-                                        products: stored.items,
-                                      )),
-                            );
-                          },
-                          onReorder: order['status'] != 'Cancelled'
-                              ? () => _reorderItems(
-                                  List<VendorProduct>.from(
-                                      order['products']),
-                                  List<int>.from(order['quantities']))
-                              : null,
-                        ),
-                        );
-                      },
-                    ),
+              child: ListenableBuilder(
+                listenable: _store,
+                builder: (context, _) => _buildOrders(hp),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrders(double hp) {
+    final isActiveTab = _tab == OrdersTab.active;
+    final orders = isActiveTab ? _store.activeOrders : _store.pastOrders;
+
+    // First load only: refetches keep the previous list on screen.
+    if (_store.isLoading && !_store.hasLoaded) {
+      return Center(
+        child: CircularProgressIndicator(color: C.primary(context)),
+      );
+    }
+
+    if (orders.isEmpty) {
+      return _OrdersEmptyState(
+        isActiveTab: isActiveTab,
+        onStartShopping: isActiveTab ? _startShopping : null,
+      );
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(hp, 0, hp, AppSpacing.xxxl),
+      itemCount: orders.length,
+      itemBuilder: (context, index) {
+        final order = orders[index];
+        return AnimatedEntrance(
+          index: index,
+          child: _OrderCard(
+            order: order,
+            active: isActiveTab,
+            statusColor: _statusColor(context, order.status),
+            onOpen: () => _openDetails(order),
+            onReorder: isActiveTab ? null : () => _reorder(order),
+            onAdvance: isActiveTab
+                ? () => _store.advanceStatus(order.id)
+                : null,
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SHARED FORMATTING
+// ═══════════════════════════════════════════════════════════════════════
+
+const List<String> _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+String _formatOrderDate(DateTime d) =>
+    '${_months[d.month - 1]} ${d.day}, ${d.year}';
+
+// ═══════════════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════════════
+
+class _OrdersTabBar extends StatelessWidget {
+  final OrdersTab selected;
+  final ValueChanged<OrdersTab> onChanged;
+
+  const _OrdersTabBar({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: C.surfaceLight(context),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Row(
+        children: [
+          _buildTab(context, OrdersTab.active, 'Active'),
+          _buildTab(context, OrdersTab.past, 'Past'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(BuildContext context, OrdersTab tab, String label) {
+    final isSelected = tab == selected;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onChanged(tab),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? C.primary(context) : AppColors.transparent,
+            borderRadius: BorderRadius.circular(AppRadii.sm),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: AppTypography.labelSmall.copyWith(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected
+                  ? C.onPrimary(context)
+                  : C.textMuted(context),
+            ),
+          ),
         ),
       ),
     );
@@ -271,47 +327,82 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// FILTER TAB
+// EMPTY STATE
 // ═══════════════════════════════════════════════════════════════════════
 
-class _FilterTab extends StatelessWidget {
-  final String title;
-  final bool selected;
-  final VoidCallback onTap;
+class _OrdersEmptyState extends StatelessWidget {
+  final bool isActiveTab;
+  final VoidCallback? onStartShopping;
 
-    const _FilterTab(
-      {required this.title, required this.selected, required this.onTap});
+  const _OrdersEmptyState({
+    required this.isActiveTab,
+    this.onStartShopping,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration:   Duration(milliseconds: 200),
-          padding:   EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? C.surface(context) : AppColors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: AppColors.black.withValues(alpha: 0.06),
-                      blurRadius: 4,
-                      offset:   Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? C.textPrimary(context) : AppColors.grey600,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: C.primaryTint(context).withValues(alpha: 0.35),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isActiveTab
+                    ? Icons.receipt_long_outlined
+                    : Icons.history_rounded,
+                size: 44,
+                color: C.primary(context),
+              ),
             ),
-          ),
+            const SizedBox(height: AppSpacing.xxl),
+            Text(
+              isActiveTab ? 'No active orders' : 'No past orders',
+              style: AppTypography.labelLarge
+                  .copyWith(color: C.textPrimary(context)),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              isActiveTab
+                  ? 'Orders on their way will show up here.'
+                  : 'Delivered and cancelled orders live here.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall.copyWith(
+                color: C.textMuted(context),
+              ),
+            ),
+            if (onStartShopping != null) ...[
+              const SizedBox(height: AppSpacing.xxl),
+              GestureDetector(
+                onTap: onStartShopping,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxl,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: C.primary(context),
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                  child: Text(
+                    'Start shopping',
+                    style: AppTypography.labelMedium.copyWith(
+                      color: C.onPrimary(context),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -323,153 +414,135 @@ class _FilterTab extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════
 
 class _OrderCard extends StatelessWidget {
-  final String orderNumber;
-  final String amount;
-  final String items;
-  final String date;
-  final String status;
+  final Order order;
+  final bool active;
   final Color statusColor;
-  final VoidCallback onViewOrder;
+  final VoidCallback onOpen;
   final VoidCallback? onReorder;
+  final VoidCallback? onAdvance;
 
-    const _OrderCard({
-    required this.orderNumber,
-    required this.amount,
-    required this.items,
-    required this.date,
-    required this.status,
+  const _OrderCard({
+    required this.order,
+    required this.active,
     required this.statusColor,
-    required this.onViewOrder,
+    required this.onOpen,
     this.onReorder,
+    this.onAdvance,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin:   EdgeInsets.only(bottom: AppSpacing.md),
-      padding:   EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset:   Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  orderNumber,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: C.textPrimary(context),
-                  ),
-                ),
-              ),
-              Container(
-                padding:
-                      EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-            SizedBox(height: 10),
-          // Details row
-          Row(
-            children: [
-              Icon(Icons.shopping_bag_outlined,
-                  size: 14, color: C.textMuted(context)),
-                SizedBox(width: 6),
-              Text(
-                items,
-                style:
-                    TextStyle(fontSize: 13, color: C.textMuted(context)),
-              ),
-                SizedBox(width: 12),
-              Icon(Icons.calendar_today_outlined,
-                  size: 14, color: C.textMuted(context)),
-                SizedBox(width: 6),
-              Text(
-                date,
-                style:
-                    TextStyle(fontSize: 13, color: C.textMuted(context)),
-              ),
-                Spacer(),
-              Text(
-                amount,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: C.textPrimary(context),
-                ),
-              ),
-            ],
-          ),
-            SizedBox(height: 12),
-          // Actions
-          Row(
-            children: [
-              GestureDetector(
-                onTap: onViewOrder,
-                child: Container(
-                  padding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTint,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child:   Text(
-                    'View Details',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+    final itemLabel =
+        '${order.itemCount} item${order.itemCount == 1 ? '' : 's'}';
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onOpen,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: AppNeumorphic.cardDecoration(
+          radius: AppRadii.md,
+          context: context,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Vendor + status ──────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    order.vendorName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelMedium.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: C.textPrimary(context),
                     ),
                   ),
                 ),
-              ),
-              if (onReorder != null) ...[
-                  SizedBox(width: 8),
-                GestureDetector(
+                const SizedBox(width: AppSpacing.sm),
+                _StatusChip(label: order.status.label, color: statusColor),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            // ── Items, date, total ───────────────────────────────
+            Row(
+              children: [
+                Icon(
+                  Icons.shopping_bag_outlined,
+                  size: 14,
+                  color: C.textMuted(context),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  itemLabel,
+                  style: AppTypography.bodySmall
+                      .copyWith(color: C.textMuted(context)),
+                ),
+                const SizedBox(width: 10),
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 13,
+                  color: C.textMuted(context),
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    _formatOrderDate(order.createdAt),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySmall
+                        .copyWith(color: C.textMuted(context)),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '₦${formatPrice(order.total)}',
+                  style: AppTypography.labelMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: C.textPrimary(context),
+                  ),
+                ),
+              ],
+            ),
+            // ── Progress (active only) ───────────────────────────
+            if (active) ...[
+              const SizedBox(height: AppSpacing.md),
+              _OrderProgress(status: order.status),
+            ],
+            // ── Reorder (past only) ──────────────────────────────
+            if (onReorder != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: onReorder,
                   child: Container(
-                    padding:   EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: C.surfaceLight(context),
-                      borderRadius: BorderRadius.circular(8),
+                      color: C.primaryTint(context),
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                          Icon(Icons.replay,
-                            size: 14, color: AppColors.primary),
-                          SizedBox(width: 4),
+                        Icon(
+                          Icons.replay,
+                          size: 15,
+                          color: C.primary(context),
+                        ),
+                        const SizedBox(width: 6),
                         Text(
                           'Reorder',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          style: AppTypography.labelSmall.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: C.textPrimary(context),
                           ),
                         ),
@@ -477,9 +550,110 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
+              ),
             ],
-          ),
+            // ── Demo-only status control ─────────────────────────
+            if (kDebugMode && active && onAdvance != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onAdvance,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                    border: Border.all(color: C.divider(context), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.fast_forward,
+                        size: 13,
+                        color: C.textMuted(context),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Advance status',
+                        style: AppTypography.labelSmall.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: C.textMuted(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PIECES
+// ═══════════════════════════════════════════════════════════════════════
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _StatusChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.labelSmall.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+/// Four segments: confirmed → packing → on the way → delivered.
+class _OrderProgress extends StatelessWidget {
+  final OrderStatus status;
+
+  const _OrderProgress({required this.status});
+
+  static const int _steps = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final reached = status.stepIndex;
+    return Semantics(
+      label: 'Order progress: ${status.label}',
+      child: Row(
+        key: const ValueKey('orderProgress'),
+        children: [
+          for (int step = 0; step < _steps; step++) ...[
+            if (step > 0) const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: step <= reached
+                      ? C.primary(context)
+                      : C.divider(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

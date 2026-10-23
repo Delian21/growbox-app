@@ -9,14 +9,20 @@ import '../widgets/bottom_nav.dart';
 import '../widgets/vendor_card.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../data/orders.dart';
 import '../routes.dart';
 import 'location_screen.dart';
+import 'order_history_screen.dart';
 import 'menu_screen.dart';
 import 'vendor_screen.dart';
 import 'category_vendors_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Optional orders store (tests / alternative repositories). Defaults to the
+  /// app-wide [ordersStore].
+  final OrdersStore? store;
+
+  const HomeScreen({super.key, this.store});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,6 +30,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String selectedAddress = defaultAddress?.address ?? 'Asokoro, Abuja';
+
+  OrdersStore get _orders => widget.store ?? ordersStore;
+
+  @override
+  void initState() {
+    super.initState();
+    // Warm the orders store so the active-order banner is correct on the
+    // first frame instead of popping in after the request resolves.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _orders.load();
+    });
+  }
 
   // Category icon mapping (built-in Flutter icons, no network dependency).
   static final Map<String, IconData> _categoryIcons = {
@@ -110,6 +128,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ── Promo Banner ────────────────────────────
                       _buildPromoBanner(screenWidth),
                       const SizedBox(height: AppSpacing.xxl),
+                      // ── Active order ─────────────────────────────
+                      ListenableBuilder(
+                        listenable: _orders,
+                        builder: (context, _) {
+                          final active = _orders.latestActiveOrder;
+                          if (active == null) return const SizedBox.shrink();
+                          return _ActiveOrderBanner(
+                            order: active,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const OrderHistoryScreen(
+                                  initialTab: OrdersTab.active,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                       // ── Buy Again ───────────────────────────────
                       if (buyAgainItems.isNotEmpty) ...[
                         SectionHeader(title: 'Order Again', actionText: 'See all', onAction: () {}),
@@ -572,6 +609,83 @@ class _SearchBar extends StatelessWidget {
             const Spacer(),
             const Icon(Icons.mic, size: 20, color: AppColors.primary),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ACTIVE ORDER BANNER
+
+/// Slim strip above "Order Again" that tracks the newest in-flight order.
+/// Hidden entirely when nothing is being delivered.
+class _ActiveOrderBanner extends StatelessWidget {
+  final Order order;
+  final VoidCallback onTap;
+
+  const _ActiveOrderBanner({required this.order, required this.onTap});
+
+  static String _message(OrderStatus status) => switch (status) {
+        OrderStatus.confirmed => "Order confirmed — we're getting it ready",
+        OrderStatus.packing => 'Your order is being packed',
+        OrderStatus.onTheWay => 'Your order is on the way',
+        OrderStatus.delivered => 'Your order has been delivered',
+        OrderStatus.cancelled => 'Your order was cancelled',
+      };
+
+  static IconData _icon(OrderStatus status) => switch (status) {
+        OrderStatus.confirmed => Icons.receipt_long_outlined,
+        OrderStatus.packing => Icons.inventory_2_outlined,
+        OrderStatus.onTheWay => Icons.local_shipping_outlined,
+        OrderStatus.delivered => Icons.check_circle_outline,
+        OrderStatus.cancelled => Icons.cancel_outlined,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm + 2,
+          ),
+          decoration: BoxDecoration(
+            color: C.primaryTint(context),
+            borderRadius: BorderRadius.circular(AppRadii.md),
+          ),
+          child: Row(
+            children: [
+              Icon(_icon(order.status), size: 18, color: C.primary(context)),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  _message(order.status),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: C.textPrimary(context),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: C.textMuted(context),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../data/orders.dart';
 import '../widgets/skeleton_loader.dart';
 import 'order_success_screen.dart';
 import 'location_screen.dart';
@@ -92,6 +93,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             deliveryAddress:
                                 'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria',
                           );
+                          // Republish orders so the home banner and the orders
+                          // screen pick up the order that was just placed.
+                          ordersStore.load(force: true);
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
