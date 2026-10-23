@@ -256,7 +256,7 @@ class ProfileScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: AppColors.black.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -269,7 +269,7 @@ class ProfileScreen extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: const BoxDecoration(
-                color: AppColors.primaryDark,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
@@ -278,7 +278,7 @@ class ProfileScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.white,
                 ),
               ),
             ),
@@ -314,11 +314,11 @@ class ProfileScreen extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: AppColors.primaryTint,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.edit_outlined,
-                  size: 18, color: AppColors.primaryDark),
+                  size: 18, color: AppColors.primary),
             ),
           ],
         ),
@@ -353,7 +353,7 @@ class ProfileScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: AppColors.black.withValues(alpha: 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -460,8 +460,8 @@ class _DarkModeToggle extends StatelessWidget {
           Switch(
             value: isDark,
             onChanged: (_) => themeNotifier.toggle(),
-            activeThumbColor: AppColors.primaryDark,
-            activeTrackColor: AppColors.primaryLight,
+            activeThumbColor: AppColors.primary,
+            activeTrackColor: AppColors.primaryTint,
             inactiveThumbColor: C.textMuted(context),
             inactiveTrackColor: C.surfaceLighter(context),
           ),

@@ -110,7 +110,7 @@ class OrderSuccessScreen extends StatelessWidget {
                         Text('Order Total',
                           style: TextStyle(fontSize: 14, color: C.textMuted(context))),
                         Text('₦${formatPrice(total)}',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: C.accentOrange(context))),
                       ],
                     ),
                   ),
@@ -124,7 +124,7 @@ class OrderSuccessScreen extends StatelessWidget {
                           orderNumber: '10482',
                           estimatedDelivery: estimatedDelivery))),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark, foregroundColor: AppColors.white, elevation: 0,
+                        backgroundColor: AppColors.primary, foregroundColor: AppColors.white, elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md))),
                       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Icon(Icons.local_shipping_outlined, size: 20),

@@ -137,7 +137,7 @@ class OrderFailedScreen extends StatelessWidget {
                     style: TextStyle(fontSize: titleSize, height: 1.1, fontWeight: FontWeight.bold, color: C.textPrimary(context))),
                   const SizedBox(height: 50),
                   Container(width: iconSize, height: iconSize,
-                    decoration: const BoxDecoration(color: Color(0xFFFEE2E2), shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: AppColors.errorSoft, shape: BoxShape.circle),
                     child: Icon(Icons.close, size: iconSize * 0.57, color: AppColors.error)),
                   const SizedBox(height: 30),
                   Text("We couldn't complete your order", textAlign: TextAlign.center,

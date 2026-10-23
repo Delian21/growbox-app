@@ -86,7 +86,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     if (skipped == 0) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('$added item${added == 1 ? '' : 's'} added to your box'),
-          backgroundColor: AppColors.primaryDark,
+          backgroundColor: AppColors.primary,
           duration:   Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -291,12 +291,12 @@ class _FilterTab extends StatelessWidget {
           duration:   Duration(milliseconds: 200),
           padding:   EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? C.surface(context) : Colors.transparent,
+            color: selected ? C.surface(context) : AppColors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
+                      color: AppColors.black.withValues(alpha: 0.06),
                       blurRadius: 4,
                       offset:   Offset(0, 1),
                     ),
@@ -353,7 +353,7 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset:   Offset(0, 2),
           ),
@@ -435,7 +435,7 @@ class _OrderCard extends StatelessWidget {
                   padding:
                         EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
+                    color: AppColors.primaryTint,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child:   Text(
@@ -443,7 +443,7 @@ class _OrderCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primaryDark,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -463,7 +463,7 @@ class _OrderCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                           Icon(Icons.replay,
-                            size: 14, color: AppColors.primaryDark),
+                            size: 14, color: AppColors.primary),
                           SizedBox(width: 4),
                         Text(
                           'Reorder',

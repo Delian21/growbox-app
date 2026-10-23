@@ -89,12 +89,12 @@ class _MenuScreenState extends State<MenuScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppColors.black.withValues(alpha: 0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppColors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -154,10 +154,10 @@ class _MenuScreenState extends State<MenuScreen> {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Row(
                 children: [
-                  const Icon(Icons.thumb_up_outlined, size: 16, color: AppColors.primaryDark),
+                  const Icon(Icons.thumb_up_outlined, size: 16, color: AppColors.primary),
                   const SizedBox(width: 6),
                   Text(percentage,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
                   const SizedBox(width: 4),
                   Text(reviews,
                     style: TextStyle(fontSize: 13, color: C.textMuted(context))),
@@ -209,7 +209,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
+                              color: AppColors.black.withValues(alpha: 0.05),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -231,7 +231,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                   setState(() => searchQuery = intent.productQuery);
                                 }
                               },
-                              icon: Icon(Icons.mic, size: 20, color: AppColors.primaryDark),
+                              icon: Icon(Icons.mic, size: 20, color: AppColors.primary),
                             ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -248,13 +248,13 @@ class _MenuScreenState extends State<MenuScreen> {
                         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                         physics: const BouncingScrollPhysics(),
                         children: const [
-                          _CategoryChip(icon: Icons.grain, label: 'Grains', color: Color(0xFF8D6E63)),
-                          _CategoryChip(icon: Icons.apple, label: 'Fruits', color: Color(0xFFE53935)),
-                          _CategoryChip(icon: Icons.emoji_food_beverage, label: 'Legumes', color: Color(0xFF66BB6A)),
-                          _CategoryChip(icon: Icons.eco, label: 'Vegetables', color: Color(0xFF4CAF50)),
-                          _CategoryChip(icon: Icons.set_meal, label: 'Proteins', color: Color(0xFFE53935)),
-                          _CategoryChip(icon: Icons.local_florist, label: 'Herbs', color: Color(0xFF2E7D32)),
-                          _CategoryChip(icon: Icons.oil_barrel, label: 'Oils', color: Color(0xFFF9A825)),
+                          _CategoryChip(icon: Icons.grain, label: 'Grains', color: AppColors.categoryGrains),
+                          _CategoryChip(icon: Icons.apple, label: 'Fruits', color: AppColors.categoryFruits),
+                          _CategoryChip(icon: Icons.emoji_food_beverage, label: 'Legumes', color: AppColors.categoryLegumes),
+                          _CategoryChip(icon: Icons.eco, label: 'Vegetables', color: AppColors.categoryVegetables),
+                          _CategoryChip(icon: Icons.set_meal, label: 'Proteins', color: AppColors.categoryProteins),
+                          _CategoryChip(icon: Icons.local_florist, label: 'Herbs', color: AppColors.categoryHerbs),
+                          _CategoryChip(icon: Icons.oil_barrel, label: 'Oils', color: AppColors.categoryOils),
                         ],
                       ),
                     ),
@@ -294,7 +294,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                 .map((type) => PopupMenuItem(value: type,
                                   child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [Text(type),
-                                      if (selectedSort == type) const Icon(Icons.check, size: 20, color: AppColors.primaryDark)])))
+                                      if (selectedSort == type) const Icon(Icons.check, size: 20, color: AppColors.primary)])))
                                 .toList(),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,

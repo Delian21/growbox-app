@@ -157,7 +157,7 @@ class _LocationScreenState extends State<LocationScreen>
                 borderSide: BorderSide(color: C.divider(dialogContext)),
               ),
               focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primaryDark),
+                borderSide: BorderSide(color: AppColors.primary),
               ),
             ),
           ),
@@ -204,7 +204,7 @@ class _LocationScreenState extends State<LocationScreen>
                 borderSide: BorderSide(color: C.divider(dialogContext)),
               ),
               focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primaryDark),
+                borderSide: BorderSide(color: AppColors.primary),
               ),
             ),
           ),
@@ -306,7 +306,7 @@ class _LocationScreenState extends State<LocationScreen>
                               color: AppColors.primary,
                               shadows: [
                                 Shadow(
-                                  color: Colors.black26,
+                                  color: AppColors.black26,
                                   blurRadius: 6,
                                   offset: Offset(0, 2),
                                 ),
@@ -501,8 +501,8 @@ class _LocationScreenState extends State<LocationScreen>
                                                         vertical: 6),
                                                 decoration: BoxDecoration(
                                                   color: C.isDark(context)
-                                                      ? const Color(0x33E5A800)
-                                                      : const Color(0x20E5A800),
+                                                      ? AppColors.warningYellow.withValues(alpha: 0.2)
+                                                      : AppColors.warningYellow.withValues(alpha: 0.12),
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           AppRadii.sm),
@@ -516,7 +516,7 @@ class _LocationScreenState extends State<LocationScreen>
                                                           .warning_amber_rounded,
                                                       size: 18,
                                                       color:
-                                                          Color(0xFF8B7A00),
+                                                          AppColors.warningYellow,
                                                     ),
                                                     const SizedBox(
                                                         width:
@@ -531,8 +531,7 @@ class _LocationScreenState extends State<LocationScreen>
                                                           height: 1.3,
                                                           fontWeight:
                                                               FontWeight.w600,
-                                                          color: const Color(
-                                                              0xFF8B7A00),
+                                                          color: AppColors.warningYellow,
                                                         ),
                                                       ),
                                                     ),
@@ -554,8 +553,8 @@ class _LocationScreenState extends State<LocationScreen>
                                         style: ElevatedButton.styleFrom(
                                           elevation: 0,
                                           backgroundColor: C.isDark(context)
-                                              ? const Color(0x1AFFFFFF)
-                                              : const Color(0x1A000000),
+                                              ? AppColors.white.withValues(alpha: 0.1)
+                                              : AppColors.black.withValues(alpha: 0.1),
                                           foregroundColor:
                                               C.textPrimary(context),
                                           padding:

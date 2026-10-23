@@ -229,7 +229,7 @@ class SkeletonImage extends StatelessWidget {
         image,
         Positioned.fill(
           child: IgnorePointer(
-            child: Container(color: Colors.white.withValues(alpha: scrim)),
+            child: Container(color: AppColors.white.withValues(alpha: scrim)),
           ),
         ),
       ],

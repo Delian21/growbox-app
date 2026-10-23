@@ -91,13 +91,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryDark,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Icon(
                       Icons.eco,
                       size: 32,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   ),
                 ),
@@ -150,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                        color: C.primaryDark(context), width: 1.5),
+                        color: C.primary(context), width: 1.5),
                   ),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -196,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                        color: C.primaryDark(context), width: 1.5),
+                        color: C.primary(context), width: 1.5),
                   ),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: C.primaryDark(context),
+                      color: C.primary(context),
                     ),
                   ),
                 ),
@@ -235,13 +235,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: BoxDecoration(
                     color: _isLoading
                         ? C.textMuted(context)
-                        : AppColors.primaryDark,
+                        : AppColors.primary,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: _isLoading
                         ? null
                         : [
                             BoxShadow(
-                              color: AppColors.primaryDark
+                              color: AppColors.primary
                                   .withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
@@ -254,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                         )
                       : const Text(
@@ -262,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                         ),
                 ),
@@ -330,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: C.primaryDark(context),
+                          color: C.primary(context),
                         ),
                       ),
                     ),

@@ -37,14 +37,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Category tint colors for visual distinction.
   static final Map<String, Color> _categoryColors = {
-    'Grains': const Color(0xFF8D6E63),
-    'Fruits': const Color(0xFFEF5350),
-    'Legumes': const Color(0xFF66BB6A),
-    'Vegetables': const Color(0xFF43A047),
-    'Tubers': const Color(0xFF8D6E63),
-    'Proteins': const Color(0xFFEF5350),
-    'Herbs': const Color(0xFF66BB6A),
-    'Oils': const Color(0xFFF9A825),
+    'Grains': AppColors.categoryGrains,
+    'Fruits': AppColors.categoryFruits,
+    'Legumes': AppColors.categoryLegumes,
+    'Vegetables': AppColors.categoryVegetables,
+    'Tubers': AppColors.categoryTubers,
+    'Proteins': AppColors.categoryProteins,
+    'Herbs': AppColors.categoryHerbs,
+    'Oils': AppColors.categoryOils,
   };
 
   static const List<String> _categoryNames = [
@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   await Future.delayed(const Duration(milliseconds: 600));
                   setState(() {});
                 },
-                color: AppColors.primaryDark,
+                color: AppColors.primary,
                 backgroundColor: C.surface(context),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(
@@ -149,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, index) {
           final name = _categoryNames[index];
           final icon = _categoryIcons[name] ?? Icons.eco_outlined;
-          final tint = _categoryColors[name] ?? AppColors.primaryDark;
+          final tint = _categoryColors[name] ?? AppColors.primary;
           return GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppColors.primary, Color(0xFF2D6B22)],
+            colors: [AppColors.primary, AppColors.surfaceDark],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -232,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     'On your first order over ₦10,000',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: AppColors.white.withValues(alpha: 0.85),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -244,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.white,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -263,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(
               Icons.local_shipping_outlined,
               size: 64,
-              color: Colors.white.withValues(alpha: 0.3),
+              color: AppColors.white.withValues(alpha: 0.3),
             ),
           ],
         ),
@@ -291,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('${product.name} added to box'),
-                  backgroundColor: AppColors.primaryDark,
+                  backgroundColor: AppColors.primary,
                   duration: const Duration(seconds: 1),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
@@ -307,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: AppColors.black.withValues(alpha: 0.06),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -367,10 +367,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 2),
                           Text(
                             '₦${formatPrice(product.price)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryDark,
+                              color: C.accentOrange(context),
                             ),
                           ),
                         ],
@@ -431,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: AppColors.black.withValues(alpha: 0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -485,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryLight,
+                                  color: AppColors.primaryTint,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -493,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.primaryDark,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -564,7 +564,7 @@ class _AddressBar extends StatelessWidget {
         child: Row(
           children: [
             const Icon(Icons.location_on_outlined,
-                size: 20, color: AppColors.primaryDark),
+                size: 20, color: AppColors.primary),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -603,7 +603,7 @@ class _SearchBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: AppColors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -621,7 +621,7 @@ class _SearchBar extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.mic, size: 20, color: AppColors.primaryDark),
+            const Icon(Icons.mic, size: 20, color: AppColors.primary),
           ],
         ),
       ),

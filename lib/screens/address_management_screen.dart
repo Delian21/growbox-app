@@ -70,13 +70,13 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
+                        color: AppColors.primaryTint,
                         borderRadius: BorderRadius.circular(AppRadii.sm),
                       ),
                       child: const Icon(
                         Icons.add,
                         size: 22,
-                        color: AppColors.primaryDark,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -127,7 +127,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: AppColors.primaryDark,
+                        color: AppColors.primary,
                         width: 1.5,
                       ),
                       borderRadius: BorderRadius.circular(AppRadii.pill),
@@ -138,7 +138,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primaryDark,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -195,7 +195,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                   vertical: AppSpacing.sm + 2,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
+                  color: AppColors.primaryTint,
                   borderRadius: BorderRadius.circular(AppRadii.pill),
                 ),
                 child: const Text(
@@ -203,7 +203,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primaryDark,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -231,7 +231,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
           borderRadius: BorderRadius.circular(AppRadii.md),
           border: Border.all(
             color: addr.isDefault
-                ? AppColors.primaryDark
+                ? AppColors.primary
                 : C.divider(context),
             width: addr.isDefault ? 1.5 : 0.5,
           ),
@@ -246,7 +246,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
               height: 44,
               decoration: BoxDecoration(
                 color: addr.isDefault
-                    ? AppColors.primaryLight
+                    ? AppColors.primaryTint
                     : C.surfaceLight(context),
                 borderRadius: BorderRadius.circular(AppRadii.sm),
               ),
@@ -254,7 +254,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                 _iconForLabel(addr.label),
                 size: 22,
                 color: addr.isDefault
-                    ? AppColors.primaryDark
+                    ? AppColors.primary
                     : AppColors.grey700,
               ),
             ),
@@ -284,7 +284,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
+                            color: AppColors.primaryTint,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
@@ -292,7 +292,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primaryDark,
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -355,7 +355,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   void _showOptionsSheet(BuildContext context, DeliveryAddress addr) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (ctx) {
         return SafeArea(
           child: Container(
@@ -400,7 +400,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
+                            color: AppColors.primaryTint,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
@@ -408,7 +408,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primaryDark,
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -552,7 +552,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
@@ -622,14 +622,14 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? AppColors.primaryLight
+                                          ? AppColors.primaryTint
                                           : C.surfaceLight(ctx),
                                       borderRadius: BorderRadius.circular(
                                         AppRadii.pill,
                                       ),
                                       border: Border.all(
                                         color: isSelected
-                                            ? AppColors.primaryDark
+                                            ? AppColors.primary
                                             : C.divider(ctx),
                                         width: isSelected ? 1.5 : 0.5,
                                       ),
@@ -641,7 +641,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                                           _iconForLabel(label),
                                           size: 16,
                                           color: isSelected
-                                              ? AppColors.primaryDark
+                                              ? AppColors.primary
                                               : AppColors.grey700,
                                         ),
                                         const SizedBox(width: 6),
@@ -651,7 +651,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
                                             color: isSelected
-                                                ? AppColors.primaryDark
+                                                ? AppColors.primary
                                                 : C.textPrimary(ctx),
                                           ),
                                         ),
@@ -718,7 +718,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                                         : Icons.radio_button_unchecked,
                                     size: 22,
                                     color: isDefault
-                                        ? AppColors.primaryDark
+                                        ? AppColors.primary
                                         : AppColors.grey500,
                                   ),
                                   const SizedBox(width: AppSpacing.sm),
@@ -788,7 +788,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                             Navigator.pop(ctx);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryDark,
+                            backgroundColor: AppColors.primary,
                             foregroundColor: AppColors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppRadii.pill),

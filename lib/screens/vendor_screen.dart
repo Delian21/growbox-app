@@ -146,9 +146,9 @@ class _VendorScreenState extends State<VendorScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.3),
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.5),
+                    AppColors.black.withValues(alpha: 0.3),
+                    AppColors.transparent,
+                    AppColors.black.withValues(alpha: 0.5),
                   ],
                   stops: const [0.0, 0.5, 1.0],
                 ),
@@ -165,11 +165,11 @@ class _VendorScreenState extends State<VendorScreen> {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.white,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.arrow_back,
-                    size: 20, color: Colors.black),
+                    size: 20, color: AppColors.black),
               ),
             ),
           ),
@@ -183,13 +183,13 @@ class _VendorScreenState extends State<VendorScreen> {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.white,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
                   size: 20,
-                  color: isFavorite ? AppColors.error : Colors.black,
+                  color: isFavorite ? AppColors.error : AppColors.black,
                 ),
               ),
             ),
@@ -219,15 +219,15 @@ class _VendorScreenState extends State<VendorScreen> {
                           height: 56,
                           fit: BoxFit.cover,
                           errorWidget: Container(
-                            color: AppColors.primaryLight,
+                            color: AppColors.primaryTint,
                             child: const Icon(Icons.storefront_outlined,
-                                color: AppColors.primaryDark, size: 28),
+                                color: AppColors.primary, size: 28),
                           ),
                         )
                       : Container(
-                          color: AppColors.primaryLight,
+                          color: AppColors.primaryTint,
                           child: const Icon(Icons.storefront_outlined,
-                              color: AppColors.primaryDark, size: 28),
+                              color: AppColors.primary, size: 28),
                         ),
                 ),
               ),
@@ -253,8 +253,8 @@ class _VendorScreenState extends State<VendorScreen> {
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: isOpen
-                                ? const Color(0xFFDCFCE7)
-                                : const Color(0xFFFEE2E2),
+                                ? AppColors.successSoft
+                                : AppColors.errorSoft,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -330,13 +330,13 @@ class _VendorScreenState extends State<VendorScreen> {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primaryDark
+                        ? AppColors.primary
                         : C.surface(context),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: AppColors.primaryDark.withValues(alpha: 0.3),
+                              color: AppColors.primary.withValues(alpha: 0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -348,7 +348,7 @@ class _VendorScreenState extends State<VendorScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white : C.textPrimary(context),
+                      color: isSelected ? AppColors.white : C.textPrimary(context),
                     ),
                   ),
                 ),

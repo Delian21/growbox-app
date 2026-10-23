@@ -259,10 +259,10 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
       width: double.infinity,
       padding:   EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
-        color: isDelivered ?   Color(0xFFF0FDF4) :   Color(0xFFF0FFF4),
+        color: isDelivered ?   AppColors.successSoft :   AppColors.successSoft,
         borderRadius: BorderRadius.circular(AppRadii.md),
         border: Border.all(
-          color: isDelivered ? AppColors.success : AppColors.primaryDark.withValues(alpha: 0.3),
+          color: isDelivered ? AppColors.success : AppColors.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -270,7 +270,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
           Icon(
             isDelivered ? Icons.check_circle : Icons.local_shipping_outlined,
             size: 48,
-            color: isDelivered ? AppColors.success : AppColors.primaryDark,
+            color: isDelivered ? AppColors.success : AppColors.primary,
           ),
             SizedBox(height: AppSpacing.md),
           Text(
@@ -278,7 +278,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isDelivered ? AppColors.success : AppColors.primaryDark,
+              color: isDelivered ? AppColors.success : AppColors.primary,
             ),
           ),
             SizedBox(height: AppSpacing.sm),
@@ -346,7 +346,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
       width: double.infinity,
       height: mapHeight,
       decoration: BoxDecoration(
-        color:   Color(0xFFE8F5E9),
+        color:   AppColors.primaryTint.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppRadii.md),
         border: Border.all(color: C.divider(context)),
       ),
@@ -389,7 +389,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                     decoration: BoxDecoration(
                       color: C.surface(context),
                       borderRadius: BorderRadius.circular(4),
-                      boxShadow:   [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      boxShadow:   [BoxShadow(color: AppColors.black12, blurRadius: 4)],
                     ),
                     child: Text('Your Address', style: TextStyle(fontSize: 8, color: C.textPrimary(context))),
                   ),
@@ -405,7 +405,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                   Container(
                     padding:   EdgeInsets.all(4),
                     decoration:   BoxDecoration(
-                      color: AppColors.primaryDark,
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
                     child:   Icon(Icons.store, size: 16, color: AppColors.white),
@@ -416,7 +416,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                     decoration: BoxDecoration(
                       color: C.surface(context),
                       borderRadius: BorderRadius.circular(4),
-                      boxShadow:   [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      boxShadow:   [BoxShadow(color: AppColors.black12, blurRadius: 4)],
                     ),
                     child: Text('Green Farm', style: TextStyle(fontSize: 8, color: C.textPrimary(context))),
                   ),
@@ -444,14 +444,14 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                           height: 24 + 8 * _riderPulseController.value,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppColors.primaryDark.withValues(alpha: 0.15),
+                            color: AppColors.primary.withValues(alpha: 0.15),
                           ),
                         ),
                           SizedBox(height: 4),
                         Container(
                           padding:   EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryDark,
+                            color: AppColors.primary,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child:   Text('Rider', style: TextStyle(fontSize: 8, color: C.surface(context), fontWeight: FontWeight.w600)),
@@ -533,9 +533,9 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                       height: 28,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isCompleted ? AppColors.primaryDark : AppColors.grey300,
+                        color: isCompleted ? AppColors.primary : AppColors.grey300,
                         border: isCurrent
-                            ? Border.all(color: AppColors.primaryLight, width: 2)
+                            ? Border.all(color: AppColors.primaryTint, width: 2)
                             : null,
                       ),
                       child: isCompleted
@@ -554,7 +554,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                       Container(
                         width: 2,
                         height: 32,
-                        color: isCompleted ? AppColors.primaryDark : AppColors.grey300,
+                        color: isCompleted ? AppColors.primary : AppColors.grey300,
                       ),
                   ],
                 ),
@@ -614,11 +614,11 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.primaryTint,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primaryDark, width: 2),
+              border: Border.all(color: AppColors.primary, width: 2),
             ),
-            child:   Icon(Icons.person, size: 28, color: AppColors.primaryDark),
+            child:   Icon(Icons.person, size: 28, color: AppColors.primary),
           ),
             SizedBox(width: AppSpacing.md),
           // Info
@@ -641,10 +641,10 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             width: 44,
             height: 44,
             decoration:   BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.primaryTint,
               shape: BoxShape.circle,
             ),
-            child:   Icon(Icons.phone, size: 22, color: AppColors.primaryDark),
+            child:   Icon(Icons.phone, size: 22, color: AppColors.primary),
           ),
             SizedBox(width: AppSpacing.sm),
           // Message button
@@ -652,10 +652,10 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             width: 44,
             height: 44,
             decoration:   BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.primaryTint,
               shape: BoxShape.circle,
             ),
-            child:   Icon(Icons.message, size: 22, color: AppColors.primaryDark),
+            child:   Icon(Icons.message, size: 22, color: AppColors.primary),
           ),
         ],
       ),
@@ -713,7 +713,7 @@ class _MapBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color =   Color(0xFFC8E6C9)
+      ..color =   AppColors.primaryTint.withValues(alpha: 0.45)
       ..strokeWidth = 0.5;
 
     // Horizontal lines (streets)
@@ -728,7 +728,7 @@ class _MapBackgroundPainter extends CustomPainter {
 
     // Some thicker "main roads"
     final mainRoadPaint = Paint()
-      ..color =   Color(0xFFA5D6A7)
+      ..color =   AppColors.primaryTint.withValues(alpha: 0.7)
       ..strokeWidth = 2;
 
     canvas.drawLine(
@@ -787,7 +787,7 @@ class _RoutePainter extends CustomPainter {
 
     // Dashed route behind
     final bgPaint = Paint()
-      ..color = AppColors.primaryDark.withValues(alpha: 0.2)
+      ..color = AppColors.primary.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
 
@@ -795,7 +795,7 @@ class _RoutePainter extends CustomPainter {
 
     // Active route (animated)
     final activePaint = Paint()
-      ..color = AppColors.primaryDark
+      ..color = AppColors.primary
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;

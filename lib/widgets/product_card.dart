@@ -49,7 +49,7 @@ class ProductCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: AppColors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -119,10 +119,10 @@ class ProductCard extends StatelessWidget {
                     children: [
                       Text(
                         '₦${formatPrice(product.price)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primaryDark,
+                          color: C.accentOrange(context),
                         ),
                       ),
                       if (showStockBadge && stockStatus == StockStatus.lowStock) ...[
@@ -130,7 +130,7 @@ class ProductCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
+                            color: AppColors.warningSoft,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -138,7 +138,7 @@ class ProductCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFB45309),
+                              color: AppColors.accentOrangeDeep,
                             ),
                           ),
                         ),
@@ -159,7 +159,7 @@ class ProductCard extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('${product.name} added to box'),
-                            backgroundColor: AppColors.primaryDark,
+                            backgroundColor: AppColors.primary,
                             duration: const Duration(seconds: 1),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
@@ -173,13 +173,13 @@ class ProductCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isAvailable ? AppColors.primaryLight : C.surfaceLighter(context),
+                  color: isAvailable ? AppColors.primaryTint : C.surfaceLighter(context),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   isAvailable ? Icons.add : Icons.remove_shopping_cart,
                   size: 20,
-                  color: isAvailable ? AppColors.primaryDark : C.textMuted(context),
+                  color: isAvailable ? AppColors.primary : C.textMuted(context),
                 ),
               ),
             ),

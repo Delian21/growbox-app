@@ -159,7 +159,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             }
                           },
                           splashRadius: 22,
-                          icon: const Icon(Icons.mic, color: AppColors.primaryDark)),
+                          icon: const Icon(Icons.mic, color: AppColors.primary)),
                       ],
                     ),
                     filled: true,
@@ -207,7 +207,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 TapFeedback(
                   onTap: () { recentSearches.clear(); setState(() {}); },
                   child: const Text('Clear all',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.primaryDark)),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.primary)),
                 ),
               ],
             ),
@@ -379,11 +379,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: image.isNotEmpty
                     ? Image.asset(image, fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
-                          color: AppColors.primaryLight,
-                          child: const Icon(Icons.storefront_outlined, color: AppColors.primaryDark, size: 24)))
+                          color: AppColors.primaryTint,
+                          child: const Icon(Icons.storefront_outlined, color: AppColors.primary, size: 24)))
                     : Container(
-                        color: AppColors.primaryLight,
-                        child: const Icon(Icons.storefront_outlined, color: AppColors.primaryDark, size: 24)),
+                        color: AppColors.primaryTint,
+                        child: const Icon(Icons.storefront_outlined, color: AppColors.primary, size: 24)),
               ),
             ),
             const SizedBox(width: 12),

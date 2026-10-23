@@ -43,13 +43,13 @@ class _CartScreenState extends State<CartScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withValues(alpha: 0.3),
+              color: AppColors.primaryTint.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.shopping_bag_outlined,
               size: 56,
-              color: AppColors.primaryDark,
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -80,11 +80,11 @@ class _CartScreenState extends State<CartScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               decoration: BoxDecoration(
-                color: AppColors.primaryDark,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryDark.withValues(alpha: 0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -95,7 +95,7 @@ class _CartScreenState extends State<CartScreen> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.white,
                 ),
               ),
             ),
@@ -198,11 +198,11 @@ class _CartScreenState extends State<CartScreen> {
                           width: 24,
                           height: 24,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
+                            color: AppColors.primaryTint,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Icon(Icons.storefront_outlined,
-                              size: 14, color: AppColors.primaryDark),
+                              size: 14, color: AppColors.primary),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -248,7 +248,7 @@ class _CartScreenState extends State<CartScreen> {
             content: Text('${product.name} removed from cart'),
             action: SnackBarAction(
               label: 'Undo',
-              textColor: AppColors.primaryDark,
+              textColor: AppColors.primary,
               onPressed: () {
                 setState(() {
                   for (int i = 0; i < quantity; i++) {
@@ -268,7 +268,7 @@ class _CartScreenState extends State<CartScreen> {
           color: AppColors.error,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
+        child: const Icon(Icons.delete_outline, color: AppColors.white, size: 24),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -278,7 +278,7 @@ class _CartScreenState extends State<CartScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: AppColors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -324,9 +324,9 @@ class _CartScreenState extends State<CartScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '₦${formatPrice(product.price)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryDark,
+                      color: C.accentOrange(context),
                     ),
                   ),
                   if (stockStatus != StockStatus.inStock) ...[
@@ -335,8 +335,8 @@ class _CartScreenState extends State<CartScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: isOutOfStock
-                            ? const Color(0xFFFEE2E2)
-                            : const Color(0xFFFEF3C7),
+                            ? AppColors.errorSoft
+                            : AppColors.warningSoft,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -346,7 +346,7 @@ class _CartScreenState extends State<CartScreen> {
                           fontWeight: FontWeight.w600,
                           color: isOutOfStock
                               ? AppColors.error
-                              : const Color(0xFFB45309),
+                              : AppColors.accentOrangeDeep,
                         ),
                       ),
                     ),
@@ -411,7 +411,7 @@ class _CartScreenState extends State<CartScreen> {
                           decoration: BoxDecoration(
                             color: isOutOfStock
                                 ? C.surfaceLighter(context)
-                                : C.primaryLight(context),
+                                : C.primaryTint(context),
                             borderRadius: const BorderRadius.only(
                               topRight: Radius.circular(8),
                               bottomRight: Radius.circular(8),
@@ -421,7 +421,7 @@ class _CartScreenState extends State<CartScreen> {
                               size: 16,
                               color: isOutOfStock
                                   ? C.textMuted(context)
-                                  : C.primaryDark(context)),
+                                  : C.primary(context)),
                         ),
                       ),
                     ],
@@ -443,7 +443,7 @@ class _CartScreenState extends State<CartScreen> {
         color: C.surface(context),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppColors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),
@@ -491,11 +491,11 @@ class _CartScreenState extends State<CartScreen> {
                 height: 48,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryDark,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -509,11 +509,11 @@ class _CartScreenState extends State<CartScreen> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.white,
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18, color: Colors.white),
+                    Icon(Icons.arrow_forward, size: 18, color: AppColors.white),
                   ],
                 ),
               ),

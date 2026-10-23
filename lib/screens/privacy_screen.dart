@@ -107,7 +107,7 @@ class _PrivacyToggleItem extends StatelessWidget {
           SizedBox(width: AppSpacing.md),
           Switch(
             value: value, onChanged: onChanged,
-            activeThumbColor: AppColors.white, activeTrackColor: AppColors.primaryLight,
+            activeThumbColor: AppColors.white, activeTrackColor: AppColors.primaryTint,
           ),
         ],
       ),

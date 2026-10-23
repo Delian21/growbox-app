@@ -27,7 +27,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'message': 'Check out Cereals Greetings for fresh cereals!',
       'time': '1 day ago',
       'icon': Icons.storefront_outlined,
-      'color': AppColors.primaryDark,
+      'color': AppColors.primary,
     },
     {
       'title': 'Promotion',
@@ -41,7 +41,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'message': 'Your order #GBX-10482 is being prepared.',
       'time': '5 days ago',
       'icon': Icons.receipt_long_outlined,
-      'color': AppColors.primaryDark,
+      'color': AppColors.primary,
     },
   ];
 
@@ -127,7 +127,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset:   Offset(0, 2),
           ),
@@ -142,11 +142,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
+                  color: AppColors.primaryTint,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child:   Icon(Icons.notifications_none_outlined,
-                    size: 20, color: AppColors.primaryDark),
+                    size: 20, color: AppColors.primary),
               ),
                 SizedBox(width: 12),
               Expanded(
@@ -176,8 +176,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 value: pushNotifications,
                 onChanged: (value) =>
                     setState(() => pushNotifications = value),
-                activeThumbColor: AppColors.primaryDark,
-                activeTrackColor: AppColors.primaryLight,
+                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.primaryTint,
                 inactiveThumbColor: AppColors.grey500,
                 inactiveTrackColor: AppColors.grey300,
               ),
@@ -203,7 +203,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset:   Offset(0, 2),
           ),

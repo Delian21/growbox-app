@@ -119,13 +119,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: ElevatedButton(
                       onPressed: _next,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        shadowColor: AppColors.primaryDark.withValues(alpha: 0.3),
+                        shadowColor: AppColors.primary.withValues(alpha: 0.3),
                       ),
                       child: Text(
                         _currentPage == _totalPages - 1
@@ -151,22 +151,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final pages = [
       _OnboardingPageData(
         icon: Icons.shopping_basket_outlined,
-        iconColor: AppColors.primaryDark,
-        iconBgColor: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        iconBgColor: AppColors.primaryTint,
         title: 'Fresh Produce,\nDelivered',
         subtitle: 'Browse farm-fresh vegetables, fruits, grains and more from local vendors near you.',
       ),
       _OnboardingPageData(
         icon: Icons.storefront_outlined,
-        iconColor: AppColors.primaryDark,
-        iconBgColor: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        iconBgColor: AppColors.primaryTint,
         title: 'Browse Local\nVendors',
         subtitle: 'Discover trusted vendors in your area. Compare prices, read reviews, and find the best deals.',
       ),
       _OnboardingPageData(
         icon: Icons.local_shipping_outlined,
-        iconColor: AppColors.primaryDark,
-        iconBgColor: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        iconBgColor: AppColors.primaryTint,
         title: 'Fast & Reliable\nDelivery',
         subtitle: 'Track your order in real-time. Get your fresh produce delivered right to your doorstep.',
       ),
@@ -233,7 +233,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           height: 10,
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.primaryDark
+                ? AppColors.primary
                 : AppColors.grey300,
             borderRadius: BorderRadius.circular(5),
           ),

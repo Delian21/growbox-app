@@ -51,15 +51,76 @@ class ThemeNotifier extends ValueNotifier<ThemeMode> {
 class AppColors {
   AppColors._();
 
-  // ── Brand / Primary ─────────────────────────────────────────────────────
+  // ── Brand green: one primary, one tint, one dark surface ────────────────
+
+  /// The brand green. Splash background, branded panels, primary text and
+  /// icons. 10.6:1 against white.
   static const Color primary = Color(0xFF1C4815);
-  static const Color primaryLight = Color(0xFF9AEB8D);
-  static const Color primaryDark = Color(0xFF1F880E);
-  static const Color accent = Color(0xFF16A34A);
+
+  /// The single green tint, for chips, pills, selected states and CTA fills.
+  /// Always paired with [textPrimary] or [primary] on top of it.
+  static const Color primaryTint = Color(0xFF9AEB8D);
+
+  /// Deep green surface for branded panels that sit behind white text
+  /// (bottom nav, hero banners, splash-adjacent blocks). 14.4:1 vs white.
+  static const Color surfaceDark = Color(0xFF12300E);
+
+  // ── Surfaces ────────────────────────────────────────────────────────────
+
+  /// Page background behind cards and sheets.
+  static const Color background = Color(0xFFFAFAF5);
+
+  /// Card, sheet and dialog surface.
+  static const Color cardSurface = Color(0xFFFFFFFF);
+
+  // ── Accent orange (sampled from the Growbox wordmark) ───────────────────
+
+  /// Logo orange. Fills only: price highlights, promo banners, badges,
+  /// notification dots. 9.1:1 on the dark background, 2.0:1 on white, so it
+  /// is never used for text on light surfaces — use [accentOrangeDeep].
+  static const Color accentOrange = Color(0xFFFBA127);
+
+  /// Deep orange for orange text and icons on light surfaces (4.8:1 on the
+  /// page background, 5.0:1 on a card). Also the "low stock" label colour.
+  static const Color accentOrangeDeep = Color(0xFFB45309);
+
+  // ── Text ────────────────────────────────────────────────────────────────
+
+  static const Color textPrimary = Color(0xFF1A1A1A);
+
+  /// Secondary body text: 6.9:1 on [background], 7.2:1 on a card.
+  static const Color textSecondary = Color(0xFF4F5A4C);
+
+  /// Muted labels and captions: 4.7:1 on [background], 5.0:1 on a card.
+  static const Color textMuted = Color(0xFF6B7268);
+
+  // ── Status tints (chip and banner backgrounds) ──────────────────────────
+  static const Color successSoft = Color(0xFFDCFCE7);
+  static const Color warningSoft = Color(0xFFFEF3C7);
+  static const Color errorSoft = Color(0xFFFEE2E2);
+
+  // ── Category markers ────────────────────────────────────────────────────
+  static const Color categoryGrains = Color(0xFF8D6E63);
+  static const Color categoryFruits = Color(0xFFEF5350);
+  static const Color categoryLegumes = Color(0xFF66BB6A);
+  static const Color categoryVegetables = Color(0xFF43A047);
+  static const Color categoryTubers = Color(0xFF8D6E63);
+  static const Color categoryProteins = Color(0xFFEF5350);
+  static const Color categoryHerbs = Color(0xFF66BB6A);
+  static const Color categoryOils = Color(0xFFF9A825);
 
   // ── Neutral / Grey ──────────────────────────────────────────────────────
   static const Color white = Colors.white;
   static const Color black = Colors.black;
+
+  // ── Overlay ramp ────────────────────────────────────────────────────────
+  // Alpha-only utilities for scrims, dividers drawn over imagery and tinted
+  // glass. These are opacity primitives, not design colours.
+  static const Color transparent = Colors.transparent;
+  static const Color white70 = Color(0xB3FFFFFF);
+  static const Color white24 = Color(0x3DFFFFFF);
+  static const Color black26 = Color(0x42000000);
+  static const Color black12 = Color(0x1F000000);
   static const Color grey100 = Color(0xFFF5F5F5);
   static const Color grey200 = Color(0xFFEDEDED);
   static const Color grey300 = Color(0xFFE0E0E0);
@@ -82,13 +143,6 @@ class AppColors {
   static const Color warningYellow = Color(0xFF747100);
   static const Color gold = Color(0xFFA37C1E);
 
-  // ── Warm backgrounds (neumorphism base) ────────────────────────────────
-  static const Color background = Color(0xFFFAFAF5);
-  static const Color cardSurface = Color(0xFFFFFFFF);
-  static const Color borderWarm = Color(0xFFE8E5DE);
-  static const Color textSoft = Color(0xFF1A1A1A);
-  static const Color textMuted = Color(0xFF6B7268);
-  static const Color primarySoft = Color(0xFFE8F5E2);
 }
 
 // ---------------------------------------------------------------------------
@@ -247,7 +301,7 @@ class AppNeumorphic {
 
   static BoxDecoration buttonDecoration({double radius = 26, BuildContext? context}) {
     return BoxDecoration(
-      color: context != null ? C.primaryLight(context) : AppColors.primaryLight,
+      color: context != null ? C.primaryTint(context) : AppColors.primaryTint,
       borderRadius: BorderRadius.circular(radius),
       boxShadow: context != null ? buttonShadows(context) : button,
     );
@@ -256,7 +310,7 @@ class AppNeumorphic {
   static BoxDecoration chipDecoration({bool selected = false, BuildContext? context}) {
     return BoxDecoration(
       color: selected
-          ? (context != null ? C.primaryLight(context) : AppColors.primarySoft)
+          ? (context != null ? C.primaryTint(context) : AppColors.primaryTint)
           : (context != null ? C.surface(context) : AppColors.cardSurface),
       borderRadius: BorderRadius.circular(26),
       boxShadow: selected
@@ -278,16 +332,28 @@ class AppDarkColors {
   static const Color surfaceLight = Color(0xFF2A2A2A);
   static const Color surfaceLighter = Color(0xFF333333);
 
-  // ── Brand / Primary (brighter for dark backgrounds) ─────────────────────
-  static const Color primary = Color(0xFF2D6B22);
-  static const Color primaryLight = Color(0xFF1A3D15);
-  static const Color primaryDark = Color(0xFF3EC930);
-  static const Color accent = Color(0xFF4ADE80);
+  /// Deep green for branded panels in dark mode. 13.2:1 vs white text.
+  static const Color surfaceDark = Color(0xFF0E2409);
+
+  // ── Brand green: one primary, one tint ──────────────────────────────────
+
+  /// The brand green lifted for dark surfaces: 9.1:1 on a dark card, so it
+  /// is safe for icons, labels and prices on [surface].
+  static const Color primary = Color(0xFF7ED36B);
+
+  /// The single green tint on dark: chip and pill backgrounds that carry
+  /// light text.
+  static const Color primaryTint = Color(0xFF1A3D15);
+
+  // ── Accent orange (from the Growbox wordmark) ───────────────────────────
+  static const Color accentOrange = Color(0xFFFBA127); // 8.1:1 on a dark card
 
   // ── Text ────────────────────────────────────────────────────────────────
-  static const Color textPrimary = Color(0xFFF5F5F5);
+  static const Color textPrimary = Color(0xFFF5F5F5);   // 15.3:1 on a card
+  /// 8.9:1 on a dark card, 10.0:1 on the dark background.
   static const Color textSecondary = Color(0xFFBDBDBD);
-  static const Color textMuted = Color(0xFF808080);
+  /// 6.4:1 on a dark card, 7.2:1 on the dark background.
+  static const Color textMuted = Color(0xFF9AA396);
 
   // ── Borders & Dividers ──────────────────────────────────────────────────
   static const Color divider = Color(0xFF333333);
@@ -314,10 +380,10 @@ class C {
   C._();
 
   static Color background(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.background : AppColors.white;
+      _isDark(context) ? AppDarkColors.background : AppColors.background;
 
   static Color surface(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.surface : AppColors.white;
+      _isDark(context) ? AppDarkColors.surface : AppColors.cardSurface;
 
   static Color surfaceLight(BuildContext context) =>
       _isDark(context) ? AppDarkColors.surfaceLight : AppColors.grey100;
@@ -325,14 +391,17 @@ class C {
   static Color surfaceLighter(BuildContext context) =>
       _isDark(context) ? AppDarkColors.surfaceLighter : AppColors.grey200;
 
+  static Color surfaceDark(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.surfaceDark : AppColors.surfaceDark;
+
   static Color textPrimary(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.textPrimary : AppColors.black;
+      _isDark(context) ? AppDarkColors.textPrimary : AppColors.textPrimary;
 
   static Color textSecondary(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.textSecondary : AppColors.grey700;
+      _isDark(context) ? AppDarkColors.textSecondary : AppColors.textSecondary;
 
   static Color textMuted(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.textMuted : AppColors.grey800;
+      _isDark(context) ? AppDarkColors.textMuted : AppColors.textMuted;
 
   static Color divider(BuildContext context) =>
       _isDark(context) ? AppDarkColors.divider : AppColors.divider;
@@ -340,14 +409,13 @@ class C {
   static Color primary(BuildContext context) =>
       _isDark(context) ? AppDarkColors.primary : AppColors.primary;
 
-  static Color primaryLight(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.primaryLight : AppColors.primaryLight;
+  static Color primaryTint(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.primaryTint : AppColors.primaryTint;
 
-  static Color primaryDark(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.primaryDark : AppColors.primaryDark;
-
-  static Color accent(BuildContext context) =>
-      _isDark(context) ? AppDarkColors.accent : AppColors.accent;
+  /// Orange for foregrounds (text, icons). Uses the deep orange on light
+  /// surfaces where the bright logo orange would fail contrast.
+  static Color accentOrange(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.accentOrange : AppColors.accentOrangeDeep;
 
   static Color success(BuildContext context) =>
       _isDark(context) ? AppDarkColors.success : AppColors.success;
@@ -382,40 +450,40 @@ class AppTypography {
 
   // ── Headings (Poppins) ──────────────────────────────────────────────────
   static TextStyle headingLarge = GoogleFonts.poppins(
-    fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.black);
+    fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimary);
   static TextStyle headingMedium = GoogleFonts.poppins(
-    fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.black);
+    fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary);
   static TextStyle headingSmall = GoogleFonts.poppins(
-    fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.black);
+    fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary);
   static TextStyle title = GoogleFonts.poppins(
-    fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.black);
+    fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary);
 
   // ── Body text (Inter) ───────────────────────────────────────────────────
   static TextStyle bodyLarge = GoogleFonts.inter(
-    fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.black);
+    fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.textPrimary);
   static TextStyle bodyMedium = GoogleFonts.inter(
-    fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.black);
+    fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.textPrimary);
   static TextStyle bodySmall = GoogleFonts.inter(
-    fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.black);
+    fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary);
 
   // ── Labels (Inter, semi-bold) ───────────────────────────────────────────
   static TextStyle labelLarge = GoogleFonts.inter(
-    fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.black);
+    fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary);
   static TextStyle labelMedium = GoogleFonts.inter(
-    fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.black);
+    fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary);
   static TextStyle labelSmall = GoogleFonts.inter(
-    fontSize: 12, fontWeight: FontWeight.normal, color: AppColors.grey700);
+    fontSize: 12, fontWeight: FontWeight.normal, color: AppColors.textSecondary);
 
   // ── Misc (Inter) ────────────────────────────────────────────────────────
   static TextStyle subtitle = GoogleFonts.inter(
-    fontSize: 16, color: AppColors.grey800);
+    fontSize: 16, color: AppColors.textSecondary);
   static TextStyle caption = GoogleFonts.inter(
-    fontSize: 13, color: AppColors.grey900);
+    fontSize: 13, color: AppColors.textMuted);
   static TextStyle link = GoogleFonts.inter(
-    fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent,
+    fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accentOrangeDeep,
     decoration: TextDecoration.underline);
   static TextStyle navLabel = GoogleFonts.inter(
-    fontSize: 12, color: AppColors.info);
+    fontSize: 12, color: AppColors.textPrimary);
 }
 
 // ---------------------------------------------------------------------------
@@ -478,7 +546,7 @@ class AppDecorations {
   static ButtonStyle primaryButtonStyle({double radius = AppRadii.pill, BuildContext? context}) {
     return ElevatedButton.styleFrom(
       elevation: 0,
-      backgroundColor: context != null ? C.primaryLight(context) : AppColors.primaryLight,
+      backgroundColor: context != null ? C.primaryTint(context) : AppColors.primaryTint,
       foregroundColor: context != null ? C.textPrimary(context) : AppColors.black,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius),

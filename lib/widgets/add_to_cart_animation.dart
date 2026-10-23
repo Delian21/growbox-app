@@ -183,11 +183,11 @@ class _FlyAnimationState extends State<_FlyAnimation>
                 width: widget.sourceSize.width,
                 height: widget.sourceSize.height,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
+                  color: AppColors.primaryTint,
                   borderRadius: BorderRadius.circular(AppRadii.sm),
                   boxShadow: const [
                     BoxShadow(
-                      color: Colors.black26,
+                      color: AppColors.black26,
                       blurRadius: 8,
                       offset: Offset(0, 4),
                     ),
@@ -202,13 +202,13 @@ class _FlyAnimationState extends State<_FlyAnimation>
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => const Center(
                             child: Icon(Icons.shopping_basket_outlined,
-                                color: AppColors.primaryDark, size: 20),
+                                color: AppColors.primary, size: 20),
                           ),
                         ),
                       )
                     : const Center(
                         child: Icon(Icons.shopping_basket_outlined,
-                            color: AppColors.primaryDark, size: 20),
+                            color: AppColors.primary, size: 20),
                       ),
               ),
             ),
@@ -294,12 +294,12 @@ class _AddToCartButtonState extends State<AddToCartButton>
             scale: _scaleAnim.value,
             child: Container(
               decoration: BoxDecoration(
-                color: widget.backgroundColor ?? AppColors.primaryLight,
+                color: widget.backgroundColor ?? AppColors.primaryTint,
                 borderRadius:
                     widget.borderRadius ?? BorderRadius.circular(AppRadii.lg),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryDark
+                    color: AppColors.primary
                         .withValues(alpha: 0.3 * _glowAnim.value),
                     blurRadius: 12 * _glowAnim.value,
                     spreadRadius: 2 * _glowAnim.value,

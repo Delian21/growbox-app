@@ -164,7 +164,7 @@ class _FAQScreenState extends State<FAQScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: AppColors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -194,7 +194,7 @@ class _FAQScreenState extends State<FAQScreen> {
                       height: 28,
                       decoration: BoxDecoration(
                         color: isExpanded
-                            ? AppColors.primaryLight
+                            ? AppColors.primaryTint
                             : C.surfaceLight(context),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -204,7 +204,7 @@ class _FAQScreenState extends State<FAQScreen> {
                             : Icons.keyboard_arrow_down,
                         size: 18,
                         color: isExpanded
-                            ? AppColors.primaryDark
+                            ? AppColors.primary
                             : AppColors.grey600,
                       ),
                     ),
@@ -235,7 +235,7 @@ class _FAQScreenState extends State<FAQScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight.withValues(alpha: 0.3),
+        color: AppColors.primaryTint.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -244,14 +244,14 @@ class _FAQScreenState extends State<FAQScreen> {
           Row(
             children: [
               const Icon(Icons.help_outline,
-                  size: 20, color: AppColors.primaryDark),
+                  size: 20, color: AppColors.primary),
               const SizedBox(width: 10),
               const Text(
                 'Still need help?',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primaryDark,
+                  color: AppColors.primary,
                 ),
               ),
             ],

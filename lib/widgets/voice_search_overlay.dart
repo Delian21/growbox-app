@@ -10,7 +10,7 @@ Future<VoiceIntent?> showVoiceSearch(BuildContext context) async {
   return showModalBottomSheet<VoiceIntent>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: AppColors.transparent,
     builder: (_) => const VoiceSearchOverlay(),
   );
 }
@@ -212,7 +212,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                     style: TextStyle(
                       fontSize: 14,
                       color: _isListening || (_hasResult && _intent?.hasMatch == true)
-                          ? AppColors.primaryDark
+                          ? AppColors.primary
                           : AppColors.grey700,
                     ),
                   ),
@@ -231,7 +231,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                   if (_isProcessing) ...[
                     const SizedBox(height: 24),
                     const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation(AppColors.primaryDark),
+                      valueColor: AlwaysStoppedAnimation(AppColors.primary),
                     ),
                   ],
 
@@ -288,7 +288,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                     size: const Size(160, 160),
                     painter: _WavePainter(
                       progress: _waveController.value,
-                      color: AppColors.primaryLight,
+                      color: AppColors.primaryTint,
                     ),
                   );
                 },
@@ -306,7 +306,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _isListening
-                          ? AppColors.primaryDark
+                          ? AppColors.primary
                           : AppColors.grey200,
                     ),
                   ),
@@ -368,7 +368,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
               height: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(AppColors.primaryDark),
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
               ),
             ),
         ],
@@ -386,7 +386,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: intent.hasMatch ? const Color(0xFFF0FDF4) : const Color(0xFFFEF3C7),
+        color: intent.hasMatch ? AppColors.successSoft : AppColors.warningSoft,
         borderRadius: BorderRadius.circular(AppRadii.md),
         border: Border.all(
           color: intent.hasMatch ? AppColors.success : AppColors.warning,
@@ -418,7 +418,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.primaryTint,
               borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
             child: Text(
@@ -426,7 +426,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryDark,
+                color: AppColors.primary,
               ),
             ),
           ),
@@ -513,7 +513,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                 height: 50,
                 decoration: BoxDecoration(
                   color: _intent!.hasMatch
-                      ? AppColors.primaryDark
+                      ? AppColors.primary
                       : AppColors.grey300,
                   borderRadius: BorderRadius.circular(AppRadii.lg),
                 ),

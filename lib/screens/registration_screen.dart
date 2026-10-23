@@ -210,7 +210,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white24,
+                      color: AppColors.white24,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.arrow_back_ios_new,
@@ -323,7 +323,7 @@ class _StepIndicator extends StatelessWidget {
         // In dark mode the brand primary is too dark to read on the
         // dark surface, so fall back to the brighter dark-theme green.
         final activeColor = C.isDark(context)
-            ? AppDarkColors.primaryDark
+            ? AppDarkColors.primary
             : AppColors.primary;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -418,7 +418,7 @@ class _WelcomeStep extends StatelessWidget {
                 child: Text('Log in',
                     style: AppTypography.labelMedium.copyWith(
                         color: C.isDark(context)
-                            ? AppDarkColors.primaryDark
+                            ? AppDarkColors.primary
                             : AppColors.primary)),
               ),
             ],
@@ -931,7 +931,7 @@ class _EmailConfirmationStep extends StatelessWidget {
           Icon(Icons.mark_email_read_outlined,
               size: 64,
               color: C.isDark(context)
-                  ? AppDarkColors.primaryDark
+                  ? AppDarkColors.primary
                   : AppColors.primary),
           const SizedBox(height: AppSpacing.xxxl + 8),
           SizedBox(
@@ -959,7 +959,7 @@ class _EmailConfirmationStep extends StatelessWidget {
             onTap: isResending ? null : onResend,
             child: Text(
               isResending ? 'Sending...' : 'Resend confirmation email',
-              style: AppTypography.link.copyWith(color: C.accent(context)),
+              style: AppTypography.link.copyWith(color: C.accentOrange(context)),
             ),
           ),
         ],

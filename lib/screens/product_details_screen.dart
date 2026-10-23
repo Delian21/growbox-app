@@ -187,7 +187,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: isCurrentTier ? AppColors.primaryLight : const Color(0xFFF1F1F1),
+                  color: isCurrentTier ? AppColors.primaryTint : AppColors.grey100,
                   borderRadius: BorderRadius.circular(18),
                   border: isCurrentTier ? Border.all(color: AppColors.primary, width: 1.5) : null),
                 child: Row(
@@ -195,7 +195,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   children: [
                     Text('$threshold+', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
                     const SizedBox(width: 4),
-                    Text('-$pctOff%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isCurrentTier ? AppColors.success : const Color(0xFFB45309))),
+                    Text('-$pctOff%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isCurrentTier ? AppColors.success : AppColors.accentOrangeDeep)),
                   ]));
             }).toList()),
         ]),
@@ -209,7 +209,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFFEE2E2),
+            color: AppColors.errorSoft,
             borderRadius: BorderRadius.circular(AppRadii.sm)),
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.error_outline, size: 14, color: AppColors.error),
@@ -221,18 +221,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFFEF3C7),
+            color: AppColors.warningSoft,
             borderRadius: BorderRadius.circular(AppRadii.sm)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.warning_amber, size: 14, color: Color(0xFFB45309)),
+            const Icon(Icons.warning_amber, size: 14, color: AppColors.accentOrangeDeep),
             const SizedBox(width: 4),
             Text('Only $qty left in stock',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB45309)))]));
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accentOrangeDeep))]));
       case StockStatus.inStock:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFDCFCE7),
+            color: AppColors.successSoft,
             borderRadius: BorderRadius.circular(AppRadii.sm)),
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.check_circle_outline, size: 14, color: AppColors.success),
@@ -301,7 +301,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.sm),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.primaryLight : const Color(0xFFF1F1F1),
+                    color: selected ? AppColors.primaryTint : AppColors.grey100,
                     borderRadius: BorderRadius.circular(18)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -313,7 +313,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: mul > 1 ? const Color(0xFFB45309) : AppColors.success)),
+                            color: mul > 1 ? AppColors.accentOrangeDeep : AppColors.success)),
                       ],
                     ])));
             }).toList())),
@@ -513,11 +513,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryDark,
+                                  color: AppColors.primary,
                                   borderRadius: BorderRadius.circular(14),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primaryDark.withValues(alpha: 0.3),
+                                      color: AppColors.primary.withValues(alpha: 0.3),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -526,12 +526,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.shopping_bag_outlined, size: 20, color: Colors.white),
+                                    const Icon(Icons.shopping_bag_outlined, size: 20, color: AppColors.white),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Add to Box — ₦${formatPrice(_totalPrice)}',
                                       style: const TextStyle(
-                                        fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                                        fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.white),
                                     ),
                                   ],
                                 ),
@@ -572,11 +572,11 @@ class _BundleOption extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : const Color(0xFFF5F5F5),
+          color: isSelected ? AppColors.primaryTint : AppColors.grey100,
           borderRadius: BorderRadius.circular(12),
           border: isSelected
             ? Border.all(color: AppColors.primary, width: 1.5)
-            : Border.all(color: const Color(0xFFE0E0E0), width: 1),
+            : Border.all(color: AppColors.grey300, width: 1),
         ),
         child: Row(
           children: [

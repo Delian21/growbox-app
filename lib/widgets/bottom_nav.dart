@@ -207,31 +207,31 @@ class _BottomNavState extends State<BottomNav>
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [
-                          const Color(0xCC1E1E1E),
-                          const Color(0xAA252525),
+                          AppDarkColors.surface.withValues(alpha: 0.8),
+                          AppDarkColors.surfaceLight.withValues(alpha: 0.67),
                         ]
                       : [
-                          const Color(0xF0FFFFFF),
-                          const Color(0xE6F5F5F0),
+                          AppColors.white.withValues(alpha: 0.94),
+                          AppColors.background.withValues(alpha: 0.9),
                         ],
                 ),
                 border: Border.all(
                   color: isDark
-                      ? const Color(0x33FFFFFF)
-                      : const Color(0x22000000),
+                      ? AppColors.white.withValues(alpha: 0.2)
+                      : AppColors.black.withValues(alpha: 0.13),
                   width: 0.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0x14000000),
+                    color: AppColors.black.withValues(alpha: 0.08),
                     blurRadius: 24,
                     offset: const Offset(0, 8),
                     spreadRadius: 0,
                   ),
                   BoxShadow(
                     color: isDark
-                        ? const Color(0x1A3EC930)
-                        : const Color(0x1A1C4815),
+                        ? AppDarkColors.primary.withValues(alpha: 0.1)
+                        : AppColors.primary.withValues(alpha: 0.1),
                     blurRadius: 20,
                     offset: const Offset(0, 4),
                     spreadRadius: -4,
@@ -259,19 +259,19 @@ class _BottomNavState extends State<BottomNav>
                               end: Alignment.bottomRight,
                               colors: isDark
                                   ? [
-                                      const Color(0xFF1A3D15),
-                                      const Color(0xFF2D6B22),
+                                      AppDarkColors.surfaceDark,
+                                      AppDarkColors.primaryTint,
                                     ]
                                   : [
-                                      AppColors.primaryLight,
-                                      const Color(0xFFB4F5A5),
+                                      AppColors.primaryTint,
+                                      AppColors.primaryTint.withValues(alpha: 0.72),
                                     ],
                             ),
                             boxShadow: [
                               BoxShadow(
                                 color: isDark
-                                    ? const Color(0x403EC930)
-                                    : const Color(0x331C4815),
+                                    ? AppDarkColors.primary.withValues(alpha: 0.25)
+                                    : AppColors.primary.withValues(alpha: 0.2),
                                 blurRadius: 10,
                                 offset: const Offset(0, 3),
                               ),
@@ -324,9 +324,9 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     // On the dark-green pill the active icon/label must be white for
     // contrast; in light mode the brand green reads on the pale tile.
-    final activeColor = isDark ? Colors.white : AppColors.primary;
-    const inactiveColor = Color(0xFF666666);
-    final darkInactive = const Color(0xFF999999);
+    final activeColor = isDark ? AppColors.white : AppColors.primary;
+    const inactiveColor = AppColors.grey800;
+    final darkInactive = AppDarkColors.textMuted;
     final iconColor = isActive
         ? activeColor
         : (isDark ? darkInactive : inactiveColor);
@@ -372,11 +372,11 @@ class _NavItem extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFDC2626),
+                          color: AppColors.error,
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: const [
+                          boxShadow: [
                             BoxShadow(
-                              color: Color(0x33DC2626),
+                              color: AppColors.error.withValues(alpha: 0.2),
                               blurRadius: 4,
                               offset: Offset(0, 1),
                             ),
@@ -387,7 +387,7 @@ class _NavItem extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AppColors.white,
                             height: 1.1,
                           ),
                         ),
@@ -404,7 +404,7 @@ class _NavItem extends StatelessWidget {
                   fontSize: isActive ? 11 : 10,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                   color: isActive
-                      ? (isDark ? Colors.white : AppColors.primary)
+                      ? (isDark ? AppColors.white : AppColors.primary)
                       : (isDark ? darkInactive : inactiveColor),
                   height: 1.0,
                 ),

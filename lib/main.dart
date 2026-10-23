@@ -87,7 +87,7 @@ class _GrowboxAppState extends State<GrowboxApp> {
                 seedColor: AppColors.primary,
                 brightness: Brightness.light,
               ),
-              scaffoldBackgroundColor: AppColors.white,
+              scaffoldBackgroundColor: AppColors.background,
               textTheme: GoogleFonts.interTextTheme(
                 lightTextBase,
               ).copyWith(

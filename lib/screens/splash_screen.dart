@@ -214,7 +214,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     fontWeight: FontWeight.bold,
                                     shadows: [
                                       Shadow(
-                                        color: Colors.black.withValues(alpha: 0.3),
+                                        color: AppColors.black.withValues(alpha: 0.3),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -242,7 +242,7 @@ class _SplashScreenState extends State<SplashScreen>
                       'Fresh produce, delivered to your door',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: AppColors.white.withValues(alpha: 0.9),
                         fontSize: 16,
                         fontWeight: FontWeight.w400,
                         height: 1.4,
@@ -266,7 +266,7 @@ class _SplashScreenState extends State<SplashScreen>
                         'Powered by',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: AppColors.white70,
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                         ),
@@ -276,7 +276,7 @@ class _SplashScreenState extends State<SplashScreen>
                         'Universal Integrated Agricultural Network Ltd',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),

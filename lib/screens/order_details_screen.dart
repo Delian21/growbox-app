@@ -232,7 +232,7 @@ class OrderDetailsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -254,15 +254,15 @@ class OrderDetailsScreen extends StatelessWidget {
                       fit: BoxFit.cover,
                       scrim: kProductImageScrim,
                       errorWidget: Container(
-                        color: AppColors.primaryLight,
+                        color: AppColors.primaryTint,
                         child: const Icon(Icons.eco_outlined,
-                            color: AppColors.primaryDark, size: 24),
+                            color: AppColors.primary, size: 24),
                       ),
                     )
                   : Container(
-                      color: AppColors.primaryLight,
+                      color: AppColors.primaryTint,
                       child: const Icon(Icons.eco_outlined,
-                          color: AppColors.primaryDark, size: 24),
+                          color: AppColors.primary, size: 24),
                     ),
             ),
           ),
@@ -299,7 +299,7 @@ class OrderDetailsScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: AppColors.primaryDark,
+              color: C.accentOrange(context),
             ),
           ),
         ],
@@ -316,7 +316,7 @@ class OrderDetailsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -328,11 +328,11 @@ class OrderDetailsScreen extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.primaryTint,
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.location_on_outlined,
-                size: 20, color: AppColors.primaryDark),
+                size: 20, color: AppColors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -377,7 +377,7 @@ class OrderDetailsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -390,10 +390,10 @@ class OrderDetailsScreen extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: isPaid
-                  ? const Color(0xFFDCFCE7)
+                  ? AppColors.successSoft
                   : isPending
-                      ? const Color(0xFFFEF3C7)
-                      : const Color(0xFFFEE2E2),
+                      ? AppColors.warningSoft
+                      : AppColors.errorSoft,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -406,7 +406,7 @@ class OrderDetailsScreen extends StatelessWidget {
               color: isPaid
                   ? AppColors.success
                   : isPending
-                      ? const Color(0xFFB45309)
+                      ? AppColors.accentOrangeDeep
                       : AppColors.error,
             ),
           ),
@@ -433,7 +433,7 @@ class OrderDetailsScreen extends StatelessWidget {
               color: isPaid
                   ? AppColors.success
                   : isPending
-                      ? const Color(0xFFB45309)
+                      ? AppColors.accentOrangeDeep
                       : AppColors.error,
             ),
           ),
@@ -451,7 +451,7 @@ class OrderDetailsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -488,7 +488,7 @@ class OrderDetailsScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: bold ? 16 : 14,
             fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-            color: bold ? AppColors.primaryDark : AppColors.black,
+            color: bold ? AppColors.primary : AppColors.black,
           ),
         ),
       ],
@@ -510,11 +510,11 @@ class OrderDetailsScreen extends StatelessWidget {
         width: double.infinity,
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.primaryDark,
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryDark.withValues(alpha: 0.3),
+              color: AppColors.primary.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -523,9 +523,9 @@ class OrderDetailsScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(Icons.local_shipping_outlined, size: 20, color: Colors.white),
+            Icon(Icons.local_shipping_outlined, size: 20, color: AppColors.white),
             SizedBox(width: 10),
-            Text('Track Delivery', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text('Track Delivery', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.white)),
           ],
         ),
       ),
@@ -562,7 +562,7 @@ class OrderDetailsScreen extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content:
                 Text('$added item${added == 1 ? '' : 's'} added to your box'),
-            backgroundColor: AppColors.primaryDark,
+            backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -592,20 +592,20 @@ class OrderDetailsScreen extends StatelessWidget {
         width: double.infinity,
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.primaryLight,
+          color: AppColors.primaryTint,
           borderRadius: BorderRadius.circular(14),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.replay, size: 20, color: AppColors.primaryDark),
+            Icon(Icons.replay, size: 20, color: AppColors.primary),
             SizedBox(width: 10),
             Text(
               'Reorder All Items',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark,
+                color: AppColors.primary,
               ),
             ),
           ],
