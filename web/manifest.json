@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "GROWBOX — grocery delivery app for consumers, built with Flutter (Material 3).",
+    "description": "Your weekly shop, delivered fresh to your door.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
