@@ -5,6 +5,7 @@ import '../widgets/animated_entrance.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/vendor_card.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
 import 'location_screen.dart';
@@ -123,8 +124,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           MaterialPageRoute(builder: (_) => const MenuScreen()),
                         ),
                       ),
+                      // The list owns its bottom inset so the final card and
+                      // the end-of-list note clear the floating nav bar.
                       _buildVendorList(screenWidth),
-                      const SizedBox(height: 120),
                     ],
                   ),
                 ),
@@ -388,160 +390,97 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildVendorList(double screenWidth) {
+    final vendors = MockVendors.vendors;
+    const deliveryTimes = [
+      '25-35 min',
+      '30-40 min',
+      '20-30 min',
+      '35-45 min',
+      '25-40 min',
+      '30-35 min',
+    ];
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: MockVendors.vendors.length,
+      // Clears the floating nav bar and closes the list off visually.
+      padding: const EdgeInsets.only(bottom: 96),
+      itemCount: vendors.length + 1,
       itemBuilder: (context, index) {
-        final vendor = MockVendors.vendors[index];
+        if (index == vendors.length) return const _EndOfList();
+
+        final vendor = vendors[index];
         final name = vendor['name'] as String;
         final image = vendor['image'] as String;
-        final rating = vendor['rating'] as double;
-        final percentage = vendor['percentage'] as String;
+        final categories = vendor['categories'] as List<String>;
         final products = vendor['products'] as List<VendorProduct>;
-
-        final deliveryTimes = ['25-35 min', '30-40 min', '20-30 min', '35-45 min', '25-40 min', '30-35 min'];
-        final deliveryFees = ['₦500', '₦300', '₦800', '₦400', '₦500', '₦350'];
+        final rating = vendor['rating'] as double;
+        final deliveryFee = (vendor['deliveryFee'] as int?) ?? 0;
         final deliveryTime = deliveryTimes[index % deliveryTimes.length];
-        final deliveryFee = deliveryFees[index % deliveryFees.length];
 
         return AnimatedEntrance(
           index: index,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
+            child: VendorCard(
+              name: name,
+              image: image,
+              categories: categories,
+              deliveryTime: deliveryTime,
+              ratingPercentage: rating,
+              deliveryFee: deliveryFee,
+              onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => VendorScreen(
                     vendorName: name,
                     vendorCoverImage: image,
                     vendorLogoImage: image,
-                    categories: vendor['categories'] as List<String>,
+                    categories: categories,
                     initialOpen: true,
                     products: products,
                   ),
                 ),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: C.surface(context),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Vendor image
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 140,
-                      child: SkeletonImage(
-                        imageUrl: image,
-                        width: double.infinity,
-                        height: 140,
-                        fit: BoxFit.cover,
-                        errorWidget: Container(
-                          color: C.shimmer(context),
-                          child: Center(
-                            child: Icon(Icons.storefront_outlined,
-                                color: C.textMuted(context), size: 40),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Vendor info
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                name,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: C.textPrimary(context),
-                                ),
-                              ),
-                            ),
-                            if (percentage.isNotEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryTint,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '$percentage liked',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(Icons.access_time,
-                                size: 14, color: C.textMuted(context)),
-                            const SizedBox(width: 4),
-                            Text(
-                              deliveryTime,
-                              style: TextStyle(
-                                  fontSize: 12, color: C.textMuted(context)),
-                            ),
-                            const SizedBox(width: 12),
-                            Icon(Icons.delivery_dining,
-                                size: 14, color: C.textMuted(context)),
-                            const SizedBox(width: 4),
-                            Text(
-                              deliveryFee,
-                              style: TextStyle(
-                                  fontSize: 12, color: C.textMuted(context)),
-                            ),
-                            if (rating > 0) ...[
-                              const SizedBox(width: 12),
-                              const Icon(Icons.star,
-                                  size: 14, color: AppColors.gold),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${rating.round()}%',
-                                style: const TextStyle(
-                                    fontSize: 12, color: AppColors.gold),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
-        ),
         );
       },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// END OF LIST
+
+/// Closes the vendor feed so the scroll doesn't end on a bare card.
+class _EndOfList extends StatelessWidget {
+  const _EndOfList();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.check_circle_outline,
+              size: 18, color: C.textMuted(context)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            "That's every vendor nearby — more joining soon.",
+            textAlign: TextAlign.center,
+            style: AppTypography.bodySmall.copyWith(color: C.textMuted(context)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -559,6 +498,15 @@ class _AddressBar extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        // Solid, then a hairline rule: the feed scrolls immediately below
+        // this bar, so without them images appeared to slide under a floating
+        // transparent header.
+        decoration: BoxDecoration(
+          color: C.surface(context),
+          border: Border(
+            bottom: BorderSide(color: C.divider(context), width: 1),
+          ),
+        ),
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg, vertical: 12),
         child: Row(

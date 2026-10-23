@@ -202,6 +202,7 @@ class MockVendors {
       'reviews': '(21)',
       'price': 2550.0,
       'rating': 84.0,
+      'deliveryFee': 500,
       'searchProducts': [
         'Rice',
         'Millet',
@@ -273,6 +274,7 @@ class MockVendors {
       'reviews': '',
       'price': 2500.0,
       'rating': 0.0,
+      'deliveryFee': 0,
       'searchProducts': ['Tomatoes', 'Fruits', 'Vegetables'],
       'categories': ['Fruits', 'Vegetables'],
       'products': [
@@ -310,6 +312,7 @@ class MockVendors {
       'reviews': '(12)',
       'price': 3000.0,
       'rating': 92.0,
+      'deliveryFee': 300,
       'searchProducts': ['Fresh Produce', 'Fruits', 'Meat', 'Vegetables'],
       'categories': ['Fruits', 'Vegetables', 'Meat'],
       'products': [
@@ -348,6 +351,7 @@ class MockVendors {
       'reviews': '(54)',
       'price': 3500.0,
       'rating': 100.0,
+      'deliveryFee': 800,
       'searchProducts': ['Fresh Apples', 'Fruits', 'Vegetables'],
       'categories': ['Fruits', 'Vegetables'],
       'products': [
@@ -405,6 +409,7 @@ class MockVendors {
       'reviews': '',
       'price': 2800.0,
       'rating': 0.0,
+      'deliveryFee': 400,
       'searchProducts': ['Fresh Vegetables', 'Vegetables', 'Fruits', 'Herbs'],
       'categories': ['Vegetables', 'Fruits', 'Herbs'],
       'products': [
@@ -483,6 +488,7 @@ class MockVendors {
       'reviews': '',
       'price': 2700.0,
       'rating': 0.0,
+      'deliveryFee': 500,
       'searchProducts': ['Maize', 'Grains', 'Cereals', 'Legumes'],
       'categories': ['Grains', 'Cereals', 'Legumes'],
       'products': [
@@ -520,6 +526,7 @@ class MockVendors {
       'reviews': '(18)',
       'price': 4000.0,
       'rating': 95.0,
+      'deliveryFee': 350,
       'searchProducts': [
         'Palm Oil',
         'Groundnut Oil',
