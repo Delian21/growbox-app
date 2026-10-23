@@ -13,6 +13,12 @@ import 'widgets/page_transitions.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Any widget that fails to build (the map platform view is the usual
+  // suspect when the Maps JavaScript key is missing on web) would otherwise
+  // paint Flutter's stock grey "Sorry! Something went wrong" panel. Swap it
+  // for an on-brand state so a failure never looks like a broken app.
+  ErrorWidget.builder = (FlutterErrorDetails details) => const BrandedErrorView();
+
   // Seed mock purchase history for Buy Again + personalisation.
   seedPurchaseHistory();
   StockTracker.seed();
@@ -163,6 +169,62 @@ class _GrowboxAppState extends State<GrowboxApp> {
           ),
         );
         },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Error fallback
+// ---------------------------------------------------------------------------
+
+/// On-brand replacement for Flutter's default error panel.
+///
+/// Deliberately dependency-free: no GoogleFonts, no Theme lookup, no Material
+/// ancestors. An error widget runs in a broken subtree, so anything it needs
+/// from its surroundings may itself be the thing that failed.
+class BrandedErrorView extends StatelessWidget {
+  const BrandedErrorView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Container(
+        color: AppColors.errorSoft,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 28,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Something went wrong',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            const Text(
+              'This part could not load. Try again in a moment.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textMuted,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
