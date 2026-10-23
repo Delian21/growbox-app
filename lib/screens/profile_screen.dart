@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../data/mock_data.dart';
 import 'account_screen.dart';
 import 'favorites_screen.dart';
@@ -236,7 +237,10 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 100),
+              // Clears the floating nav bar.
+              SizedBox(
+                height: BottomNavMetrics.contentInset(context),
+              ),
             ],
           ),
         ),

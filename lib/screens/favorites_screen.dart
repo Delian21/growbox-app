@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/mock_data.dart';
 import 'vendor_screen.dart';
@@ -64,7 +65,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ? _buildEmptyState()
                   : ListView.builder(
                       physics: BouncingScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(hp, 0, hp, 30),
+                      padding: EdgeInsets.fromLTRB(
+                        hp,
+                        0,
+                        hp,
+                        BottomNavMetrics.contentInset(context),
+                      ),
                       itemCount: favorites.length,
                       itemBuilder: (context, index) {
                         final favorite = favorites[index];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/micro_interactions.dart';
 
 /// Screen for managing saved delivery addresses.
@@ -92,11 +93,11 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                   ? _buildEmptyState(context)
                   : ListView.separated(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(
+                      padding: EdgeInsets.fromLTRB(
                         AppSpacing.lg,
                         0,
                         AppSpacing.lg,
-                        30,
+                        BottomNavMetrics.contentInset(context),
                       ),
                       itemCount: savedAddresses.length,
                       separatorBuilder: (_, _)

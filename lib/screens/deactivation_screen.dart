@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 
 class DeactivationScreen extends StatefulWidget {
     const DeactivationScreen({super.key});
@@ -77,7 +78,13 @@ class _DeactivationScreenState extends State<DeactivationScreen> {
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(26, 40, 26, 20),
+                  padding: EdgeInsets.fromLTRB(
+                    26,
+                    40,
+                    26,
+                    // Clears the floating nav bar.
+                    BottomNavMetrics.contentInset(context),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/animated_entrance.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -86,7 +87,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(hp, 0, hp, 30),
+                padding: EdgeInsets.fromLTRB(
+                  hp,
+                  0,
+                  hp,
+                  BottomNavMetrics.contentInset(context),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

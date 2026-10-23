@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../data/mock_data.dart';
 import 'change_email_screen.dart';
 import 'change_phone_screen.dart';
@@ -64,7 +65,10 @@ class AccountScreen extends StatelessWidget {
                       icon: Icons.privacy_tip_outlined, title: 'Manage Privacy',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => ManagePrivacyScreen()))),
-                    SizedBox(height: MediaQuery.sizeOf(context).height * 0.03),
+                    // Clears the floating nav bar.
+                    SizedBox(
+                      height: BottomNavMetrics.contentInset(context),
+                    ),
                   ],
                 ),
               ),

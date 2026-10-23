@@ -5,13 +5,14 @@ import '../widgets/animated_entrance.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/vendor_card.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../routes.dart';
 import 'location_screen.dart';
 import 'menu_screen.dart';
 import 'vendor_screen.dart';
-import 'search_screen.dart';
 import 'category_vendors_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -95,14 +96,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const SizedBox(height: AppSpacing.lg),
                       // ── Search Bar ──────────────────────────────
-                      _SearchBar(onTap: () {
-                        Navigator.push(
+                      // Opens the Search tab (not a pushed copy of it), so the
+                      // nav highlights Search and its field takes focus.
+                      _SearchBar(
+                        onTap: () => AppRoutes.pushReplaceAll(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const SearchScreen(),
-                          ),
-                        );
-                      }),
+                          AppRoutes.search,
+                        ),
+                      ),
                       const SizedBox(height: AppSpacing.xxl),
                       // ── Category Chips ──────────────────────────
                       _buildCategoryChips(screenWidth),
@@ -404,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       // Clears the floating nav bar and closes the list off visually.
-      padding: const EdgeInsets.only(bottom: 96),
+      padding: EdgeInsets.only(bottom: BottomNavMetrics.contentInset(context)),
       itemCount: vendors.length + 1,
       itemBuilder: (context, index) {
         if (index == vendors.length) return const _EndOfList();

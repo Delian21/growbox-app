@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../screens/home_screen.dart';
 
 class LocationScreen extends StatefulWidget {
@@ -593,7 +594,8 @@ class _LocationScreenState extends State<LocationScreen> {
                 Positioned(
                   left: horizontalPadding,
                   right: horizontalPadding,
-                  bottom: AppSpacing.md,
+                  // Sits above the floating nav instead of under it.
+                  bottom: BottomNavMetrics.contentInset(context),
                   child: GestureDetector(
                     onTap: _openAddressSheet,
                     child: Container(

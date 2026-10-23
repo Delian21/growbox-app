@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/animated_entrance.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/micro_interactions.dart';
 import '../data/mock_data.dart';
 import 'vendor_screen.dart';
@@ -193,6 +194,8 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildIdleState(double screenWidth, double screenHeight) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
+      // Clears the floating nav bar.
+      padding: EdgeInsets.only(bottom: BottomNavMetrics.contentInset(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -328,7 +331,10 @@ class _SearchScreenState extends State<SearchScreen> {
   // ── Results ────────────────────────────────────────────────────────
   Widget _buildResults(double screenWidth) {
     return ListView(
-      padding: const EdgeInsets.only(top: AppSpacing.lg, bottom: 100),
+      padding: EdgeInsets.only(
+        top: AppSpacing.lg,
+        bottom: BottomNavMetrics.contentInset(context),
+      ),
       children: [
         if (_matchedProducts.isNotEmpty) ...[
           Text('${_matchedProducts.length} product${_matchedProducts.length == 1 ? '' : 's'} found',

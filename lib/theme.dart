@@ -412,6 +412,13 @@ class C {
   static Color primaryTint(BuildContext context) =>
       _isDark(context) ? AppDarkColors.primaryTint : AppColors.primaryTint;
 
+  /// Foreground for content painted on top of [primary].
+  ///
+  /// The light primary is deep green (white is 10.6:1 on it); the dark primary
+  /// is lifted green, where white would be only 1.7:1 — near-black is 10.3:1.
+  static Color onPrimary(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.background : AppColors.white;
+
   /// Orange for foregrounds (text, icons). Uses the deep orange on light
   /// surfaces where the bright logo orange would fail contrast.
   static Color accentOrange(BuildContext context) =>

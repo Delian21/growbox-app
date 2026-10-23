@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/animated_entrance.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
@@ -184,6 +185,10 @@ class _MenuScreenState extends State<MenuScreen> {
         bottom: false,
         child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
+                // Clears the floating nav bar.
+                padding: EdgeInsets.only(
+                  bottom: BottomNavMetrics.contentInset(context),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

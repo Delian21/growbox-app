@@ -5,6 +5,41 @@ import '../theme.dart';
 import 'micro_interactions.dart';
 
 // ---------------------------------------------------------------------------
+// Layout metrics
+// ---------------------------------------------------------------------------
+
+/// Shared measurements for the floating bottom nav.
+///
+/// The bar floats over the page content instead of taking a slice out of it,
+/// so every scrollable that renders inside [ScaffoldWithNav] needs to reserve
+/// [contentInset] at its end. Keeping the numbers here means the bar and the
+/// padding that clears it can never drift apart.
+class BottomNavMetrics {
+  BottomNavMetrics._();
+
+  /// Height of the pill itself, excluding the margin below it.
+  static const double barHeight = 72;
+
+  /// Gap between the pill and the bottom safe area.
+  static const double barMargin = AppSpacing.md;
+
+  /// Side inset of the pill from the screen edge.
+  static const double barHorizontalPadding = AppSpacing.xxl;
+
+  /// System gesture/nav inset that the pill must sit above.
+  static double safeInset(BuildContext context) =>
+      MediaQuery.paddingOf(context).bottom;
+
+  /// Vertical space the pill occupies, measured from the bottom of the screen.
+  static double reserved(BuildContext context) =>
+      barHeight + barMargin + safeInset(context);
+
+  /// Bottom padding a scrollable needs so its last row clears the pill.
+  static double contentInset(BuildContext context) =>
+      reserved(context) + AppSpacing.md;
+}
+
+// ---------------------------------------------------------------------------
 // Data Model
 // ---------------------------------------------------------------------------
 
@@ -36,10 +71,10 @@ class BottomNavItem {
 /// Features:
 ///   - Floating pill shape with rounded corners (not flush to screen edge)
 ///   - Frosted-glass translucency via BackdropFilter + gradient overlay
-///   - Spring-bounce indicator that overshoots and settles behind the active tab
-///   - Active icon gets a soft gradient pill background + glow
-///   - Labels always visible; active label is bold & green
-///   - Optional badge counter (e.g. cart item count)
+///   - Solid primary-green indicator that slides between tabs (200 ms easeOut)
+///   - Active icon and label in the colour that reads on the green fill
+///   - Labels always visible; inactive labels use the muted text token
+///   - Optional badge counter (e.g. cart item count) with a tap-in bounce
 ///   - Full dark-mode support via the C.* theme tokens
 class BottomNav extends StatefulWidget {
   final List<BottomNavItem> items;
@@ -104,78 +139,21 @@ class BottomNav extends StatefulWidget {
   State<BottomNav> createState() => _BottomNavState();
 }
 
-class _BottomNavState extends State<BottomNav>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _indicatorController;
-  late Animation<double> _indicatorAnim;
-  @override
-  void initState() {
-    super.initState();
-    _indicatorController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    // Start at position 0; didChangeDependencies will set the real position
-    _indicatorAnim = const AlwaysStoppedAnimation(0);
-  }
+class _BottomNavState extends State<BottomNav> {
+  /// How long the green indicator takes to travel between tabs.
+  static const Duration _indicatorDuration = Duration(milliseconds: 200);
 
-  bool _didInitPosition = false;
+  /// Breathing room between the indicator and the pill's rounded edge.
+  static const EdgeInsets _indicatorPadding =
+      EdgeInsets.symmetric(horizontal: 6, vertical: AppSpacing.sm);
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_didInitPosition) {
-      _didInitPosition = true;
-      final start = _targetLeft(widget.activeIndex.clamp(0, widget.items.length - 1));
-      _indicatorAnim = AlwaysStoppedAnimation(start);
-      // Trigger a rebuild so the indicator renders at the correct position
-      setState(() {});
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant BottomNav oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.activeIndex != oldWidget.activeIndex) {
-      _animateIndicator(oldWidget.activeIndex, widget.activeIndex);
-    }
-  }
-
-  @override
-  void dispose() {
-    _indicatorController.dispose();
-    super.dispose();
-  }
-
-  double _targetLeft(int index) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final barWidth = (screenWidth * 0.88).clamp(280.0, 420.0);
-    final itemWidth = barWidth / widget.items.length;
-    return itemWidth * index + (itemWidth - 52) / 2;
-  }
-
-  void _animateIndicator(int from, int to) {
-    final screenSize = MediaQuery.sizeOf(context);
-    final barWidth = (screenSize.width * 0.88).clamp(280.0, 420.0);
-    final itemWidth = barWidth / widget.items.length;
-    final fromLeft = itemWidth * from.clamp(0, widget.items.length - 1) +
-        (itemWidth - 52) / 2;
-    final toLeft = itemWidth * to.clamp(0, widget.items.length - 1) +
-        (itemWidth - 52) / 2;
-
-    _indicatorAnim = Tween<double>(
-      begin: fromLeft,
-      end: toLeft,
-    ).animate(
-      CurvedAnimation(
-        parent: _indicatorController,
-        curve: Curves.easeOutBack,
-      ),
-    );
-
-    _indicatorController
-      ..reset()
-      ..forward();
+  /// Fractional position for [AnimatedAlign]: item 0 sits at -1 (left edge),
+  /// the last item at +1 (right edge), so the indicator is centred on the
+  /// tab without any manual pixel maths.
+  Alignment _indicatorAlignment(int index) {
+    final count = widget.items.length;
+    if (count <= 1) return Alignment.center;
+    return Alignment(2 * index / (count - 1) - 1, 0);
   }
 
   @override
@@ -183,125 +161,114 @@ class _BottomNavState extends State<BottomNav>
     final isDark = C.isDark(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
 
-    // Sizing – percentage-based so the pill scales with screen width
+    // Sizing – percentage-based so the pill scales with screen width.
     final barWidth = (screenWidth * 0.88).clamp(280.0, 420.0);
-    const barHeight = 72.0;
+    final activeIndex = widget.activeIndex;
+    final hasActive = activeIndex >= 0 && activeIndex < widget.items.length;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: SizedBox(
-        height: barHeight + 20, // extra room for the float + shadow
-        child: Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(barHeight / 2),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                width: barWidth,
-                height: barHeight,
-                clipBehavior: Clip.hardEdge,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(barHeight / 2),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark
-                      ? [
-                          AppDarkColors.surface.withValues(alpha: 0.8),
-                          AppDarkColors.surfaceLight.withValues(alpha: 0.67),
-                        ]
-                      : [
-                          AppColors.white.withValues(alpha: 0.94),
-                          AppColors.background.withValues(alpha: 0.9),
-                        ],
-                ),
-                border: Border.all(
-                  color: isDark
-                      ? AppColors.white.withValues(alpha: 0.2)
-                      : AppColors.black.withValues(alpha: 0.13),
-                  width: 0.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: isDark
-                        ? AppDarkColors.primary.withValues(alpha: 0.1)
-                        : AppColors.primary.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
-                    spreadRadius: -4,
-                  ),
-                ],
-              ),
-              child: Stack(
-                clipBehavior: Clip.hardEdge,
-                children: [
-                  // Sliding indicator pill with spring bounce
-                  AnimatedBuilder(
-                    animation: _indicatorAnim,
-                    builder: (context, _) {
-                      final maxLeft = barWidth - 52.0;
-                      return Positioned(
-                        left: _indicatorAnim.value.clamp(0.0, maxLeft),
-                        top: (barHeight - 52) / 2,
-                        width: 52,
-                        height: 52,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: isDark
-                                  ? [
-                                      AppDarkColors.surfaceDark,
-                                      AppDarkColors.primaryTint,
-                                    ]
-                                  : [
-                                      AppColors.primaryTint,
-                                      AppColors.primaryTint.withValues(alpha: 0.72),
-                                    ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: isDark
-                                    ? AppDarkColors.primary.withValues(alpha: 0.25)
-                                    : AppColors.primary.withValues(alpha: 0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          BottomNavMetrics.barHorizontalPadding,
+          0,
+          BottomNavMetrics.barHorizontalPadding,
+          BottomNavMetrics.barMargin,
+        ),
+        child: SizedBox(
+          height: BottomNavMetrics.barHeight,
+          child: Center(
+            child: SizedBox(
+              width: barWidth,
+              height: BottomNavMetrics.barHeight,
+              child: ClipRRect(
+                borderRadius:
+                    BorderRadius.circular(BottomNavMetrics.barHeight / 2),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(BottomNavMetrics.barHeight / 2),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isDark
+                            ? [
+                                AppDarkColors.surface.withValues(alpha: 0.8),
+                                AppDarkColors.surfaceLight.withValues(alpha: 0.67),
+                              ]
+                            : [
+                                AppColors.white.withValues(alpha: 0.94),
+                                AppColors.background.withValues(alpha: 0.9),
+                              ],
+                      ),
+                      // 1px surface hairline: separates the pill from the page
+                      // in both themes (a 13%-black hairline vanished on dark).
+                      border: Border.all(
+                        color: C.surfaceLighter(context),
+                        width: 1,
+                      ),
+                      boxShadow: AppNeumorphic.floatShadows(context),
+                    ),
+                    child: ClipRRect(
+                      borderRadius:
+                          BorderRadius.circular(BottomNavMetrics.barHeight / 2),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final cellWidth =
+                              constraints.maxWidth / widget.items.length;
+                          return Stack(
+                            children: [
+                              // Sliding indicator: a solid green pill that
+                              // animates to the active tab.
+                              if (hasActive)
+                                Positioned.fill(
+                                  child: AnimatedAlign(
+                                    duration: _indicatorDuration,
+                                    curve: Curves.easeOut,
+                                    alignment: _indicatorAlignment(activeIndex),
+                                    child: SizedBox(
+                                      width: cellWidth,
+                                      height: BottomNavMetrics.barHeight,
+                                      child: Padding(
+                                        padding: _indicatorPadding,
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            color: C.primary(context),
+                                            borderRadius: BorderRadius.circular(
+                                                AppRadii.pill),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              // Nav items row – Expanded guarantees equal split.
+                              Row(
+                                children: List.generate(
+                                  widget.items.length,
+                                  (index) => Expanded(
+                                    child: _NavItem(
+                                      item: widget.items[index],
+                                      isActive: index == activeIndex,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
-                          ),
-                        ),
-                      );
-                    },
+                          );
+                        },
+                      ),
+                    ),
                   ),
-
-                  // Nav items row – Expanded guarantees equal split, no overflow
-                  Row(
-                    children: List.generate(widget.items.length, (index) {
-                      return Expanded(
-                        child: _NavItem(
-                          item: widget.items[index],
-                          isActive: index == widget.activeIndex,
-                          isDark: isDark,
-                        ),
-                      );
-                    }),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -309,33 +276,76 @@ class _BottomNavState extends State<BottomNav>
 // Individual Nav Item
 // ---------------------------------------------------------------------------
 
-class _NavItem extends StatelessWidget {
+class _NavItem extends StatefulWidget {
   final BottomNavItem item;
   final bool isActive;
-  final bool isDark;
 
   const _NavItem({
     required this.item,
     required this.isActive,
-    required this.isDark,
   });
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem>
+    with SingleTickerProviderStateMixin {
+  /// Small pop when the badge count grows (adding something to the cart).
+  late final AnimationController _badgeBounce;
+  late final Animation<double> _badgeScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _badgeBounce = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _badgeScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1, end: 1.22)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.22, end: 1)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 55,
+      ),
+    ]).animate(_badgeBounce);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NavItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.badgeCount > oldWidget.item.badgeCount) {
+      _badgeBounce.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _badgeBounce.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // On the dark-green pill the active icon/label must be white for
-    // contrast; in light mode the brand green reads on the pale tile.
-    final activeColor = isDark ? AppColors.white : AppColors.primary;
-    const inactiveColor = AppColors.grey800;
-    final darkInactive = AppDarkColors.textMuted;
-    final iconColor = isActive
-        ? activeColor
-        : (isDark ? darkInactive : inactiveColor);
+    final isActive = widget.isActive;
+
+    // Active content sits on the solid primary fill, so it uses the token that
+    // is legible on primary (white on the deep green, near-black on the lifted
+    // green). Inactive content uses the muted text token.
+    final activeColor = C.onPrimary(context);
+    final inactiveColor = C.textMuted(context);
+    final foreground = isActive ? activeColor : inactiveColor;
 
     return TapFeedback(
-      onTap: item.onTap != null
+      onTap: widget.item.onTap != null
           ? () {
-              HapticFeedback.lightImpact();
-              item.onTap!();
+              HapticFeedback.selectionClick();
+              widget.item.onTap!();
             }
           : null,
       child: SizedBox(
@@ -344,71 +354,75 @@ class _NavItem extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon with badge – smooth scale transition on active
+              // Icon with badge – pops when the count grows.
               AnimatedScale(
-                scale: isActive ? 1.15 : 1.0,
+                scale: isActive ? 1.1 : 1.0,
                 duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOutBack,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(
-                        item.icon,
-                        key: ValueKey('${item.label}_$isActive'),
-                        size: 22,
-                        color: iconColor,
+                curve: Curves.easeOut,
+                child: ScaleTransition(
+                  key: const ValueKey('navBadgeBounce'),
+                  scale: _badgeScale,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          widget.item.icon,
+                          key: ValueKey('${widget.item.label}_$isActive'),
+                          size: 22,
+                          color: foreground,
+                        ),
                       ),
-                    ),
-                  // Badge
-                  if (item.badgeCount > 0)
-                    Positioned(
-                      right: -8,
-                      top: -6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.error,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.error.withValues(alpha: 0.2),
-                              blurRadius: 4,
-                              offset: Offset(0, 1),
+                      // Badge
+                      if (widget.item.badgeCount > 0)
+                        Positioned(
+                          right: -8,
+                          top: -6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 2,
                             ),
-                          ],
-                        ),
-                        child: Text(
-                          item.badgeCount > 99 ? '99+' : '${item.badgeCount}',
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.white,
-                            height: 1.1,
+                            decoration: BoxDecoration(
+                              color: AppColors.error,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.error.withValues(alpha: 0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              widget.item.badgeCount > 99
+                                  ? '99+'
+                                  : '${widget.item.badgeCount}',
+                              style: AppTypography.navLabel.copyWith(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                                height: 1.1,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 3),
               // Label
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  fontSize: isActive ? 11 : 10,
+                style: AppTypography.navLabel.copyWith(
+                  fontSize: 12,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                  color: isActive
-                      ? (isDark ? AppColors.white : AppColors.primary)
-                      : (isDark ? darkInactive : inactiveColor),
+                  color: foreground,
                   height: 1.0,
                 ),
-                child: Text(item.label),
+                child: Text(widget.item.label),
               ),
             ],
           ),

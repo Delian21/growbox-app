@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
@@ -24,7 +25,16 @@ class _CartScreenState extends State<CartScreen> {
       activeIndex: 2,
       child: SafeArea(
         bottom: false,
-        child: cart.isEmpty ? _emptyCart() : _filledCart(cart),
+        // The checkout bar is pinned, so the whole column is lifted clear of
+        // the floating nav instead of letting the bar sit underneath it.
+        child: cart.isEmpty
+            ? _emptyCart()
+            : Padding(
+                padding: EdgeInsets.only(
+                  bottom: BottomNavMetrics.contentInset(context),
+                ),
+                child: _filledCart(cart),
+              ),
       ),
     );
   }
@@ -35,7 +45,12 @@ class _CartScreenState extends State<CartScreen> {
     final hp = AppSizing.horizontalPadding(context);
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(hp, AppSpacing.xxl, hp, 30),
+      padding: EdgeInsets.fromLTRB(
+        hp,
+        AppSpacing.xxl,
+        hp,
+        BottomNavMetrics.contentInset(context),
+      ),
       child: Column(
         children: [
           const SizedBox(height: 60),
