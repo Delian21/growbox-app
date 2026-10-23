@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme.dart';
 import 'login_screen.dart';
 import 'location_screen.dart';
@@ -44,8 +45,52 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   static const int _totalSteps = 5;
 
+  /// Captured so [dispose] can restore the app's default chrome without
+  /// touching Theme.of in a deactivated context.
+  bool _isDark = false;
+
+  /// Whether the overlay style has been applied for the current brightness.
+  bool _chromeApplied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Edge-to-edge: the system bars stop reserving opaque space, so the brand
+    // green behind the body reaches the top (and bottom) of the screen.
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (_chromeApplied && isDark == _isDark) return;
+    _isDark = isDark;
+    _chromeApplied = true;
+    // Transparent bars with light status icons. The bottom of this screen is
+    // the light surface panel, so nav-bar icons follow the theme instead.
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: AppColors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark, // iOS: dark bg → light icons
+      systemNavigationBarColor: AppColors.transparent,
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+    ));
+  }
+
   @override
   void dispose() {
+    // Hand the chrome back to the app default so the next screen (light
+    // surface) doesn't inherit light icons on a transparent bar.
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: _isDark ? AppDarkColors.background : AppColors.primary,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor:
+          _isDark ? AppDarkColors.background : AppColors.white,
+      systemNavigationBarIconBrightness:
+          _isDark ? Brightness.light : Brightness.dark,
+    ));
     _pageController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -178,22 +223,34 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               top: 0,
               height: AppSizing.logoAreaHeight(context),
               child: Center(
-                child: Image.asset(
-                  // Square white-art brand mark: contain (never crop) and
-                  // scale to ~70% of the banner height so it floats on the
-                  // green instead of filling it like the old photo did.
-                  RegistrationScreen.logoUrl,
-                  width: AppSizing.logoAreaHeight(context) * 0.7,
-                  height: AppSizing.logoAreaHeight(context) * 0.7,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const Text(
-                    'Growbox',
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      // Square white-art brand mark: contain (never crop) and
+                      // scale to ~80% of the banner height so it floats on the
+                      // green instead of filling it like the old photo did.
+                      RegistrationScreen.logoUrl,
+                      width: AppSizing.logoAreaHeight(context) * 0.8,
+                      height: AppSizing.logoAreaHeight(context) * 0.8,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const Text(
+                        'Growbox',
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Fresh from the farm to your door',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.bodySmall
+                          .copyWith(color: AppColors.white70),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -236,12 +293,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 child: Column(
                   children: [
-                    // ── Step indicator dots ──
-                    Padding(
-                      padding: const EdgeInsets.only(top: 20),
-                      child: _StepIndicator(
-                          current: _currentStep, total: _totalSteps - 1),
-                    ),
+                    // Step dots removed: the wizard advances only through
+                    // Continue, so a carousel-style indicator was misleading.
+                    const SizedBox(height: AppSpacing.xl),
 
                     // ── PageView body ──
                     Expanded(
@@ -304,48 +358,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Step indicator
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _StepIndicator extends StatelessWidget {
-  final int current;
-  final int total;
-
-  const _StepIndicator({required this.current, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(total, (i) {
-        final isActive = i == current;
-        final isPast = i < current;
-        // In dark mode the brand primary is too dark to read on the
-        // dark surface, so fall back to the brighter dark-theme green.
-        final activeColor = C.isDark(context)
-            ? AppDarkColors.primary
-            : AppColors.primary;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          width: isActive ? 28 : 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: isActive
-                ? activeColor
-                : isPast
-                    ? activeColor.withValues(alpha: 0.4)
-                    : AppColors.grey300,
-            borderRadius: BorderRadius.circular(5),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // Step 1 – Welcome
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -382,15 +394,17 @@ class _WelcomeStep extends StatelessWidget {
             ),
           ),
           SizedBox(height: sectionSpacing),
-          Container(
+          // Plain subtitle — the rule that used to underline this line made
+          // a static sentence read like a text field.
+          SizedBox(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.sm + 2),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: C.divider(context), width: 1)),
-            ),
-            child: Text(
-              'Create your account',
-              style: AppTypography.labelLarge.copyWith(color: C.textMuted(context)),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm + 2),
+              child: Text(
+                'Create your account',
+                style: AppTypography.labelLarge
+                    .copyWith(color: C.textMuted(context)),
+              ),
             ),
           ),
           SizedBox(height: sectionSpacing * 0.75),
@@ -399,7 +413,12 @@ class _WelcomeStep extends StatelessWidget {
             height: AppSizing.buttonHeightLarge(context),
             child: ElevatedButton(
               onPressed: onContinueWithEmail,
-              style: AppDecorations.primaryButtonStyle(),
+              // Brand green with a white label: the mint tint is a chip/selection
+              // colour and too weak to carry the primary CTA.
+              style: AppDecorations.primaryButtonStyle(context: context).copyWith(
+                backgroundColor: const WidgetStatePropertyAll(AppColors.primary),
+                foregroundColor: const WidgetStatePropertyAll(AppColors.white),
+              ),
               child: const Text(
                 'Continue with Email',
                 textAlign: TextAlign.center,
@@ -508,7 +527,10 @@ class _WelcomeStep extends StatelessWidget {
             child:          Text(
             'By continuing, you automatically\naccept our Terms & Conditions, Privacy Policy\nand Cookies Policy',
             textAlign: TextAlign.center,
-            style: AppTypography.bodySmall.copyWith(color: C.textMuted(context)),
+            // Secondary, not muted: this is legal copy that must stay
+            // comfortably readable rather than fade into the panel.
+            style: AppTypography.bodySmall
+                .copyWith(color: C.textSecondary(context)),
           ),
           ),
           const SizedBox(height: AppSpacing.md),

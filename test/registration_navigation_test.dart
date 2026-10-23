@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:growbox/screens/registration_screen.dart';
+import 'package:growbox/theme.dart';
 
 void main() {
   testWidgets('Continue with Email advances to the email step', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: RegistrationScreen()));
     await tester.pump(const Duration(milliseconds: 50));
 
-    // Welcome step is visible.
+    // Welcome step is visible, with the brand tagline under the logo.
     expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('Fresh from the farm to your door'), findsOneWidget);
     expect(find.text('Continue with Email'), findsOneWidget);
+
+    // The primary CTA uses brand green with a white label, not the mint tint.
+    final cta = tester.widget<ElevatedButton>(find.ancestor(
+      of: find.text('Continue with Email'),
+      matching: find.byType(ElevatedButton),
+    ));
+    expect(cta.style?.backgroundColor?.resolve({}), AppColors.primary);
+    expect(cta.style?.foregroundColor?.resolve({}), AppColors.white);
 
     // Make sure the CTA is on screen, then tap it.
     await tester.ensureVisible(find.text('Continue with Email'));
