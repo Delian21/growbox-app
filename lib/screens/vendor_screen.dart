@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../widgets/app_snack_bar.dart';
 
 class VendorScreen extends StatefulWidget {
   final String vendorName;
@@ -57,13 +58,12 @@ class _VendorScreenState extends State<VendorScreen> {
       }
       persistFavorites();
     });
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(wasFavorite
+    showAppSnackBar(
+      context,
+      wasFavorite
           ? '${widget.vendorName} removed from favorites'
-          : '${widget.vendorName} added to favorites'),
-      duration: const Duration(seconds: 1),
-    ));
+          : '${widget.vendorName} added to favorites',
+    );
   }
 
   @override
@@ -219,15 +219,15 @@ class _VendorScreenState extends State<VendorScreen> {
                           height: 56,
                           fit: BoxFit.cover,
                           errorWidget: Container(
-                            color: AppColors.primaryTint,
-                            child: const Icon(Icons.storefront_outlined,
-                                color: AppColors.primary, size: 28),
+                            color: C.primaryTint(context),
+                            child: Icon(Icons.storefront_outlined,
+                                color: C.primary(context), size: 28),
                           ),
                         )
                       : Container(
-                          color: AppColors.primaryTint,
-                          child: const Icon(Icons.storefront_outlined,
-                              color: AppColors.primary, size: 28),
+                          color: C.primaryTint(context),
+                          child: Icon(Icons.storefront_outlined,
+                              color: C.primary(context), size: 28),
                         ),
                 ),
               ),

@@ -160,7 +160,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             }
                           },
                           splashRadius: 22,
-                          icon: const Icon(Icons.mic, color: AppColors.primary)),
+                          icon: Icon(Icons.mic, color: C.primary(context))),
                       ],
                     ),
                     filled: true,
@@ -209,8 +209,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
                 TapFeedback(
                   onTap: () { recentSearches.clear(); setState(() {}); },
-                  child: const Text('Clear all',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.primary)),
+                  child: Text('Clear all',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: C.primary(context))),
                 ),
               ],
             ),
@@ -385,11 +388,13 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: image.isNotEmpty
                     ? Image.asset(image, fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
-                          color: AppColors.primaryTint,
-                          child: const Icon(Icons.storefront_outlined, color: AppColors.primary, size: 24)))
+                          color: C.primaryTint(context),
+                          child: Icon(Icons.storefront_outlined,
+                              color: C.primary(context), size: 24)))
                     : Container(
-                        color: AppColors.primaryTint,
-                        child: const Icon(Icons.storefront_outlined, color: AppColors.primary, size: 24)),
+                        color: C.primaryTint(context),
+                        child: Icon(Icons.storefront_outlined,
+                            color: C.primary(context), size: 24)),
               ),
             ),
             const SizedBox(width: 12),

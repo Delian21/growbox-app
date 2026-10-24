@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../routes.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/micro_interactions.dart';
 import '../widgets/skeleton_loader.dart';
 import '../screens/product_details_screen.dart';
@@ -155,17 +157,12 @@ class ProductCard extends StatelessWidget {
                   ? () {
                       if (StockTracker.decrement(product.vendorName, product.name)) {
                         context.read<CartNotifier>().add(product);
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${product.name} added to box'),
-                            backgroundColor: AppColors.primary,
-                            duration: const Duration(seconds: 1),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadii.sm),
-                            ),
-                          ),
+                        showAppSnackBar(
+                          context,
+                          '${product.name} added to box',
+                          actionLabel: 'View box',
+                          onAction: () =>
+                              AppRoutes.pushReplaceAll(context, AppRoutes.cart),
                         );
                       }
                     }
@@ -179,7 +176,9 @@ class ProductCard extends StatelessWidget {
                 child: Icon(
                   isAvailable ? Icons.add : Icons.remove_shopping_cart,
                   size: 20,
-                  color: isAvailable ? AppColors.primary : C.textMuted(context),
+                  color: isAvailable
+                      ? C.primary(context)
+                      : C.textMuted(context),
                 ),
               ),
             ),

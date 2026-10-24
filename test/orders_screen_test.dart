@@ -352,9 +352,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('Your order is on the way'), findsOneWidget);
+    // The banner names the vendor so a multi-vendor feed is unambiguous.
+    expect(find.text('Your order from Green Farm is on the way'), findsOneWidget);
 
-    await tester.tap(find.text('Your order is on the way'));
+    await tester.tap(find.text('Your order from Green Farm is on the way'));
     await tester.pumpAndSettle();
 
     // Lands on the orders screen, Active tab.

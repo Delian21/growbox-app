@@ -23,6 +23,13 @@ class VendorCard extends StatelessWidget {
 
   final VoidCallback onTap;
 
+  /// Whether this vendor is already saved.
+  final bool isFavorite;
+
+  /// When set, a heart button is overlaid on the image's top-right corner.
+  /// Left null on screens where favouriting isn't offered.
+  final VoidCallback? onFavoriteToggle;
+
   const VendorCard({
     super.key,
     required this.name,
@@ -32,6 +39,8 @@ class VendorCard extends StatelessWidget {
     required this.ratingPercentage,
     required this.deliveryFee,
     required this.onTap,
+    this.isFavorite = false,
+    this.onFavoriteToggle,
   });
 
   static const double _imageAspectRatio = 16 / 9;
@@ -173,6 +182,39 @@ class VendorCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onFavoriteToggle != null)
+                  Positioned(
+                    top: AppSpacing.sm,
+                    right: AppSpacing.sm,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onFavoriteToggle,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        // Fixed white chip so the heart reads on any photo.
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withValues(alpha: 0.92),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withValues(alpha: 0.15),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          size: 18,
+                          color: isFavorite
+                              ? AppColors.error
+                              : AppColors.grey800,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
@@ -204,20 +246,23 @@ class VendorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.primaryTint,
+        // Paired with the text below: in dark mode the mint pill would leave
+        // the lifted green label at ~1.1:1, so the fill follows the theme too.
+        color: C.primaryTint(context),
         borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star_rounded, size: 13, color: AppColors.primary),
+          Icon(Icons.star_rounded,
+              size: 13, color: C.primary(context)),
           const SizedBox(width: 3),
           Text(
             '${ratingPercentage.round()}%',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.primary,
+              color: C.primary(context),
             ),
           ),
         ],

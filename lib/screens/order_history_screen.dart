@@ -8,6 +8,7 @@ import '../data/orders.dart';
 import '../routes.dart';
 import '../theme.dart';
 import '../widgets/animated_entrance.dart';
+import '../widgets/app_snack_bar.dart';
 import 'order_details_screen.dart';
 
 /// Which half of the orders list is showing.
@@ -103,30 +104,20 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     }
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     if (skipped == 0) {
-      _showSnack(
+      showAppSnackBar(
+        context,
         '$added item${added == 1 ? '' : 's'} added to your box',
-        C.success(context),
+        actionLabel: 'View box',
+        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
       );
     } else if (added == 0) {
-      _showSnack('All items are out of stock', C.error(context));
+      showAppSnackBar(context, 'All items are out of stock', isError: true);
     } else {
-      _showSnack('$added added, $skipped out of stock', C.warning(context));
+      showAppSnackBar(context, '$added added, $skipped out of stock',
+          isError: true);
     }
     setState(() {});
-  }
-
-  void _showSnack(String message, Color background) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: background,
-      duration: const Duration(seconds: 2),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadii.sm),
-      ),
-    ));
   }
 
   void _startShopping() {

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import '../widgets/animated_entrance.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/vendor_card.dart';
 import '../data/app_state.dart';
+import '../data/categories.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
 import '../routes.dart';
@@ -31,6 +34,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String selectedAddress = defaultAddress?.address ?? 'Asokoro, Abuja';
+
+  /// Storage key for an explicit dismissal of the profile nudge.
+  static const String _nudgeDismissedKey = 'profile_nudge_dismissed';
+
+  /// Hidden for good once the customer taps the X (see [_dismissNudge]).
+  bool _nudgeDismissed = false;
 
   OrdersStore get _orders => widget.store ?? ordersStore;
 
@@ -58,35 +67,33 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _orders.load();
     });
+    _restoreNudgeDismissal();
   }
 
-  // Category icon mapping (built-in Flutter icons, no network dependency).
-  static final Map<String, IconData> _categoryIcons = {
-    'Grains': Icons.grain,
-    'Fruits': Icons.apple,
-    'Legumes': Icons.spa,
-    'Vegetables': Icons.eco,
-    'Tubers': Icons.grass,
-    'Proteins': Icons.set_meal,
-    'Herbs': Icons.local_florist,
-    'Oils': Icons.oil_barrel,
-  };
+  /// Restores a dismissal made in an earlier session.
+  Future<void> _restoreNudgeDismissal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dismissed = prefs.getBool(_nudgeDismissedKey) ?? false;
+      if (mounted && dismissed != _nudgeDismissed) {
+        setState(() => _nudgeDismissed = dismissed);
+      }
+    } catch (_) {
+      // Best effort: the nudge simply stays visible.
+    }
+  }
 
-  // Category tint colors for visual distinction.
-  static final Map<String, Color> _categoryColors = {
-    'Grains': AppColors.categoryGrains,
-    'Fruits': AppColors.categoryFruits,
-    'Legumes': AppColors.categoryLegumes,
-    'Vegetables': AppColors.categoryVegetables,
-    'Tubers': AppColors.categoryTubers,
-    'Proteins': AppColors.categoryProteins,
-    'Herbs': AppColors.categoryHerbs,
-    'Oils': AppColors.categoryOils,
-  };
+  /// Hides the nudge now and remembers the choice.
+  Future<void> _dismissNudge() async {
+    setState(() => _nudgeDismissed = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_nudgeDismissedKey, true);
+    } catch (_) {
+      // Still hidden for this session even if persistence fails.
+    }
+  }
 
-  static const List<String> _categoryNames = [
-    'Grains', 'Fruits', 'Vegetables', 'Legumes', 'Tubers', 'Proteins', 'Herbs', 'Oils',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   await Future.delayed(const Duration(milliseconds: 600));
                   setState(() {});
                 },
-                color: AppColors.primary,
+                color: C.primary(context),
                 backgroundColor: C.surface(context),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(
@@ -134,10 +141,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Opens the Search tab (not a pushed copy of it), so the
                       // nav highlights Search and its field takes focus.
                       _SearchBar(
-                        onTap: () => AppRoutes.pushReplaceAll(
-                          context,
-                          AppRoutes.search,
-                        ),
+                        // Pushed, not replace-all: the Search tab keeps Home
+                        // underneath, so Back (and the header arrow) returns
+                        // here instead of leaving the app.
+                        onTap: () => AppRoutes.push(context, AppRoutes.search),
                       ),
                       const SizedBox(height: AppSpacing.xxl),
                       // ── Category Chips ──────────────────────────
@@ -145,10 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ── Promo Banner ────────────────────────────
                       _buildPromoBanner(screenWidth),
                       const SizedBox(height: AppSpacing.xxl),
-                      // ── Profile nudge ────────────────────────────
-                      if (_profileIsIncomplete)
-                        _ProfileNudge(onTap: _openEditProfile),
                       // ── Active order ─────────────────────────────
+                      // First, because a live delivery outranks a profile tip.
                       ListenableBuilder(
                         listenable: _orders,
                         builder: (context, _) {
@@ -167,9 +172,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                      // ── Profile nudge ────────────────────────────
+                      if (_profileIsIncomplete && !_nudgeDismissed)
+                        _ProfileNudge(
+                          onTap: _openEditProfile,
+                          onDismiss: _dismissNudge,
+                        ),
                       // ── Buy Again ───────────────────────────────
                       if (buyAgainItems.isNotEmpty) ...[
-                        SectionHeader(title: 'Order Again', actionText: 'See all', onAction: () {}),
+                        SectionHeader(
+                          title: 'Order Again',
+                          actionText: 'See all',
+                          // Past is where the orders you can reorder live.
+                          onAction: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const OrderHistoryScreen(
+                                initialTab: OrdersTab.past,
+                              ),
+                            ),
+                          ),
+                        ),
                         _buildBuyAgainRow(buyAgainItems, screenWidth),
                         const SizedBox(height: AppSpacing.xxl),
                       ],
@@ -179,7 +202,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         actionText: 'See all',
                         onAction: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const MenuScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const MenuScreen(
+                              // Same list, but it is a vendor list here — not
+                              // a produce browse — so the heading and the
+                              // "no filter" label say so.
+                              title: 'Nearby Vendors',
+                              allFilterLabel: 'All Vendors',
+                            ),
+                          ),
                         ),
                       ),
                       // The list owns its bottom inset so the final card and
@@ -204,12 +235,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        itemCount: _categoryNames.length,
+        itemCount: kCategories.length,
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
-          final name = _categoryNames[index];
-          final icon = _categoryIcons[name] ?? Icons.eco_outlined;
-          final tint = _categoryColors[name] ?? AppColors.primary;
+          // Shared list: the Browse screen shows the same labels and icons.
+          final category = kCategories[index];
+          final name = category.label;
           return GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -226,10 +257,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: tint.withValues(alpha: 0.15),
+                      color: category.color.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: tint, size: 28),
+                    child:
+                        Icon(category.icon, color: category.color, size: 28),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -348,16 +380,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: GestureDetector(
             onTap: () {
               context.read<CartNotifier>().add(product);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${product.name} added to box'),
-                  backgroundColor: AppColors.primary,
-                  duration: const Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadii.sm),
-                  ),
-                ),
+              showAppSnackBar(
+                context,
+                '${product.name} added to box',
+                actionLabel: 'View box',
+                onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
               );
             },
             child: Container(
@@ -416,10 +443,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             product.name,
-                            maxLines: 1,
+                            // Two lines: long names (e.g. "Fresh Tomatoes
+                            // (Crate)") stay readable instead of clipping.
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
+                              height: 1.15,
                               fontWeight: FontWeight.w600,
                               color: C.textPrimary(context),
                             ),
@@ -449,14 +480,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildVendorList(double screenWidth) {
     final vendors = MockVendors.vendors;
-    const deliveryTimes = [
-      '25-35 min',
-      '30-40 min',
-      '20-30 min',
-      '35-45 min',
-      '25-40 min',
-      '30-35 min',
-    ];
 
     return ListView.builder(
       shrinkWrap: true,
@@ -474,7 +497,8 @@ class _HomeScreenState extends State<HomeScreen> {
         final products = vendor['products'] as List<VendorProduct>;
         final rating = vendor['rating'] as double;
         final deliveryFee = (vendor['deliveryFee'] as int?) ?? 0;
-        final deliveryTime = deliveryTimes[index % deliveryTimes.length];
+        // Stored with the vendor now, so Browse shows the same estimate.
+        final deliveryTime = vendor['deliveryTime'] as String;
 
         return AnimatedEntrance(
           index: index,
@@ -569,8 +593,8 @@ class _AddressBar extends StatelessWidget {
             horizontal: AppSpacing.lg, vertical: 12),
         child: Row(
           children: [
-            const Icon(Icons.location_on_outlined,
-                size: 20, color: AppColors.primary),
+            Icon(Icons.location_on_outlined,
+                size: 20, color: C.primary(context)),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -627,7 +651,7 @@ class _SearchBar extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.mic, size: 20, color: AppColors.primary),
+            Icon(Icons.mic, size: 20, color: C.primary(context)),
           ],
         ),
       ),
@@ -645,8 +669,9 @@ class _SearchBar extends StatelessWidget {
 /// complete.
 class _ProfileNudge extends StatelessWidget {
   final VoidCallback onTap;
+  final VoidCallback onDismiss;
 
-  const _ProfileNudge({required this.onTap});
+  const _ProfileNudge({required this.onTap, required this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
@@ -708,11 +733,19 @@ class _ProfileNudge extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.xs),
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: C.textMuted(context),
+              // X rather than a chevron: the whole card already opens the
+              // editor, so the trailing control's job is dismissal.
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onDismiss,
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Center(
+                    child: Icon(Icons.close,
+                        size: 18, color: C.textMuted(context)),
+                  ),
+                ),
               ),
             ],
           ),
@@ -733,12 +766,17 @@ class _ActiveOrderBanner extends StatelessWidget {
 
   const _ActiveOrderBanner({required this.order, required this.onTap});
 
-  static String _message(OrderStatus status) => switch (status) {
-        OrderStatus.confirmed => "Order confirmed — we're getting it ready",
-        OrderStatus.packing => 'Your order is being packed',
-        OrderStatus.onTheWay => 'Your order is on the way',
-        OrderStatus.delivered => 'Your order has been delivered',
-        OrderStatus.cancelled => 'Your order was cancelled',
+  /// Status line, named by vendor so a multi-vendor feed is unambiguous.
+  String get _message => switch (order.status) {
+        OrderStatus.confirmed => 'Order from ${order.vendorName} confirmed',
+        OrderStatus.packing =>
+          'Your order from ${order.vendorName} is being packed',
+        OrderStatus.onTheWay =>
+          'Your order from ${order.vendorName} is on the way',
+        OrderStatus.delivered =>
+          'Your order from ${order.vendorName} was delivered',
+        OrderStatus.cancelled =>
+          'Your order from ${order.vendorName} was cancelled',
       };
 
   static IconData _icon(OrderStatus status) => switch (status) {
@@ -776,7 +814,7 @@ class _ActiveOrderBanner extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  _message(order.status),
+                  _message,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.bodySmall.copyWith(

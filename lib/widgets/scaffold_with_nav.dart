@@ -51,26 +51,40 @@ class ScaffoldWithNav extends StatelessWidget {
             child: BottomNavScope(isVisible: navVisible, child: child),
           ),
           if (navVisible && fadeContent)
-            // Scrim: page content fades into the background before it reaches
-            // the pill, so the cut-off edge under the bar never shows.
+            // Scrim, edge to edge: a short fade above the pill, then solid
+            // page background behind the pill itself. The old single
+            // gradient was still translucent at the pill's top edge, so card
+            // images showed through on both sides of it.
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: IgnorePointer(
-                child: Container(
-                  height: BottomNavMetrics.reserved(context) + AppSpacing.xxl,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        background.withValues(alpha: 0),
-                        background,
-                      ],
-                      stops: const [0, 0.62],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Fade out over the strip just above the pill.
+                    Container(
+                      width: double.infinity,
+                      height: AppSpacing.xxl,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            background.withValues(alpha: 0),
+                            background,
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                    // Fully opaque behind the pill and the gesture inset.
+                    SizedBox(
+                      width: double.infinity,
+                      height: BottomNavMetrics.reserved(context),
+                      child: ColoredBox(color: background),
+                    ),
+                  ],
                 ),
               ),
             ),

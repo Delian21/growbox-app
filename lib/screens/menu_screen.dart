@@ -2,25 +2,58 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
-import '../widgets/animated_entrance.dart';
-import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
+import '../data/categories.dart';
 import '../data/mock_data.dart';
+import '../widgets/vendor_card.dart';
 import '../widgets/voice_search_overlay.dart';
 import 'category_vendors_screen.dart';
 import 'vendor_screen.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  /// Heading above the search field.
+  ///
+  /// "Browse Produce" for the catalog entry point; the Home feed's Nearby
+  /// Vendors "See all" passes "Nearby Vendors", because the same list is a
+  /// vendor directory there, not a produce browse.
+  final String title;
+
+  /// Label of the "no produce filter" option, so the filter row also matches
+  /// what the screen is showing.
+  final String allFilterLabel;
+
+  const MenuScreen({
+    super.key,
+    this.title = 'Browse Produce',
+    this.allFilterLabel = 'All Produce',
+  });
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
   bool vendorsOpen = true;
-  String selectedProduceType = 'All Produce';
+  late String selectedProduceType = widget.allFilterLabel;
   String selectedSort = 'Sort by';
   String searchQuery = '';
+
+  /// Adds or removes a vendor from the shared favourites list.
+  void _toggleFavorite(String name, Map<String, dynamic> vendor) {
+    setState(() {
+      final index = favoriteVendors.indexWhere((f) => f['name'] == name);
+      if (index >= 0) {
+        favoriteVendors.removeAt(index);
+      } else {
+        favoriteVendors.add({
+          'name': name,
+          'image': vendor['image'] as String,
+          'rating': vendor['percentage'] as String? ?? '',
+          'reviews': vendor['reviews'] as String? ?? '',
+        });
+      }
+    });
+    persistFavorites();
+  }
 
   bool _matchesSearch(String vendorName, List<String> products) {
     if (searchQuery.trim().isNotEmpty) {
@@ -29,7 +62,7 @@ class _MenuScreenState extends State<MenuScreen> {
           products.any((product) => product.toLowerCase().contains(query));
       if (!matchesSearch) return false;
     }
-    if (selectedProduceType != 'All Produce') {
+    if (selectedProduceType != widget.allFilterLabel) {
       final type = selectedProduceType.toLowerCase();
       final hasMatchingProduce = products.any((product) {
         final productName = product.toLowerCase();
@@ -64,112 +97,8 @@ class _MenuScreenState extends State<MenuScreen> {
     return true;
   }
 
-  Widget _networkImage(String url, {BoxFit fit = BoxFit.cover, BorderRadius? borderRadius}) {
-    Widget image = SkeletonImage(
-      imageUrl: url,
-      fit: fit,
-      width: double.infinity,
-      height: double.infinity,
-      errorWidget: Container(
-        color: AppColors.shimmer,
-        alignment: Alignment.center,
-        child: const Icon(Icons.image_outlined, color: AppColors.grey500, size: 28),
-      ),
-    );
-    if (borderRadius != null) image = ClipRRect(borderRadius: borderRadius, child: image);
-    return image;
-  }
 
 
-  Widget _vendorCard({required String image, required String name, String? percentage, String? reviews, int animIndex = 0}) {
-    return AnimatedEntrance(
-      index: animIndex,
-      child: Container(
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              AspectRatio(
-                aspectRatio: 3.15,
-                child: _networkImage(image)),
-              if (!vendorsOpen)
-                Positioned.fill(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color.fromRGBO(0, 0, 0, 0.70),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text('Closed', style: TextStyle(fontSize: 22,
-                      fontWeight: FontWeight.w500, color: AppColors.white)))),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(child: Text(name,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: C.textPrimary(context)))),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      final existingIndex = favoriteVendors.indexWhere((f) => f['name'] == name);
-                      if (existingIndex >= 0) {
-                        favoriteVendors.removeAt(existingIndex);
-                      } else {
-                        favoriteVendors.add({'name': name, 'image': image,
-                          'rating': percentage ?? '', 'reviews': reviews ?? ''});
-                      }
-                      persistFavorites();
-                    });
-                  },
-                  child: Icon(
-                    favoriteVendors.any((f) => f['name'] == name) ? Icons.favorite : Icons.favorite_border,
-                    size: 22,
-                    color: favoriteVendors.any((f) => f['name'] == name) ? AppColors.error : C.textMuted(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (percentage != null && reviews != null && percentage.isNotEmpty && reviews.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-              child: Row(
-                children: [
-                  const Icon(Icons.thumb_up_outlined, size: 16, color: AppColors.primary),
-                  const SizedBox(width: 6),
-                  Text(percentage,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                  const SizedBox(width: 4),
-                  Text(reviews,
-                    style: TextStyle(fontSize: 13, color: C.textMuted(context))),
-                ],
-              ),
-            ),
-        ],
-      ),
-    ),
-    );
-  }
 
 
 
@@ -196,7 +125,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     Padding(
                       padding: EdgeInsets.fromLTRB(horizontalPadding, AppSpacing.lg, horizontalPadding, AppSpacing.sm),
                       child: Text(
-                        'Browse Produce',
+                        widget.title,
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -236,7 +165,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                   setState(() => searchQuery = intent.productQuery);
                                 }
                               },
-                              icon: Icon(Icons.mic, size: 20, color: AppColors.primary),
+                              icon: Icon(Icons.mic,
+                                  size: 20, color: C.primary(context)),
                             ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -252,14 +182,15 @@ class _MenuScreenState extends State<MenuScreen> {
                         scrollDirection: Axis.horizontal,
                         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                         physics: const BouncingScrollPhysics(),
-                        children: const [
-                          _CategoryChip(icon: Icons.grain, label: 'Grains', color: AppColors.categoryGrains),
-                          _CategoryChip(icon: Icons.apple, label: 'Fruits', color: AppColors.categoryFruits),
-                          _CategoryChip(icon: Icons.emoji_food_beverage, label: 'Legumes', color: AppColors.categoryLegumes),
-                          _CategoryChip(icon: Icons.eco, label: 'Vegetables', color: AppColors.categoryVegetables),
-                          _CategoryChip(icon: Icons.set_meal, label: 'Proteins', color: AppColors.categoryProteins),
-                          _CategoryChip(icon: Icons.local_florist, label: 'Herbs', color: AppColors.categoryHerbs),
-                          _CategoryChip(icon: Icons.oil_barrel, label: 'Oils', color: AppColors.categoryOils),
+                        // Same shared list as the Home rail — including Tubers,
+                        // which this screen used to omit.
+                        children: [
+                          for (final category in kCategories)
+                            _CategoryChip(
+                              icon: category.icon,
+                              label: category.label,
+                              color: category.color,
+                            ),
                         ],
                       ),
                     ),
@@ -274,7 +205,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             offset: const Offset(0, 40),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             itemBuilder: (context) {
-                              return ['All Produce', 'Grains and cereals', 'Fruits', 'Legumes and Pulses',
+                              return [widget.allFilterLabel, 'Grains and cereals', 'Fruits', 'Legumes and Pulses',
                                   'Vegetables', 'Tuber and Roots', 'Fresh Proteins', 'Mushrooms',
                                   'Herbs and Spices', 'Nuts and Seeds', 'Oils']
                                   .map((type) => PopupMenuItem(value: type, child: Text(type)))
@@ -299,7 +230,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                 .map((type) => PopupMenuItem(value: type,
                                   child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [Text(type),
-                                      if (selectedSort == type) const Icon(Icons.check, size: 20, color: AppColors.primary)])))
+                                      if (selectedSort == type) Icon(Icons.check, size: 20, color: C.primary(context))])))
                                 .toList(),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -336,19 +267,41 @@ class _MenuScreenState extends State<MenuScreen> {
                                 if (!_matchesSearch(name, searchProducts)) return const SizedBox.shrink();
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.push(context,
-                                      MaterialPageRoute(builder: (context) => VendorScreen(
-                                        vendorName: name,
-                                        vendorCoverImage: vendor['image'] as String,
-                                        vendorLogoImage: vendor['image'] as String,
-                                        initialOpen: vendorsOpen,
-                                        categories: List<String>.from(vendor['categories'] as List),
-                                        products: List<VendorProduct>.from(vendor['products'] as List)))),
-                                    child: _vendorCard(
-                                      image: vendor['image'] as String, name: name,
-                                      percentage: vendor['percentage'] as String,
-                                      reviews: vendor['reviews'] as String)),
+                                  // The same card Home uses: image ratio,
+                                  // delivery time/fee, rating pill (or "New"),
+                                  // with the favourite heart overlaid here.
+                                  child: VendorCard(
+                                    name: name,
+                                    image: vendor['image'] as String,
+                                    categories: List<String>.from(
+                                        vendor['categories'] as List),
+                                    deliveryTime:
+                                        vendor['deliveryTime'] as String,
+                                    ratingPercentage:
+                                        vendor['rating'] as double,
+                                    deliveryFee: vendor['deliveryFee'] as int,
+                                    isFavorite: favoriteVendors
+                                        .any((f) => f['name'] == name),
+                                    onFavoriteToggle: () =>
+                                        _toggleFavorite(name, vendor),
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => VendorScreen(
+                                          vendorName: name,
+                                          vendorCoverImage:
+                                              vendor['image'] as String,
+                                          vendorLogoImage:
+                                              vendor['image'] as String,
+                                          initialOpen: vendorsOpen,
+                                          categories: List<String>.from(
+                                              vendor['categories'] as List),
+                                          products: List<VendorProduct>.from(
+                                              vendor['products'] as List),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 );
                               }),
                               const SizedBox(height: 74),
