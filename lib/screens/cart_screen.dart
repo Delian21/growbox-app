@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/pinned_bottom_bar.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
@@ -23,17 +24,18 @@ class _CartScreenState extends State<CartScreen> {
     final cart = context.watch<CartNotifier>();
     return ScaffoldWithNav(
       activeIndex: 2,
+      // The pinned bar covers the strip above the pill, so the content fade has
+      // nothing left to hide there.
+      fadeContent: false,
       child: SafeArea(
         bottom: false,
-        // The checkout bar is pinned, so the whole column is lifted clear of
-        // the floating nav instead of letting the bar sit underneath it.
+        // The bar clears the floating nav itself; the cart list simply gets the
+        // space that is left above it.
         child: cart.isEmpty
             ? _emptyCart()
-            : Padding(
-                padding: EdgeInsets.only(
-                  bottom: BottomNavMetrics.contentInset(context),
-                ),
-                child: _filledCart(cart),
+            : ScreenWithPinnedBar(
+                body: _filledCart(cart),
+                bar: _buildCheckoutBar(cart.total),
               ),
       ),
     );
@@ -151,7 +153,6 @@ class _CartScreenState extends State<CartScreen> {
     for (final product in cart.items) {
       groupedProducts.putIfAbsent(product.vendorName, () => []).add(product);
     }
-    final int total = cart.total;
     final itemCount = cart.length;
 
     return Column(
@@ -243,8 +244,6 @@ class _CartScreenState extends State<CartScreen> {
             }).toList(),
           ),
         ),
-        // ── Checkout Bar ────────────────────────────────────────
-        _buildCheckoutBar(total),
       ],
     );
   }
@@ -450,92 +449,81 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  /// Contents of the pinned checkout bar; its surface, divider and nav offset
+  /// come from [PinnedBottomBar].
   Widget _buildCheckoutBar(int total) {
-    final hp = AppSizing.horizontalPadding(context);
-    return Container(
-      padding: EdgeInsets.fromLTRB(hp, AppSpacing.md, hp, AppSpacing.md),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Total
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Total',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: C.textMuted(context),
-                  ),
-                ),
-                Text(
-                  '₦${formatPrice(total)}',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: C.textPrimary(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Checkout button
-          Expanded(
-            child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CheckoutScreen(
-                    products: List<VendorProduct>.from(context.read<CartNotifier>().items),
-                  ),
+    return Row(
+      children: [
+        // Total
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Total',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: C.textMuted(context),
                 ),
               ),
-              child: Container(
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+              Text(
+                '₦${formatPrice(total)}',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: C.textPrimary(context),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Checkout',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.white,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18, color: AppColors.white),
-                  ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        // Checkout button
+        Expanded(
+          child: GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CheckoutScreen(
+                  products:
+                      List<VendorProduct>.from(context.read<CartNotifier>().items),
                 ),
               ),
             ),
+            child: Container(
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Checkout',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward, size: 18, color: AppColors.white),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

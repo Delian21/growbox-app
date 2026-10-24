@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../widgets/scaffold_with_nav.dart';
-import '../widgets/bottom_nav.dart';
+import '../widgets/pinned_bottom_bar.dart';
 import '../widgets/micro_interactions.dart';
 
 /// Screen for managing saved delivery addresses.
@@ -20,134 +20,141 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
+    final content = _buildContent(context, screenWidth);
 
     return ScaffoldWithNav(
       activeIndex: 3,
+      // The pinned bar covers the strip above the pill.
+      fadeContent: false,
       child: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            // ── Header ──────────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.xl - 2,
-                AppSpacing.lg,
-                0,
+        // The add button is pinned above the nav, so the list just takes the
+        // space that is left. The empty state has no bar of its own.
+        child: savedAddresses.isEmpty
+            ? content
+            : ScreenWithPinnedBar(
+                body: content,
+                bar: _buildAddButton(context),
               ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.pop(context),
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Center(
-                        child: Icon(
-                          Icons.chevron_left,
-                          size: 30,
-                          color: C.textPrimary(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'My Addresses',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: C.textPrimary(context),
-                      ),
-                    ),
-                  ),
-                  // Add button
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _showAddEditSheet(context),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryTint,
-                        borderRadius: BorderRadius.circular(AppRadii.sm),
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 22,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      ),
+    );
+  }
 
-            const SizedBox(height: AppSpacing.xxl),
-
-            // ── Address list ────────────────────────────────────────
-            Expanded(
-              child: savedAddresses.isEmpty
-                  ? _buildEmptyState(context)
-                  : ListView.separated(
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        0,
-                        AppSpacing.lg,
-                        BottomNavMetrics.contentInset(context),
-                      ),
-                      itemCount: savedAddresses.length,
-                      separatorBuilder: (_, _)
-                          => const SizedBox(height: AppSpacing.md),
-                      itemBuilder: (context, index) {
-                        return _buildAddressCard(
-                          context,
-                          savedAddresses[index],
-                          screenWidth,
-                        );
-                      },
-                    ),
-            ),
-
-            // ── Add new address button ──────────────────────────────
-            if (savedAddresses.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                ),
-                child: TapFeedback(
-                  onTap: () => _showAddEditSheet(context),
-                  child: Container(
-                    width: double.infinity,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppColors.primary,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadii.pill),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '+ Add New Address',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
+  Widget _buildContent(BuildContext context, double screenWidth) {
+    return Column(
+      children: [
+        // ── Header ──────────────────────────────────────────────
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.xl - 2,
+            AppSpacing.lg,
+            0,
+          ),
+          child: Row(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.pop(context),
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Center(
+                    child: Icon(
+                      Icons.chevron_left,
+                      size: 30,
+                      color: C.textPrimary(context),
                     ),
                   ),
                 ),
               ),
+              Expanded(
+                child: Text(
+                  'My Addresses',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: C.textPrimary(context),
+                  ),
+                ),
+              ),
+              // Add button
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showAddEditSheet(context),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTint,
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    size: 22,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
 
-          ],
+        const SizedBox(height: AppSpacing.xxl),
+
+        // ── Address list ────────────────────────────────────────
+        Expanded(
+          child: savedAddresses.isEmpty
+              ? _buildEmptyState(context)
+              : ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    0,
+                    AppSpacing.lg,
+                    AppSpacing.xxl,
+                  ),
+                  itemCount: savedAddresses.length,
+                  separatorBuilder: (_, _)
+                      => const SizedBox(height: AppSpacing.md),
+                  itemBuilder: (context, index) {
+                    return _buildAddressCard(
+                      context,
+                      savedAddresses[index],
+                      screenWidth,
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  /// Contents of the pinned bar; its surface, divider and nav offset come from
+  /// [PinnedBottomBar].
+  Widget _buildAddButton(BuildContext context) {
+    return TapFeedback(
+      onTap: () => _showAddEditSheet(context),
+      child: Container(
+        width: double.infinity,
+        height: 48,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: AppColors.primary,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+        ),
+        child: const Center(
+          child: Text(
+            '+ Add New Address',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
         ),
       ),
     );

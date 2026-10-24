@@ -39,6 +39,33 @@ class BottomNavMetrics {
       reserved(context) + AppSpacing.md;
 }
 
+/// Tells the screen subtree whether the floating nav is on screen.
+///
+/// The nav hides while the keyboard is up, and a pinned action bar has to know:
+/// it reserves [BottomNavMetrics.reserved] only when there is a nav to clear,
+/// and otherwise sits straight on the keyboard.
+class BottomNavScope extends InheritedWidget {
+  const BottomNavScope({
+    super.key,
+    required this.isVisible,
+    required super.child,
+  });
+
+  final bool isVisible;
+
+  /// Defaults to true outside the nav shell (`ScaffoldWithNav`), so a bar used
+  /// on its own still leaves room for the nav it is pinned above.
+  static bool isVisibleOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<BottomNavScope>()
+          ?.isVisible ??
+      true;
+
+  @override
+  bool updateShouldNotify(BottomNavScope oldWidget) =>
+      oldWidget.isVisible != isVisible;
+}
+
 // ---------------------------------------------------------------------------
 // Data Model
 // ---------------------------------------------------------------------------
