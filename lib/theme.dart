@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // Theme Notifier – controls light/dark mode across the app
 // ---------------------------------------------------------------------------
 
-/// InheritedNotifier that lets any widget read + toggle the current theme.
+/// InheritedNotifier that lets any widget read + change the current theme.
 class ThemeProvider extends InheritedNotifier<ThemeNotifier> {
   const ThemeProvider({
     super.key,
@@ -20,22 +21,56 @@ class ThemeProvider extends InheritedNotifier<ThemeNotifier> {
 }
 
 class ThemeNotifier extends ValueNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.system);
-
-  bool get isDark => value == ThemeMode.dark;
-
-  void toggle() {
-    value = isDark ? ThemeMode.light : ThemeMode.dark;
-    _updateSystemUI(value);
+  ThemeNotifier({ThemeMode initialMode = ThemeMode.system})
+      : super(initialMode) {
+    // Apply the chrome for the restored choice, so a saved Dark/Light mode
+    // does not start with the wrong status bar.
+    _updateSystemUI(initialMode);
   }
 
-  void setDark(bool dark) {
-    value = dark ? ThemeMode.dark : ThemeMode.light;
-    _updateSystemUI(value);
+  /// SharedPreferences key holding the user's appearance choice.
+  static const String _prefsKey = 'theme_mode';
+
+  /// Reads the persisted choice; falls back to [ThemeMode.system].
+  static Future<ThemeMode> loadSavedMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return _fromStoredName(prefs.getString(_prefsKey));
+    } catch (_) {
+      return ThemeMode.system;
+    }
+  }
+
+  static ThemeMode _fromStoredName(String? name) => switch (name) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      };
+
+  /// Applies and persists an explicit choice: System, Light or Dark.
+  void select(ThemeMode mode) {
+    if (value == mode) return;
+    value = mode;
+    _persist(mode);
+    _updateSystemUI(mode);
+  }
+
+  Future<void> _persist(ThemeMode mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefsKey, mode.name);
+    } catch (_) {
+      // Persistence is best-effort; the in-memory choice still applies.
+    }
   }
 
   void _updateSystemUI(ThemeMode mode) {
-    final isDark = mode == ThemeMode.dark;
+    // System mode follows the platform, so resolve it rather than assuming
+    // light; otherwise a dark device would get a green bar over a dark page.
+    final isDark = mode == ThemeMode.dark ||
+        (mode == ThemeMode.system &&
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                Brightness.dark);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: isDark ? AppDarkColors.background : AppColors.primary,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.light,
@@ -134,6 +169,11 @@ class AppColors {
   // ── Semantic ────────────────────────────────────────────────────────────
   static const Color success = Color(0xFF16A34A);
   static const Color error = Color(0xFFDC2626);
+
+  /// Destructive red for dark surfaces. 6.8:1 on the dark page (#121212) and
+  /// 6.0:1 on a dark card, where [error] only reaches 3.5:1. Too pale on white
+  /// (2.8:1), so light surfaces keep [error]; [C.errorBright] picks per theme.
+  static const Color errorBright = Color(0xFFF87171);
   static const Color warning = Color(0xFFF4C430);
   static const Color info = Color(0xFF292D32);
 
@@ -429,6 +469,11 @@ class C {
 
   static Color error(BuildContext context) =>
       _isDark(context) ? AppDarkColors.error : AppColors.error;
+
+  /// Destructive foreground that is readable on the current surface: the
+  /// bright red on dark, the standard red on light.
+  static Color errorBright(BuildContext context) =>
+      _isDark(context) ? AppColors.errorBright : AppColors.error;
 
   static Color warning(BuildContext context) =>
       _isDark(context) ? AppDarkColors.warning : AppColors.warning;

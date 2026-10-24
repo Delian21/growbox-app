@@ -46,18 +46,26 @@ void main() async {
     ),
   );
 
-  runApp(const GrowboxApp());
+  // Restore the appearance choice before the first frame, so a user who picked
+  // Dark never sees a light flash on launch.
+  final savedThemeMode = await ThemeNotifier.loadSavedMode();
+
+  runApp(GrowboxApp(initialThemeMode: savedThemeMode));
 }
 
 class GrowboxApp extends StatefulWidget {
-  const GrowboxApp({super.key});
+  /// Appearance restored from storage; defaults to following the device.
+  final ThemeMode initialThemeMode;
+
+  const GrowboxApp({super.key, this.initialThemeMode = ThemeMode.system});
 
   @override
   State<GrowboxApp> createState() => _GrowboxAppState();
 }
 
 class _GrowboxAppState extends State<GrowboxApp> {
-  final ThemeNotifier _themeNotifier = ThemeNotifier();
+  late final ThemeNotifier _themeNotifier =
+      ThemeNotifier(initialMode: widget.initialThemeMode);
 
   @override
   void dispose() {

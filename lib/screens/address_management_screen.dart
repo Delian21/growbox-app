@@ -458,7 +458,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                   ctx,
                   icon: Icons.delete_outline,
                   label: 'Delete address',
-                  color: AppColors.error,
+                  color: C.errorBright(ctx),
                   onTap: () {
                     Navigator.pop(ctx);
                     _confirmDelete(context, addr);
@@ -521,9 +521,9 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                 Navigator.pop(ctx);
                 setState(() => removeAddress(addr.id));
               },
-              child: const Text(
+              child: Text(
                 'Delete',
-                style: TextStyle(color: AppColors.error),
+                style: TextStyle(color: C.errorBright(context)),
               ),
             ),
           ],

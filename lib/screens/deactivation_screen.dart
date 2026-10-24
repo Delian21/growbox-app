@@ -46,7 +46,7 @@ class _DeactivationScreenState extends State<DeactivationScreen> {
                     SnackBar(content: Text('Account deletion request submitted.')),
                 );
               },
-              child: Text('Delete', style: GoogleFonts.poppins(color: AppColors.error, fontWeight: FontWeight.w600)),
+              child: Text('Delete', style: GoogleFonts.poppins(color: C.errorBright(context), fontWeight: FontWeight.w600)),
             ),
           ],
         );
