@@ -11,6 +11,7 @@ import '../data/app_state.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
 import '../routes.dart';
+import 'edit_profile_screen.dart';
 import 'location_screen.dart';
 import 'order_history_screen.dart';
 import 'menu_screen.dart';
@@ -32,6 +33,22 @@ class _HomeScreenState extends State<HomeScreen> {
   String selectedAddress = defaultAddress?.address ?? 'Asokoro, Abuja';
 
   OrdersStore get _orders => widget.store ?? ordersStore;
+
+  /// True while the customer has no name or no email — the same condition the
+  /// profile card prompts on.
+  bool get _profileIsIncomplete =>
+      (CustomerData.name?.trim().isEmpty ?? true) ||
+      (CustomerData.email?.trim().isEmpty ?? true);
+
+  /// The profile lives in globals rather than a notifier, so repaint on return
+  /// so the nudge disappears as soon as the details are saved.
+  Future<void> _openEditProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
@@ -128,6 +145,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ── Promo Banner ────────────────────────────
                       _buildPromoBanner(screenWidth),
                       const SizedBox(height: AppSpacing.xxl),
+                      // ── Profile nudge ────────────────────────────
+                      if (_profileIsIncomplete)
+                        _ProfileNudge(onTap: _openEditProfile),
                       // ── Active order ─────────────────────────────
                       ListenableBuilder(
                         listenable: _orders,
@@ -609,6 +629,93 @@ class _SearchBar extends StatelessWidget {
             const Spacer(),
             const Icon(Icons.mic, size: 20, color: AppColors.primary),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PROFILE NUDGE
+
+/// Slim prompt for customers who never added a name or an email.
+///
+/// Deliberately styled like the active-order banner so the feed reads as one
+/// family of strips; it is removed from the tree as soon as the profile is
+/// complete.
+class _ProfileNudge extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ProfileNudge({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          key: const ValueKey('profileNudge'),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm + 2,
+          ),
+          decoration: BoxDecoration(
+            color: C.surface(context),
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            border: Border.all(
+              color: C.accentOrange(context).withValues(alpha: 0.35),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: C.accentOrange(context),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add your name and email',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.labelSmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: C.textPrimary(context),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'So vendors know who they are delivering to',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        fontSize: 12,
+                        color: C.textMuted(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: C.textMuted(context),
+              ),
+            ],
+          ),
         ),
       ),
     );

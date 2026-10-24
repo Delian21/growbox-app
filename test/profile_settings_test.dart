@@ -7,6 +7,7 @@ import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/screens/account_screen.dart';
 import 'package:growbox/screens/edit_profile_screen.dart';
+import 'package:growbox/screens/home_screen.dart';
 import 'package:growbox/screens/profile_screen.dart';
 import 'package:growbox/theme.dart';
 
@@ -281,4 +282,66 @@ void main() {
     expect(icon.color, AppColors.errorBright);
   });
 
+  // ── Home nudge ──────────────────────────────────────────────────────────
+
+  Widget homeHarness() => ChangeNotifierProvider(
+        create: (_) => CartNotifier(),
+        child: const MaterialApp(home: HomeScreen()),
+      );
+
+  /// Home runs entrance and shimmer animations, so it never settles; pump a
+  /// couple of frames instead of waiting for a quiet tree.
+  Future<void> pumpHome(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
+  Future<void> pumpRoute(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
+  testWidgets('home nudges an incomplete profile and opens the editor',
+      (tester) async {
+    await tester.pumpWidget(homeHarness());
+    await pumpHome(tester);
+
+    expect(find.byKey(const ValueKey('profileNudge')), findsOneWidget);
+    expect(find.text('Add your name and email'), findsOneWidget);
+
+    await tester.tap(find.text('Add your name and email'));
+    await pumpRoute(tester);
+
+    expect(find.byType(EditProfileScreen), findsOneWidget);
+  });
+
+  testWidgets('the nudge disappears once the details are saved',
+      (tester) async {
+    // Only the email is missing: either field being empty is enough to prompt.
+    CustomerData.name = 'Ada Obi';
+
+    await tester.pumpWidget(homeHarness());
+    await pumpHome(tester);
+
+    await tester.tap(find.text('Add your name and email'));
+    await pumpRoute(tester);
+
+    await tester.enterText(find.byType(TextField).last, 'ada@example.com');
+    await tester.tap(find.text('Save changes'));
+    await pumpRoute(tester);
+
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('profileNudge')), findsNothing);
+    expect(CustomerData.email, 'ada@example.com');
+  });
+
+  testWidgets('a complete profile shows no nudge on home', (tester) async {
+    CustomerData.name = 'Ada Obi';
+    CustomerData.email = 'ada@example.com';
+
+    await tester.pumpWidget(homeHarness());
+    await pumpHome(tester);
+
+    expect(find.byKey(const ValueKey('profileNudge')), findsNothing);
+  });
 }
