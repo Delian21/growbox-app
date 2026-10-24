@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/placeholder_images.dart';
+import '../widgets/app_snack_bar.dart';
 import 'home_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -27,35 +28,31 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = emailController.text.trim();
     final password = passwordController.text;
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter your email address.')));
+      showAppSnackBar(context, 'Please enter your email address.', isError: true);
       return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a valid email address.')));
+      showAppSnackBar(context, 'Please enter a valid email address.',
+          isError: true);
       return;
     }
     if (password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter your password.')));
+      showAppSnackBar(context, 'Please enter your password.', isError: true);
       return;
     }
     setState(() => _isLoading = true);
     try {
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Welcome back to GROWBOX!')));
+      showAppSnackBar(context, 'Welcome back to GROWBOX!');
       Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
           (route) => false);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Something went wrong. Please try again.')));
+      showAppSnackBar(context, 'Something went wrong. Please try again.',
+          isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 
@@ -42,9 +43,8 @@ class _DeactivationScreenState extends State<DeactivationScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Account deletion request submitted.')),
-                );
+                showAppSnackBar(
+                    context, 'Account deletion request submitted.');
               },
               child: Text('Delete', style: GoogleFonts.poppins(color: C.errorBright(context), fontWeight: FontWeight.w600)),
             ),

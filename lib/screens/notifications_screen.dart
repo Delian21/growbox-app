@@ -28,7 +28,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'message': 'Check out Cereals Greetings for fresh cereals!',
       'time': '1 day ago',
       'icon': Icons.storefront_outlined,
-      'color': AppColors.primary,
+      // null → brand green, resolved from the theme when the card is built.
+      'color': null,
     },
     {
       'title': 'Promotion',
@@ -42,7 +43,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'message': 'Your order #GBX-10482 is being prepared.',
       'time': '5 days ago',
       'icon': Icons.receipt_long_outlined,
-      'color': AppColors.primary,
+      'color': null,
     },
   ];
 
@@ -148,11 +149,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
+                  color: C.primaryTint(context),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child:   Icon(Icons.notifications_none_outlined,
-                    size: 20, color: AppColors.primary),
+                    size: 20, color: C.primary(context)),
               ),
                 SizedBox(width: 12),
               Expanded(
@@ -182,8 +183,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 value: pushNotifications,
                 onChanged: (value) =>
                     setState(() => pushNotifications = value),
-                activeThumbColor: AppColors.primary,
-                activeTrackColor: AppColors.primaryTint,
+                activeThumbColor: C.primary(context),
+                activeTrackColor: C.primaryTint(context),
                 inactiveThumbColor: AppColors.grey500,
                 inactiveTrackColor: AppColors.grey300,
               ),
@@ -199,7 +200,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final message = notification['message'] as String;
     final time = notification['time'] as String;
     final icon = notification['icon'] as IconData;
-    final color = notification['color'] as Color;
+    // Brand-green accents come from the theme; the deep green is unreadable
+    // on a dark card.
+    final color = (notification['color'] as Color?) ?? C.primary(context);
 
     return Container(
       margin:   EdgeInsets.only(bottom: AppSpacing.sm),

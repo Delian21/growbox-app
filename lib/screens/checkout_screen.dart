@@ -307,11 +307,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
+                  color: C.primaryTint(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.location_on_outlined,
-                    size: 16, color: AppColors.primary),
+                child: Icon(Icons.location_on_outlined,
+                    size: 16, color: C.primary(context)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -331,7 +331,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    color: C.primary(context),
                   ),
                 ),
               ),
@@ -357,14 +357,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     color: C.surface(context),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
+                      color: C.primary(context).withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.location_on_outlined,
-                          color: AppColors.primary, size: 20),
+                      Icon(Icons.location_on_outlined,
+                          color: C.primary(context), size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -418,11 +418,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
+                  color: C.primaryTint(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.local_shipping_outlined,
-                    size: 16, color: AppColors.primary),
+                child: Icon(Icons.local_shipping_outlined,
+                    size: 16, color: C.primary(context)),
               ),
               const SizedBox(width: 10),
               Text(
@@ -456,11 +456,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryTint,
+                    color: C.primaryTint(context),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.delivery_dining,
-                      size: 20, color: AppColors.primary),
+                  child: Icon(Icons.delivery_dining,
+                      size: 20, color: C.primary(context)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -491,7 +491,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: C.primary(context),
                   ),
                 ),
               ],
@@ -514,11 +514,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
+                  color: C.primaryTint(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.receipt_outlined,
-                    size: 16, color: AppColors.primary),
+                child: Icon(Icons.receipt_outlined,
+                    size: 16, color: C.primary(context)),
               ),
               const SizedBox(width: 10),
               Text(
@@ -643,7 +643,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
                   border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.5),
+                      color: C.primary(context).withValues(alpha: 0.5),
                       width: 1.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -651,7 +651,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(Icons.location_on_outlined,
-                        color: AppColors.primary, size: 24),
+                        color: C.primary(context), size: 24),
                     SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
@@ -683,7 +683,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     ),
                     Icon(Icons.check_circle,
-                        color: AppColors.primary, size: 22),
+                        color: C.primary(context), size: 22),
                   ],
                 ),
               ),
@@ -700,17 +700,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           builder: (_) => const LocationScreen()),
                     );
                   },
-                  icon: const Icon(Icons.add, color: AppColors.primary),
+                  icon: Icon(Icons.add, color: C.primary(context)),
                   label: Text(
                     'Add New Address',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: C.primary(context),
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.primary),
+                    side: BorderSide(color: C.primary(context)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

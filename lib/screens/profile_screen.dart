@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../data/mock_data.dart';
@@ -248,11 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 CustomerData.clear();
                 Navigator.pop(dialogContext);
                 setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('You have been logged out.'),
-                  ),
-                );
+                showAppSnackBar(context, 'You have been logged out.');
               },
               child: Text(
                 'Log Out',
@@ -377,11 +374,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
+                  color: C.primaryTint(context),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.edit_outlined,
-                    size: 18, color: AppColors.primary),
+                child: Icon(Icons.edit_outlined,
+                    size: 18, color: C.primary(context)),
               ),
             ),
           ],

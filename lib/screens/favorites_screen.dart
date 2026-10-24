@@ -94,13 +94,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: AppColors.primaryTint.withValues(alpha: 0.3),
+              color: C.primaryTint(context).withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child:   Icon(
               Icons.favorite_border,
               size: 48,
-              color: AppColors.primary,
+              color: C.primary(context),
             ),
           ),
             SizedBox(height: AppSpacing.xxl),

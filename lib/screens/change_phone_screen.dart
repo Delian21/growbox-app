@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/mock_data.dart';
+import '../widgets/app_snack_bar.dart';
 
 class ChangePhoneNumberScreen extends StatefulWidget {
     const ChangePhoneNumberScreen({super.key});
@@ -28,26 +29,25 @@ class _ChangePhoneNumberScreenState extends State<ChangePhoneNumberScreen> {
   Future<void> updatePhoneNumber() async {
     final newPhone = phoneController.text.trim();
     if (newPhone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter your new phone number.')));
+      showAppSnackBar(context, 'Please enter your new phone number.',
+          isError: true);
       return;
     }
     if (newPhone.length < 7) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter a valid phone number.')));
+      showAppSnackBar(context, 'Please enter a valid phone number.',
+          isError: true);
       return;
     }
     setState(() => isLoading = true);
     try {
       CustomerData.phone = newPhone;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Phone number updated successfully.')));
+      showAppSnackBar(context, 'Phone number updated successfully.');
       Navigator.of(context).pop();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Something went wrong. Please try again.')));
+      showAppSnackBar(context, 'Something went wrong. Please try again.',
+          isError: true);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

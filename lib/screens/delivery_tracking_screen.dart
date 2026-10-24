@@ -614,11 +614,12 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.primaryTint,
+              color: C.primaryTint(context),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 2),
+              border: Border.all(color: C.primary(context), width: 2),
             ),
-            child:   Icon(Icons.person, size: 28, color: AppColors.primary),
+            child:   Icon(Icons.person,
+                size: 28, color: C.primary(context)),
           ),
             SizedBox(width: AppSpacing.md),
           // Info
@@ -641,10 +642,11 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             width: 44,
             height: 44,
             decoration:   BoxDecoration(
-              color: AppColors.primaryTint,
+              color: C.primaryTint(context),
               shape: BoxShape.circle,
             ),
-            child:   Icon(Icons.phone, size: 22, color: AppColors.primary),
+            child:   Icon(Icons.phone,
+                size: 22, color: C.primary(context)),
           ),
             SizedBox(width: AppSpacing.sm),
           // Message button
@@ -652,10 +654,11 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             width: 44,
             height: 44,
             decoration:   BoxDecoration(
-              color: AppColors.primaryTint,
+              color: C.primaryTint(context),
               shape: BoxShape.circle,
             ),
-            child:   Icon(Icons.message, size: 22, color: AppColors.primary),
+            child:   Icon(Icons.message,
+                size: 22, color: C.primary(context)),
           ),
         ],
       ),

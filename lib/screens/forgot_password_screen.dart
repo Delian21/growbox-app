@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme.dart';
+import '../widgets/app_snack_bar.dart';
 import 'login_screen.dart';
 
 /// Multi-step forgot password flow.
@@ -262,15 +263,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.sm),
-        ),
-      ),
-    );
+    showAppSnackBar(context, message);
   }
 
   // ── Build ──────────────────────────────────────────────────────────

@@ -178,8 +178,8 @@ class _LocationScreenState extends State<LocationScreen> {
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: C.divider(dialogContext)),
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: C.primary(dialogContext)),
               ),
             ),
           ),
@@ -225,8 +225,8 @@ class _LocationScreenState extends State<LocationScreen> {
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: C.divider(dialogContext)),
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: C.primary(dialogContext)),
               ),
             ),
           ),

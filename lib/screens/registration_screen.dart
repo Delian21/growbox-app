@@ -5,6 +5,7 @@ import 'login_screen.dart';
 import 'location_screen.dart';
 import '../data/mock_data.dart';
 import '../data/placeholder_images.dart';
+import '../widgets/app_snack_bar.dart';
 
 // ---------------------------------------------------------------------------
 // Single multi-step registration wizard (replaces 5 separate screens)
@@ -199,7 +200,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    showAppSnackBar(context, message);
   }
 
   // ── Build ───────────────────────────────────────────────────────────────
@@ -436,9 +437,7 @@ class _WelcomeStep extends StatelessWidget {
                 onTap: onLogin,
                 child: Text('Log in',
                     style: AppTypography.labelMedium.copyWith(
-                        color: C.isDark(context)
-                            ? AppDarkColors.primary
-                            : AppColors.primary)),
+                        color: C.primary(context))),
               ),
             ],
           ),
@@ -952,9 +951,7 @@ class _EmailConfirmationStep extends StatelessWidget {
           const SizedBox(height: AppSpacing.xxxl + 8),
           Icon(Icons.mark_email_read_outlined,
               size: 64,
-              color: C.isDark(context)
-                  ? AppDarkColors.primary
-                  : AppColors.primary),
+              color: C.primary(context)),
           const SizedBox(height: AppSpacing.xxxl + 8),
           SizedBox(
             width: double.infinity,

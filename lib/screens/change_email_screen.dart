@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/mock_data.dart';
+import '../widgets/app_snack_bar.dart';
 
 class ChangeEmailScreen extends StatefulWidget {
     const ChangeEmailScreen({super.key});
@@ -28,31 +29,30 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
   Future<void> updateEmail() async {
     final newEmail = emailController.text.trim();
     if (newEmail.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter your new email address.')));
+      showAppSnackBar(context, 'Please enter your new email address.',
+          isError: true);
       return;
     }
     if (!newEmail.contains('@') || !newEmail.contains('.')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter a valid email address.')));
+      showAppSnackBar(context, 'Please enter a valid email address.',
+          isError: true);
       return;
     }
     if (newEmail == CustomerData.email) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter a different email address.')));
+      showAppSnackBar(context, 'Please enter a different email address.',
+          isError: true);
       return;
     }
     setState(() => isLoading = true);
     try {
       CustomerData.email = newEmail;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Email address updated successfully.')));
+      showAppSnackBar(context, 'Email address updated successfully.');
       Navigator.of(context).pop();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Something went wrong. Please try again.')));
+      showAppSnackBar(context, 'Something went wrong. Please try again.',
+          isError: true);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

@@ -194,7 +194,7 @@ class _FAQScreenState extends State<FAQScreen> {
                       height: 28,
                       decoration: BoxDecoration(
                         color: isExpanded
-                            ? AppColors.primaryTint
+                            ? C.primaryTint(context)
                             : C.surfaceLight(context),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -204,7 +204,7 @@ class _FAQScreenState extends State<FAQScreen> {
                             : Icons.keyboard_arrow_down,
                         size: 18,
                         color: isExpanded
-                            ? AppColors.primary
+                            ? C.primary(context)
                             : AppColors.grey600,
                       ),
                     ),
@@ -235,7 +235,7 @@ class _FAQScreenState extends State<FAQScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryTint.withValues(alpha: 0.3),
+        color: C.primaryTint(context).withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -243,15 +243,15 @@ class _FAQScreenState extends State<FAQScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.help_outline,
-                  size: 20, color: AppColors.primary),
+              Icon(Icons.help_outline,
+                  size: 20, color: C.primary(context)),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'Still need help?',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: C.primary(context),
                 ),
               ),
             ],
