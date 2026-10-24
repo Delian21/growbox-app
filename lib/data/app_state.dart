@@ -7,6 +7,40 @@ import 'mock_data.dart';
 // Cart – ChangeNotifier for Provider, persisted with shared_preferences
 // ---------------------------------------------------------------------------
 
+/// What a box costs: goods plus one delivery charge per distinct vendor.
+///
+/// Single source of truth for the amounts shown on the cart and the checkout
+/// screen, so the two can never disagree about the payable total.
+class CartTotals {
+  /// Sum of one price per cart entry (each entry is one unit).
+  final int subtotal;
+
+  /// Sum of the delivery fee of every vendor represented in the box.
+  final int deliveryFee;
+
+  const CartTotals({required this.subtotal, required this.deliveryFee});
+
+  int get total => subtotal + deliveryFee;
+
+  /// Computes the amounts for [items] using [MockVendors] fees.
+  ///
+  /// Each vendor delivers their own produce, so a box spanning three vendors
+  /// pays all three fees; a single-vendor box pays exactly that vendor's fee.
+  factory CartTotals.forItems(List<VendorProduct> items) {
+    var subtotal = 0;
+    final vendors = <String>{};
+    for (final item in items) {
+      subtotal += item.price;
+      vendors.add(item.vendorName);
+    }
+    var deliveryFee = 0;
+    for (final vendor in vendors) {
+      deliveryFee += MockVendors.deliveryFeeFor(vendor);
+    }
+    return CartTotals(subtotal: subtotal, deliveryFee: deliveryFee);
+  }
+}
+
 class CartNotifier extends ChangeNotifier {
   static const String _storageKey = 'cart_items_v1';
 

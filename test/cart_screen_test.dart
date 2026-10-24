@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/screens/cart_screen.dart';
+import 'package:growbox/screens/checkout_screen.dart';
 import 'package:growbox/theme.dart';
 import 'package:growbox/widgets/pinned_bottom_bar.dart';
 
@@ -166,6 +167,35 @@ void main() {
     expect(find.text('₦3,050'), findsOneWidget);
     expect(find.text('₦500'), findsOneWidget);
     expect(find.text('₦3,550'), findsOneWidget);
+  });
+
+  testWidgets('checkout shows the same amounts as the cart bar',
+      (tester) async {
+    final products = [
+      _product('Rice', 2550, unit: 'kg'),
+      _product('Tomatoes', 500, vendor: 'Yummy Bunch', unit: 'basket'),
+    ];
+    final cart = _cartWith(products);
+    await pumpCart(tester, cart);
+
+    // Cart bar: 3,050 goods + 500 Green Farm delivery (Yummy Bunch is free).
+    expect(find.text('₦3,050'), findsOneWidget);
+    expect(find.text('₦3,550'), findsOneWidget);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<CartNotifier>.value(
+        value: cart,
+        child: MaterialApp(home: CheckoutScreen(products: products)),
+      ),
+    );
+    await tester.pump();
+
+    // The order summary and the CTA report the same payable total.
+    expect(find.text('₦3,050'), findsOneWidget);
+    expect(find.text('₦3,550'), findsOneWidget);
+    expect(find.text('Place Order — ₦3,550'), findsOneWidget);
+    // The old flat checkout fee is gone for good.
+    expect(find.text('₦1,500'), findsNothing);
   });
 
   testWidgets('the checkout button is the primary fill with on-primary text',

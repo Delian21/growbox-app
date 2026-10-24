@@ -21,12 +21,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final List<VendorProduct> products = widget.products;
-    const int deliveryFee = 1500;
-    int subtotal = 0;
-    for (final product in products) {
-      subtotal += product.price;
-    }
-    final int total = subtotal + deliveryFee;
+    // Same calculation as the cart bar: goods + one delivery charge per vendor.
+    final totals = CartTotals.forItems(products);
+    final int deliveryFee = totals.deliveryFee;
+    final int subtotal = totals.subtotal;
+    final int total = totals.total;
     final int itemCount = products.length;
 
 
@@ -54,7 +53,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _buildAddressSection(hp),
 
                     // ── Delivery Method ─────────────────────────
-                    _buildDeliverySection(hp),
+                    _buildDeliverySection(hp, deliveryFee),
 
                     // ── Order Summary ───────────────────────────
                     _buildOrderSummary(hp, subtotal, deliveryFee, total),
@@ -406,7 +405,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildDeliverySection(double hp) {
+  Widget _buildDeliverySection(double hp, int deliveryFee) {
     return Padding(
       padding: EdgeInsets.fromLTRB(hp, AppSpacing.xxl, hp, 0),
       child: Column(
@@ -487,7 +486,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 Text(
-                  '₦1,500',
+                  deliveryFee == 0
+                      ? 'Free'
+                      : '₦${formatPrice(deliveryFee)}',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -550,7 +551,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               children: [
                 _buildSummaryRow('Subtotal', '₦${formatPrice(subtotal)}'),
                 const SizedBox(height: 10),
-                _buildSummaryRow('Delivery fee', '₦${formatPrice(deliveryFee)}'),
+                // Matches the cart bar, which also calls a zero fee "Free".
+                _buildSummaryRow(
+                  'Delivery fee',
+                  deliveryFee == 0 ? 'Free' : '₦${formatPrice(deliveryFee)}',
+                ),
                 const SizedBox(height: 12),
                 Container(height: 1, color: AppColors.grey200),
                 const SizedBox(height: 12),

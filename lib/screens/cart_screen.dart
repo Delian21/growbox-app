@@ -31,9 +31,8 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     final cart = context.watch<CartNotifier>();
     // The bar summarises the box: goods + one delivery charge per vendor.
-    final int subtotal = cart.total;
-    final int deliveryFee = _deliveryFee(cart.items);
-    final int total = subtotal + deliveryFee;
+    // Shared with the checkout screen so both show the same payable total.
+    final totals = CartTotals.forItems(cart.items);
     return ScaffoldWithNav(
       activeIndex: 2,
       // The pinned bar covers the strip above the pill, so the content fade has
@@ -55,26 +54,13 @@ class _CartScreenState extends State<CartScreen> {
                 bar: KeyedSubtree(
                   key: _barContentKey,
                   child: _buildCheckoutBar(
-                    subtotal: subtotal,
-                    deliveryFee: deliveryFee,
-                    total: total,
+                    subtotal: totals.subtotal,
+                    deliveryFee: totals.deliveryFee,
+                    total: totals.total,
                   ),
                 ),
               ),
       ),
-    );
-  }
-
-  /// Sum of the delivery fee of every vendor in the box.
-  ///
-  /// Each vendor delivers their own produce, so a box spanning three vendors
-  /// pays all three fees; a single-vendor box pays exactly that vendor's fee
-  /// from [MockVendors].
-  int _deliveryFee(List<VendorProduct> items) {
-    final vendors = <String>{for (final item in items) item.vendorName};
-    return vendors.fold(
-      0,
-      (sum, vendor) => sum + MockVendors.deliveryFeeFor(vendor),
     );
   }
 
