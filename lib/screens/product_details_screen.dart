@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../routes.dart';
 import '../widgets/animated_entrance.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/skeleton_loader.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -187,9 +189,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: isCurrentTier ? AppColors.primaryTint : AppColors.grey100,
+                  color: isCurrentTier ? C.primaryTint(context) : AppColors.grey100,
                   borderRadius: BorderRadius.circular(18),
-                  border: isCurrentTier ? Border.all(color: AppColors.primary, width: 1.5) : null),
+                  border: isCurrentTier ? Border.all(color: C.primary(context), width: 1.5) : null),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -344,12 +346,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   void _addToBox() {
     final stockStatus = StockTracker.statusFor(widget.product.vendorName, widget.product.name);
     if (stockStatus == StockStatus.outOfStock) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('This item is out of stock'),
-          backgroundColor: AppColors.error,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm))));
+      showAppSnackBar(context, 'This item is out of stock', isError: true);
       return;
     }
     // Create a variant product with size/weight in name and adjusted price
@@ -362,6 +359,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       category: widget.product.category,
       vendorName: widget.product.vendorName,
       pricingType: widget.product.pricingType,
+      // Keep the unit so the cart can still say "₦… / kg".
+      unit: widget.product.unit,
     );
     int added = 0;
     for (int i = 0; i < quantity; i++) {
@@ -373,16 +372,19 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       }
     }
     if (added < quantity && added > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Only $added available, added to box'),
-          backgroundColor: AppColors.warning,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm))));
+      showAppSnackBar(
+        context,
+        'Only $added available, added to box',
+        actionLabel: 'View box',
+        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$variantName × $added added to box'),
-          duration: const Duration(seconds: 1)));
+      showAppSnackBar(
+        context,
+        '$variantName × $added added to box',
+        actionLabel: 'View box',
+        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+      );
     }
   }
 
@@ -572,10 +574,10 @@ class _BundleOption extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryTint : AppColors.grey100,
+          color: isSelected ? C.primaryTint(context) : AppColors.grey100,
           borderRadius: BorderRadius.circular(12),
           border: isSelected
-            ? Border.all(color: AppColors.primary, width: 1.5)
+            ? Border.all(color: C.primary(context), width: 1.5)
             : Border.all(color: AppColors.grey300, width: 1),
         ),
         child: Row(

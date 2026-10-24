@@ -85,6 +85,15 @@ class CartNotifier extends ChangeNotifier {
     _save();
   }
 
+  /// Puts [product] back at [index] — used by Undo so a removed line returns
+  /// to its old slot instead of jumping to the end of the box.
+  void insertAt(int index, VendorProduct product) {
+    final at = index.clamp(0, _items.length);
+    _items.insert(at, product);
+    notifyListeners();
+    _save();
+  }
+
   /// Remove a single instance of a product (for quantity decrement).
   bool removeOne(VendorProduct product) {
     final idx = _items.indexOf(product);

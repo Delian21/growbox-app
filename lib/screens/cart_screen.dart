@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/pinned_bottom_bar.dart';
@@ -19,9 +20,20 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
+  /// Gap between the floating checkout bar and the nav pill.
+  static const double _barGap = 10;
+
+  /// Measures the bar's contents so a snackbar can clear it even when the
+  /// summary wraps to more lines (large text scales).
+  final GlobalKey _barContentKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartNotifier>();
+    // The bar summarises the box: goods + one delivery charge per vendor.
+    final int subtotal = cart.total;
+    final int deliveryFee = _deliveryFee(cart.items);
+    final int total = subtotal + deliveryFee;
     return ScaffoldWithNav(
       activeIndex: 2,
       // The pinned bar covers the strip above the pill, so the content fade has
@@ -34,11 +46,44 @@ class _CartScreenState extends State<CartScreen> {
         child: cart.isEmpty
             ? _emptyCart()
             : ScreenWithPinnedBar(
+                // 10px of air above the pill, the pill's own radius and a
+                // floating surface, so the bar reads as the layer above it.
+                gap: _barGap,
+                radius: BottomNavMetrics.barHeight / 2,
+                horizontalInset: BottomNavMetrics.barHorizontalPadding,
                 body: _filledCart(cart),
-                bar: _buildCheckoutBar(cart.total),
+                bar: KeyedSubtree(
+                  key: _barContentKey,
+                  child: _buildCheckoutBar(
+                    subtotal: subtotal,
+                    deliveryFee: deliveryFee,
+                    total: total,
+                  ),
+                ),
               ),
       ),
     );
+  }
+
+  /// Sum of the delivery fee of every vendor in the box.
+  ///
+  /// Each vendor delivers their own produce, so a box spanning three vendors
+  /// pays all three fees; a single-vendor box pays exactly that vendor's fee
+  /// from [MockVendors].
+  int _deliveryFee(List<VendorProduct> items) {
+    final vendors = <String>{for (final item in items) item.vendorName};
+    return vendors.fold(
+      0,
+      (sum, vendor) => sum + MockVendors.deliveryFeeFor(vendor),
+    );
+  }
+
+  /// "25-35 min · ₦500 delivery", straight from the vendor model.
+  String _vendorMeta(String vendorName) {
+    final time = MockVendors.deliveryTimeFor(vendorName);
+    final fee = MockVendors.deliveryFeeFor(vendorName);
+    final delivery = fee == 0 ? 'Free delivery' : '₦${formatPrice(fee)} delivery';
+    return time.isEmpty ? delivery : '$time · $delivery';
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -60,13 +105,13 @@ class _CartScreenState extends State<CartScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.primaryTint.withValues(alpha: 0.3),
+              color: C.primaryTint(context).withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.shopping_bag_outlined,
               size: 56,
-              color: AppColors.primary,
+              color: C.primary(context),
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -214,19 +259,34 @@ class _CartScreenState extends State<CartScreen> {
                           width: 24,
                           height: 24,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTint,
+                            color: C.primaryTint(context),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(Icons.storefront_outlined,
-                              size: 14, color: AppColors.primary),
+                          child: Icon(Icons.storefront_outlined,
+                              size: 14, color: C.primary(context)),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          vendorName,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: C.textPrimary(context),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                vendorName,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: C.textPrimary(context),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _vendorMeta(vendorName),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: C.textMuted(context),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -248,6 +308,64 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  /// Removes the whole line and offers Undo, which puts every copy back at the
+  /// position the line occupied before it was removed.
+  void _removeItem(VendorProduct product, int quantity) {
+    final cart = context.read<CartNotifier>();
+    final index = cart.items.indexOf(product);
+    if (index < 0) return;
+    cart.removeAll(product);
+    // The bar is content + its own vertical padding + the 1px hairline border
+    // on each edge; clearing all of that plus the gap keeps the snackbar above
+    // the bar instead of on top of the total.
+    final barContentHeight =
+        (_barContentKey.currentContext?.size?.height ?? 0) +
+            AppSpacing.md * 2 +
+            2 +
+            _barGap;
+    showAppSnackBar(
+      context,
+      '${product.name} removed from cart',
+      actionLabel: 'Undo',
+      // Otherwise the bar covers the snackbar it just triggered.
+      bottomOffset: barContentHeight,
+      onAction: () {
+        if (!mounted) return;
+        final restore = context.read<CartNotifier>();
+        for (var copy = 0; copy < quantity; copy++) {
+          restore.insertAt(index + copy, product);
+        }
+      },
+    );
+  }
+
+  /// One 44×44 stepper key: neutral surface and a text-coloured glyph, so "−"
+  /// and "+" read as the same control.
+  Widget _stepperButton({
+    required IconData icon,
+    required VoidCallback? onTap,
+    bool enabled = true,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: enabled ? C.surfaceLight(context) : C.surfaceLighter(context),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? C.textPrimary(context) : C.textMuted(context),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCartItem(VendorProduct product, int quantity) {
     final stockStatus = StockTracker.statusFor(product.vendorName, product.name);
     final isOutOfStock = stockStatus == StockStatus.outOfStock;
@@ -255,25 +373,7 @@ class _CartScreenState extends State<CartScreen> {
     return Dismissible(
       key: Key('${product.name}_${product.vendorName}'),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) {
-        context.read<CartNotifier>().removeAll(product);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${product.name} removed from cart'),
-            action: SnackBarAction(
-              label: 'Undo',
-              textColor: AppColors.primary,
-              onPressed: () {
-                setState(() {
-                  for (int i = 0; i < quantity; i++) {
-                    context.read<CartNotifier>().add(product);
-                  }
-                });
-              },
-            ),
-          ),
-        );
-      },
+      onDismissed: (_) => _removeItem(product, quantity),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -337,12 +437,25 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '₦${formatPrice(product.price)}',
+                    product.unit == null
+                        ? '₦${formatPrice(product.price)}'
+                        : '₦${formatPrice(product.price)} / ${product.unit}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: C.accentOrange(context),
                     ),
                   ),
+                  if (quantity > 1) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '$quantity x ₦${formatPrice(product.price)} = '
+                      '₦${formatPrice(product.price * quantity)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: C.textMuted(context),
+                      ),
+                    ),
+                  ],
                   if (stockStatus != StockStatus.inStock) ...[
                     const SizedBox(height: 4),
                     Container(
@@ -368,78 +481,42 @@ class _CartScreenState extends State<CartScreen> {
                 ],
               ),
             ),
-            // Quantity controls
-            Column(
+            // Quantity controls. At one unit the minus slot becomes the
+            // delete control, so there is no separate X to hunt for.
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Delete button
-                GestureDetector(
-                  onTap: () => context.read<CartNotifier>().removeAll(product),
-                  child: Icon(Icons.close,
-                      size: 18, color: C.textMuted(context)),
+                _stepperButton(
+                  icon: quantity > 1 ? Icons.remove : Icons.delete_outline,
+                  onTap: quantity > 1
+                      ? () => setState(() {
+                            context.read<CartNotifier>().removeOne(product);
+                          })
+                      : () => _removeItem(product, quantity),
                 ),
-                const SizedBox(height: 8),
-                // Quantity selector
-                Container(
-                  decoration: BoxDecoration(
-                    color: C.surfaceLight(context),
-                    borderRadius: BorderRadius.circular(8),
+                SizedBox(
+                  width: 32,
+                  child: Text(
+                    '$quantity',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: C.textPrimary(context),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GestureDetector(
-                        onTap: () => setState(() {
-                          context.read<CartNotifier>().removeOne(product);
-                        }),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          alignment: Alignment.center,
-                          child: Icon(Icons.remove, size: 16, color: C.textPrimary(context)),
-                        ),
-                      ),
-                      Container(
-                        width: 32,
-                        alignment: Alignment.center,
-                        child: Text(
-                          '$quantity',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: isOutOfStock
-                            ? null
-                            : () => setState(() {
-                                if (StockTracker.decrement(
-                                    product.vendorName, product.name)) {
-                                  context.read<CartNotifier>().add(product);
-                                }
-                              }),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isOutOfStock
-                                ? C.surfaceLighter(context)
-                                : C.primaryTint(context),
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(8),
-                              bottomRight: Radius.circular(8),
-                            ),
-                          ),
-                          child: Icon(Icons.add,
-                              size: 16,
-                              color: isOutOfStock
-                                  ? C.textMuted(context)
-                                  : C.primary(context)),
-                        ),
-                      ),
-                    ],
-                  ),
+                ),
+                _stepperButton(
+                  icon: Icons.add,
+                  enabled: !isOutOfStock,
+                  onTap: isOutOfStock
+                      ? null
+                      : () => setState(() {
+                            if (StockTracker.decrement(
+                                product.vendorName, product.name)) {
+                              context.read<CartNotifier>().add(product);
+                            }
+                          }),
                 ),
               ],
             ),
@@ -449,38 +526,35 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  /// Contents of the pinned checkout bar; its surface, divider and nav offset
+  /// Contents of the pinned checkout bar; its surface, radius and nav offset
   /// come from [PinnedBottomBar].
-  Widget _buildCheckoutBar(int total) {
+  Widget _buildCheckoutBar({
+    required int subtotal,
+    required int deliveryFee,
+    required int total,
+  }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Total
+        // Compact summary: goods, delivery, payable.
         Expanded(
+          flex: 5,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Total',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: C.textMuted(context),
-                ),
+              _summaryRow('Subtotal', '₦${formatPrice(subtotal)}'),
+              _summaryRow(
+                'Delivery',
+                deliveryFee == 0 ? 'Free' : '₦${formatPrice(deliveryFee)}',
               ),
-              Text(
-                '₦${formatPrice(total)}',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: C.textPrimary(context),
-                ),
-              ),
+              _summaryRow('Total', '₦${formatPrice(total)}', emphasize: true),
             ],
           ),
         ),
-        const SizedBox(width: 16),
-        // Checkout button
+        const SizedBox(width: AppSpacing.md),
+        // The loudest thing on the screen: brand fill, on-primary content.
         Expanded(
+          flex: 4,
           child: GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -492,38 +566,65 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
             child: Container(
-              height: 48,
+              height: 52,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: C.primary(context),
+                borderRadius: BorderRadius.circular(AppRadii.md),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Checkout',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.white,
+              // Scales down rather than overflowing on narrow phones.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Checkout',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: C.onPrimary(context),
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, size: 18, color: AppColors.white),
-                ],
+                    const SizedBox(width: 8),
+                    Icon(Icons.arrow_forward,
+                        size: 18, color: C.onPrimary(context)),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  /// One "label … amount" line; [emphasize] marks the payable total.
+  Widget _summaryRow(String label, String amount, {bool emphasize = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: emphasize ? 13 : 12,
+                fontWeight: emphasize ? FontWeight.w700 : FontWeight.w400,
+                color: emphasize ? C.textPrimary(context) : C.textMuted(context),
+              ),
+            ),
+          ),
+          Text(
+            amount,
+            style: TextStyle(
+              fontSize: emphasize ? 14 : 12,
+              fontWeight: emphasize ? FontWeight.bold : FontWeight.w500,
+              color: C.textPrimary(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

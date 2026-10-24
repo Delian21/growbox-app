@@ -19,29 +19,63 @@ class PinnedBottomBar extends StatelessWidget {
 
   final Widget child;
 
-  const PinnedBottomBar({super.key, required this.child});
+  /// Extra space between the bar and the floating nav. Zero keeps the bar
+  /// attached to the strip above the pill.
+  final double gap;
+
+  /// Corner radius of the bar surface. Zero keeps the full-bleed slab.
+  final double radius;
+
+  /// Horizontal inset, used together with [radius] to float the bar like the
+  /// nav pill instead of touching the screen edges.
+  final double horizontalInset;
+
+  const PinnedBottomBar({
+    super.key,
+    required this.child,
+    this.gap = 0,
+    this.radius = 0,
+    this.horizontalInset = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
     final navVisible = BottomNavScope.isVisibleOf(context);
     final hp = AppSizing.horizontalPadding(context);
+    final floating = radius > 0;
 
     return Padding(
-      // Clears the floating pill (or nothing when the keyboard replaced it).
+      // Clears the floating pill (or nothing when the keyboard replaced it),
+      // plus any requested breathing room.
       padding: EdgeInsets.only(
-        bottom: navVisible ? BottomNavMetrics.reserved(context) : 0,
+        bottom: navVisible ? BottomNavMetrics.reserved(context) + gap : 0,
       ),
-      child: Container(
-        key: surfaceKey,
-        width: double.infinity,
-        padding: EdgeInsets.fromLTRB(hp, AppSpacing.md, hp, AppSpacing.md),
-        decoration: BoxDecoration(
-          color: C.surface(context),
-          border: Border(
-            top: BorderSide(color: C.divider(context), width: 1),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalInset),
+        child: Container(
+          key: surfaceKey,
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(
+            floating ? AppSpacing.lg : hp,
+            AppSpacing.md,
+            floating ? AppSpacing.lg : hp,
+            AppSpacing.md,
           ),
+          decoration: BoxDecoration(
+            color: C.surface(context),
+            borderRadius:
+                floating ? BorderRadius.circular(radius) : BorderRadius.zero,
+            // A floating bar borrows the nav's treatment: hairline outline and
+            // float shadow. An attached bar keeps its single top divider.
+            border: floating
+                ? Border.all(color: C.surfaceLighter(context), width: 1)
+                : Border(
+                    top: BorderSide(color: C.divider(context), width: 1),
+                  ),
+            boxShadow: floating ? AppNeumorphic.floatShadows(context) : null,
+          ),
+          child: child,
         ),
-        child: child,
       ),
     );
   }
@@ -57,10 +91,19 @@ class ScreenWithPinnedBar extends StatelessWidget {
   final Widget body;
   final Widget bar;
 
+  /// Forwarded to [PinnedBottomBar] so a screen can float its bar above the
+  /// nav without rebuilding the widget itself.
+  final double gap;
+  final double radius;
+  final double horizontalInset;
+
   const ScreenWithPinnedBar({
     super.key,
     required this.body,
     required this.bar,
+    this.gap = 0,
+    this.radius = 0,
+    this.horizontalInset = 0,
   });
 
   @override
@@ -68,7 +111,12 @@ class ScreenWithPinnedBar extends StatelessWidget {
     return Column(
       children: [
         Expanded(child: body),
-        PinnedBottomBar(child: bar),
+        PinnedBottomBar(
+          gap: gap,
+          radius: radius,
+          horizontalInset: horizontalInset,
+          child: bar,
+        ),
       ],
     );
   }

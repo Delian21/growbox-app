@@ -148,10 +148,16 @@ void main() {
     final bar = tester.getRect(find.byKey(PinnedBottomBar.surfaceKey));
     final nav = tester.getRect(find.byType(BottomNav));
 
-    expect(bar.bottom, closeTo(nav.top, 0.01));
+    // Floating checkout bar: 10px of air above the pill, inset to the pill's
+    // own width.
+    expect(bar.bottom, closeTo(nav.top - 10, 0.01));
+    expect(bar.width, closeTo(400 - BottomNavMetrics.barHorizontalPadding * 2, 0.01));
     expect(find.text('Checkout'), findsOneWidget);
-    // Total in the bar (the line item above it shows the same price).
+    // Subtotal in the bar (the line item above it shows the same price).
     expect(find.text('₦2,550'), findsNWidgets(2));
+    expect(find.text('Delivery'), findsOneWidget);
+    // Total = subtotal + the vendor's ₦500 fee.
+    expect(find.text('₦3,050'), findsOneWidget);
 
     // The checkout button lives inside the bar rather than in the list.
     final button = tester.getRect(find.text('Checkout'));

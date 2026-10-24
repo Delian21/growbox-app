@@ -49,6 +49,10 @@ class VendorProduct {
   final String category;
   final String vendorName;
   final PricingType pricingType;
+
+  /// What one [price] buys, e.g. 'kg', 'basket', 'bottle'. Optional: products
+  /// without a natural unit leave it null and the UI simply omits it.
+  final String? unit;
   /// Bulk quantity discounts for byUnit items.
   /// Keys are minimum quantity thresholds, values are price multipliers.
   /// Example: {5: 0.95, 10: 0.90} means buy 5+ for 5% off, 10+ for 10% off.
@@ -65,6 +69,7 @@ class VendorProduct {
     required this.category,
     required this.vendorName,
     this.pricingType = PricingType.byWeight,
+    this.unit,
     this.bulkMultipliers,
     this.bundles,
   });
@@ -78,6 +83,7 @@ class VendorProduct {
         'category': category,
         'vendorName': vendorName,
         'pricingType': pricingType.name,
+        if (unit != null) 'unit': unit,
         if (bulkMultipliers != null)
           'bulkMultipliers': bulkMultipliers!.entries
               .map((e) => [e.key, e.value])
@@ -93,6 +99,7 @@ class VendorProduct {
         price: json['price'] as int,
         category: json['category'] as String,
         vendorName: json['vendorName'] as String,
+        unit: json['unit'] as String?,
         pricingType: PricingType.values.firstWhere(
           (t) => t.name == json['pricingType'],
           orElse: () => PricingType.byWeight,
@@ -193,6 +200,22 @@ class CustomerData {
 // ============================================================
 
 class MockVendors {
+  /// The catalog entry for [name], or null if that vendor no longer exists.
+  static Map<String, dynamic>? find(String name) {
+    for (final vendor in vendors) {
+      if (vendor['name'] == name) return vendor;
+    }
+    return null;
+  }
+
+  /// Delivery fee from the vendor model (0 when the vendor is unknown).
+  static int deliveryFeeFor(String name) =>
+      (find(name)?['deliveryFee'] as int?) ?? 0;
+
+  /// Delivery estimate from the vendor model ('' when unknown).
+  static String deliveryTimeFor(String name) =>
+      (find(name)?['deliveryTime'] as String?) ?? '';
+
   static List<Map<String, dynamic>> get vendors => [
     {
       'name': 'Green Farm',
@@ -203,6 +226,7 @@ class MockVendors {
       'price': 2550.0,
       'rating': 84.0,
       'deliveryFee': 500,
+      'deliveryTime': '25-35 min',
       'searchProducts': [
         'Rice',
         'Millet',
@@ -219,6 +243,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.rice,
           name: 'Rice',
+          unit: 'kg',
           description: 'Quality rice grains sourced from trusted farmers',
           price: 2550,
           category: 'GRAINS',
@@ -227,6 +252,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.millet,
           name: 'Millet',
+          unit: 'kg',
           description: 'Fresh and nutritious millet grains',
           price: 2550,
           category: 'GRAINS',
@@ -235,6 +261,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.maize,
           name: 'Maize',
+          unit: 'kg',
           description: 'Fresh quality maize grains',
           price: 2550,
           category: 'CEREALS',
@@ -243,6 +270,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.sorghum,
           name: 'Sorghum',
+          unit: 'kg',
           description: 'Quality sorghum grains',
           price: 2550,
           category: 'CEREALS',
@@ -251,6 +279,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.beans,
           name: 'Beans',
+          unit: 'kg',
           description: 'Quality beans sourced from trusted farmers',
           price: 3200,
           category: 'LEGUMES',
@@ -259,6 +288,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.soybeans,
           name: 'Soybeans',
+          unit: 'kg',
           description: 'Fresh and nutritious soybeans',
           price: 3000,
           category: 'LEGUMES',
@@ -275,12 +305,14 @@ class MockVendors {
       'price': 2500.0,
       'rating': 0.0,
       'deliveryFee': 0,
+      'deliveryTime': '30-40 min',
       'searchProducts': ['Tomatoes', 'Fruits', 'Vegetables'],
       'categories': ['Fruits', 'Vegetables'],
       'products': [
         VendorProduct(
           image: PlaceholderImages.tomatoes,
           name: 'Tomatoes',
+          unit: 'basket',
           description: 'Fresh tomatoes sold per piece',
           price: 500,
           category: 'VEGETABLES',
@@ -291,6 +323,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.tomatoesCrate,
           name: 'Tomatoes (Crate)',
+          unit: 'crate',
           description: 'Fresh tomatoes sold in bulk crates — perfect for parties, events, or resellers',
           price: 7500,
           category: 'VEGETABLES',
@@ -313,12 +346,14 @@ class MockVendors {
       'price': 3000.0,
       'rating': 92.0,
       'deliveryFee': 300,
+      'deliveryTime': '20-30 min',
       'searchProducts': ['Fresh Produce', 'Fruits', 'Meat', 'Vegetables'],
       'categories': ['Fruits', 'Vegetables', 'Meat'],
       'products': [
         VendorProduct(
           image: PlaceholderImages.freshProtein,
           name: 'Fresh Produce',
+          unit: 'basket',
           description: 'Fresh quality produce',
           price: 3000,
           category: 'FRUITS',
@@ -328,6 +363,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.chicken,
           name: 'Chicken',
+          unit: 'kg',
           description: 'Fresh chicken',
           price: 4000,
           category: 'POULTRY',
@@ -336,6 +372,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.fish,
           name: 'Fish',
+          unit: 'kg',
           description: 'Fresh fish',
           price: 3800,
           category: 'FISH',
@@ -352,12 +389,14 @@ class MockVendors {
       'price': 3500.0,
       'rating': 100.0,
       'deliveryFee': 800,
+      'deliveryTime': '35-45 min',
       'searchProducts': ['Fresh Apples', 'Fruits', 'Vegetables'],
       'categories': ['Fruits', 'Vegetables'],
       'products': [
         VendorProduct(
           image: PlaceholderImages.freshApples,
           name: 'Fresh Apples',
+          unit: 'basket',
           description: 'Fresh quality apples sold per piece',
           price: 350,
           category: 'FRUITS',
@@ -368,6 +407,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.oranges,
           name: 'Oranges',
+          unit: 'basket',
           description: 'Fresh juicy oranges',
           price: 300,
           category: 'FRUITS',
@@ -378,6 +418,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.bananas,
           name: 'Bananas',
+          unit: 'bunch',
           description: 'Fresh bananas',
           price: 250,
           category: 'FRUITS',
@@ -388,6 +429,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.eggsTray,
           name: 'Eggs (Tray)',
+          unit: 'tray',
           description: 'Fresh farm eggs sold in trays — great for bakeries and large households',
           price: 4500,
           category: 'FRUITS',
@@ -410,12 +452,14 @@ class MockVendors {
       'price': 2800.0,
       'rating': 0.0,
       'deliveryFee': 400,
+      'deliveryTime': '25-40 min',
       'searchProducts': ['Fresh Vegetables', 'Vegetables', 'Fruits', 'Herbs'],
       'categories': ['Vegetables', 'Fruits', 'Herbs'],
       'products': [
         VendorProduct(
           image: PlaceholderImages.freshVegetables,
           name: 'Fresh Vegetables',
+          unit: 'basket',
           description: 'Fresh quality vegetables',
           price: 2800,
           category: 'VEGETABLES',
@@ -425,6 +469,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.peppers,
           name: 'Peppers',
+          unit: 'basket',
           description: 'Fresh hot peppers',
           price: 1500,
           category: 'VEGETABLES',
@@ -434,6 +479,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.onions,
           name: 'Onions',
+          unit: 'kg',
           description: 'Fresh onions',
           price: 1200,
           category: 'VEGETABLES',
@@ -443,6 +489,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.cabbage,
           name: 'Cabbage',
+          unit: 'head',
           description: 'Fresh cabbage',
           price: 800,
           category: 'VEGETABLES',
@@ -452,6 +499,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.potatoes,
           name: 'Potatoes',
+          unit: 'kg',
           description: 'Fresh Irish potatoes for stews, fries and soups',
           price: 1500,
           category: 'TUBERS',
@@ -461,6 +509,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.scentLeaves,
           name: 'Scent Leaves',
+          unit: 'bunch',
           description: 'Fresh scent leaves (efirin) for soups and stews',
           price: 500,
           category: 'HERBS',
@@ -471,6 +520,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.scentLeaves,
           name: 'Curry Leaves',
+          unit: 'bunch',
           description: 'Fresh curry leaves to season rice and sauces',
           price: 400,
           category: 'HERBS',
@@ -489,12 +539,14 @@ class MockVendors {
       'price': 2700.0,
       'rating': 0.0,
       'deliveryFee': 500,
+      'deliveryTime': '30-35 min',
       'searchProducts': ['Maize', 'Grains', 'Cereals', 'Legumes'],
       'categories': ['Grains', 'Cereals', 'Legumes'],
       'products': [
         VendorProduct(
           image: PlaceholderImages.maize,
           name: 'Maize',
+          unit: 'kg',
           description: 'Quality maize grains',
           price: 2700,
           category: 'CEREALS',
@@ -503,6 +555,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.rice,
           name: 'Rice',
+          unit: 'kg',
           description: 'Quality rice',
           price: 2550,
           category: 'GRAINS',
@@ -511,6 +564,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.millet,
           name: 'Millet',
+          unit: 'kg',
           description: 'Fresh millet',
           price: 2400,
           category: 'GRAINS',
@@ -527,6 +581,7 @@ class MockVendors {
       'price': 4000.0,
       'rating': 95.0,
       'deliveryFee': 350,
+      'deliveryTime': '25-35 min',
       'searchProducts': [
         'Palm Oil',
         'Groundnut Oil',
@@ -539,6 +594,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.palmOil,
           name: 'Palm Oil',
+          unit: 'bottle',
           description: 'Rich, unrefined red palm oil for stews and soups',
           price: 4500,
           category: 'OILS',
@@ -549,6 +605,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.groundnutOil,
           name: 'Groundnut Oil',
+          unit: 'bottle',
           description: 'Pure groundnut (peanut) oil for frying and dressings',
           price: 6000,
           category: 'OILS',
@@ -559,6 +616,7 @@ class MockVendors {
         VendorProduct(
           image: PlaceholderImages.vegetableOil,
           name: 'Vegetable Oil',
+          unit: 'bottle',
           description: 'Light blended vegetable oil for everyday frying and baking',
           price: 3500,
           category: 'OILS',
