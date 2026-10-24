@@ -70,6 +70,13 @@ class Order {
   final String deliveryAddress;
   final int deliveryFee;
 
+  /// When each lifecycle step was reached, keyed by status.
+  ///
+  /// Only steps that have actually happened are present, and a missing time is
+  /// not an error: the details screen falls back to a plain "Done"/"Pending"
+  /// label. A backend with an event log simply fills more entries.
+  final Map<OrderStatus, DateTime> timestamps;
+
   const Order({
     required this.id,
     required this.vendorName,
@@ -78,6 +85,7 @@ class Order {
     required this.items,
     this.deliveryAddress = '',
     this.deliveryFee = 0,
+    this.timestamps = const {},
   });
 
   int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
@@ -86,7 +94,15 @@ class Order {
 
   bool get isActive => status.isActive;
 
-  Order copyWith({OrderStatus? status}) => Order(
+  /// Time [step] was reached, or null when it hasn't happened (or was never
+  /// recorded).
+  DateTime? timestampOf(OrderStatus step) => timestamps[step];
+
+  Order copyWith({
+    OrderStatus? status,
+    Map<OrderStatus, DateTime>? timestamps,
+  }) =>
+      Order(
         id: id,
         vendorName: vendorName,
         status: status ?? this.status,
@@ -94,7 +110,28 @@ class Order {
         items: items,
         deliveryAddress: deliveryAddress,
         deliveryFee: deliveryFee,
+        timestamps: timestamps ?? this.timestamps,
       );
+}
+
+// ---------------------------------------------------------------------------
+// Formatting
+// ---------------------------------------------------------------------------
+
+const List<String> _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// `Oct 24, 2026` — shared by the orders list and the details screen.
+String formatOrderDate(DateTime d) =>
+    '${_months[d.month - 1]} ${d.day}, ${d.year}';
+
+/// `3:42 PM`, 12-hour clock without a leading zero.
+String formatOrderTime(DateTime d) {
+  final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final minute = d.minute.toString().padLeft(2, '0');
+  return '$hour:$minute ${d.hour < 12 ? 'AM' : 'PM'}';
 }
 
 // ---------------------------------------------------------------------------
@@ -127,8 +164,27 @@ class MockOrdersRepository implements OrdersRepository {
   /// backend would persist server-side.
   final Map<String, OrderStatus> _statusOverrides = {};
 
+  /// When the overridden status was reached, keyed by order id.
+  final Map<String, Map<OrderStatus, DateTime>> _timeOverrides = {};
+
   static const String _demoAddress =
       'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria';
+
+  /// Minutes after placement at which the mock reaches each step.
+  static const Map<OrderStatus, int> _stepMinutes = {
+    OrderStatus.confirmed: 0,
+    OrderStatus.packing: 5,
+    OrderStatus.onTheWay: 12,
+    OrderStatus.delivered: 30,
+    OrderStatus.cancelled: 2,
+  };
+
+  static const List<OrderStatus> _track = [
+    OrderStatus.confirmed,
+    OrderStatus.packing,
+    OrderStatus.onTheWay,
+    OrderStatus.delivered,
+  ];
 
   @override
   Future<List<Order>> getOrders() async {
@@ -139,12 +195,8 @@ class MockOrdersRepository implements OrdersRepository {
       ..._recentActiveOrders(),
     ];
 
-    final resolved = [
-      for (final order in orders)
-        _statusOverrides.containsKey(order.id)
-            ? order.copyWith(status: _statusOverrides[order.id])
-            : order,
-    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final resolved = orders.map(_applyOverrides).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return List<Order>.unmodifiable(resolved);
   }
@@ -157,18 +209,65 @@ class MockOrdersRepository implements OrdersRepository {
     final next = orders[index].status.nextActive;
     if (next == null) return;
     _statusOverrides[orderId] = next;
+    // Stamp the transition so the details timeline moves with the status.
+    (_timeOverrides[orderId] ??= {})[next] = DateTime.now();
+  }
+
+  /// Replays session-only status changes over a stored order.
+  Order _applyOverrides(Order order) {
+    final status = _statusOverrides[order.id];
+    final times = _timeOverrides[order.id];
+    if (status == null && times == null) return order;
+    return order.copyWith(
+      status: status,
+      timestamps: {...order.timestamps, ...?times},
+    );
+  }
+
+  /// Mock event log: each reached step is stamped a fixed number of minutes
+  /// after placement, capped at [reference] so no step is ever dated in the
+  /// future. A backend that returns real events makes this unnecessary.
+  static Map<OrderStatus, DateTime> _mockTimeline(
+    OrderStatus status,
+    DateTime placedAt, {
+    DateTime? reference,
+  }) {
+    final now = reference ?? DateTime.now();
+
+    DateTime stamp(OrderStatus step) {
+      final at = placedAt.add(Duration(minutes: _stepMinutes[step] ?? 0));
+      return at.isAfter(now) ? now : at;
+    }
+
+    if (status == OrderStatus.cancelled) {
+      return {
+        OrderStatus.confirmed: stamp(OrderStatus.confirmed),
+        OrderStatus.cancelled: stamp(OrderStatus.cancelled),
+      };
+    }
+
+    // Delivered is the last step on the track, so `<=` covers everything
+    // reached on the way to it.
+    return {
+      for (final step in _track)
+        if (step.stepIndex <= status.stepIndex) step: stamp(step),
+    };
   }
 
   /// Maps a persisted checkout record onto the UI model.
-  static Order _fromStoredOrder(StoredOrder o) => Order(
-        id: o.orderNumber,
-        vendorName: _vendorLabel(o.items),
-        status: _legacyStatus(o.status),
-        createdAt: o.placedAt,
-        items: o.items,
-        deliveryAddress: o.deliveryAddress,
-        deliveryFee: o.deliveryFee,
-      );
+  static Order _fromStoredOrder(StoredOrder o) {
+    final status = _legacyStatus(o.status);
+    return Order(
+      id: o.orderNumber,
+      vendorName: _vendorLabel(o.items),
+      status: status,
+      createdAt: o.placedAt,
+      items: o.items,
+      deliveryAddress: o.deliveryAddress,
+      deliveryFee: o.deliveryFee,
+      timestamps: _mockTimeline(status, o.placedAt),
+    );
+  }
 
   /// The legacy records store free-text statuses; they map onto the enum.
   static OrderStatus _legacyStatus(String status) => switch (status) {
@@ -193,14 +292,17 @@ class MockOrdersRepository implements OrdersRepository {
   /// waiting on a real delivery.
   static List<Order> _recentActiveOrders() {
     final now = DateTime.now();
+    final placed18 = now.subtract(const Duration(minutes: 18));
+    final placed55 = now.subtract(const Duration(minutes: 55));
     return [
       Order(
         id: 'GBX-10536',
         vendorName: 'Green Farm',
         status: OrderStatus.onTheWay,
-        createdAt: now.subtract(const Duration(minutes: 18)),
+        createdAt: placed18,
         deliveryAddress: _demoAddress,
         deliveryFee: 500,
+        timestamps: _mockTimeline(OrderStatus.onTheWay, placed18),
         items: [
           _demoItem('Rice', 'Green Farm'),
           _demoItem('Beans', 'Green Farm'),
@@ -210,9 +312,10 @@ class MockOrdersRepository implements OrdersRepository {
         id: 'GBX-10521',
         vendorName: 'Yummy Bunch',
         status: OrderStatus.packing,
-        createdAt: now.subtract(const Duration(minutes: 55)),
+        createdAt: placed55,
         deliveryAddress: _demoAddress,
         deliveryFee: 500,
+        timestamps: _mockTimeline(OrderStatus.packing, placed55),
         items: [_demoItem('Tomatoes', 'Yummy Bunch', qty: 2)],
       ),
     ];

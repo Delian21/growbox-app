@@ -36,9 +36,6 @@ class OrderHistoryScreen extends StatefulWidget {
 }
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
-  static const String _fallbackAddress =
-      'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria';
-
   late OrdersTab _tab = widget.initialTab;
 
   OrdersStore get _store => widget.store ?? ordersStore;
@@ -67,24 +64,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   // ── Actions ─────────────────────────────────────────────────────────────
 
   void _openDetails(Order order) {
+    // The details screen is driven by the order itself; handing it the store
+    // lets the timeline follow status changes made while it is open.
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => OrderDetailsScreen(
-          orderNumber: '#${order.id}',
-          date: _formatOrderDate(order.createdAt),
-          status: order.status.label,
-          statusColor: _statusColor(context, order.status),
-          paymentStatus:
-              order.status == OrderStatus.cancelled ? 'Refunded' : 'Paid',
-          deliveryAddress: order.deliveryAddress.isEmpty
-              ? _fallbackAddress
-              : order.deliveryAddress,
-          subtotal: order.subtotal,
-          deliveryFee: order.deliveryFee,
-          total: order.total,
-          products: order.items,
-        ),
+        builder: (_) => OrderDetailsScreen(order: order, store: _store),
       ),
     );
   }
@@ -256,18 +241,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-// SHARED FORMATTING
-// ═══════════════════════════════════════════════════════════════════════
-
-const List<String> _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-String _formatOrderDate(DateTime d) =>
-    '${_months[d.month - 1]} ${d.day}, ${d.year}';
 
 // ═══════════════════════════════════════════════════════════════════════
 // TABS
@@ -491,7 +464,7 @@ class _OrderCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    _formatOrderDate(order.createdAt),
+                    formatOrderDate(order.createdAt),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.bodySmall

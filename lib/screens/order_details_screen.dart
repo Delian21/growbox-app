@@ -1,42 +1,160 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme.dart';
+
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
+import '../data/orders.dart';
+import '../theme.dart';
 import '../widgets/skeleton_loader.dart';
 import 'delivery_tracking_screen.dart';
 
-class OrderDetailsScreen extends StatelessWidget {
-  final String orderNumber;
-  final String date;
-  final String status;
-  final Color statusColor;
-  final String deliveryAddress;
-  final int subtotal;
-  final int deliveryFee;
-  final int total;
-  /// Line items with price/image frozen at checkout time.
-  final List<OrderItem> products;
-  final String paymentStatus;
+/// Full view of one [Order].
+///
+/// Everything on this screen — vendor, items, totals, payment state, which
+/// actions are offered and the status timeline — is read from the order itself.
+/// Passing a [OrdersStore] makes it follow live status changes (such as the
+/// demo "advance status" action) instead of the snapshot it was opened with.
+class OrderDetailsScreen extends StatefulWidget {
+  final Order order;
+
+  /// Optional source of newer versions of [order]. Without it the screen is a
+  /// pure render of the order it was given, which is what a real API response
+  /// would look like.
+  final OrdersStore? store;
 
   const OrderDetailsScreen({
     super.key,
-    required this.orderNumber,
-    required this.date,
-    required this.status,
-    required this.statusColor,
-    required this.deliveryAddress,
-    required this.subtotal,
-    required this.deliveryFee,
-    required this.total,
-    required this.products,
-    required this.paymentStatus,
+    required this.order,
+    this.store,
   });
 
+  @override
+  State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();
+}
+
+class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
+  static const String _fallbackAddress =
+      'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria';
+
+  @override
+  void initState() {
+    super.initState();
+    widget.store?.addListener(_onStoreChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant OrderDetailsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.store != widget.store) {
+      oldWidget.store?.removeListener(_onStoreChanged);
+      widget.store?.addListener(_onStoreChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.store?.removeListener(_onStoreChanged);
+    super.dispose();
+  }
+
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// The freshest version of the order the screen knows about.
+  Order get _order {
+    final store = widget.store;
+    if (store == null) return widget.order;
+    for (final order in store.orders) {
+      if (order.id == widget.order.id) return order;
+    }
+    return widget.order;
+  }
+
+  static Color _statusColor(BuildContext context, OrderStatus status) =>
+      switch (status) {
+        OrderStatus.confirmed => C.primary(context),
+        OrderStatus.packing => C.accentOrange(context),
+        OrderStatus.onTheWay => C.accentOrange(context),
+        OrderStatus.delivered => C.success(context),
+        OrderStatus.cancelled => C.errorBright(context),
+      };
+
+  static IconData _statusIcon(OrderStatus status) => switch (status) {
+        OrderStatus.confirmed => Icons.receipt_long_outlined,
+        OrderStatus.packing => Icons.inventory_2_outlined,
+        OrderStatus.onTheWay => Icons.local_shipping_outlined,
+        OrderStatus.delivered => Icons.check_circle_outline,
+        OrderStatus.cancelled => Icons.cancel_outlined,
+      };
+
+  /// Mock checkout charges up front, so the only refund case is a cancellation.
+  /// A real backend would send a payment status alongside the order.
+  static String _paymentStatus(Order order) =>
+      order.status == OrderStatus.cancelled ? 'Refunded' : 'Paid';
+
+  // ── Reorder ─────────────────────────────────────────────────────────────
+
+  void _reorder(Order order) {
+    final cart = context.read<CartNotifier>();
+    int added = 0;
+    int skipped = 0;
+
+    for (final line in order.items) {
+      // Rebuild a catalog product from the order snapshot so reordering works
+      // even if the catalog has changed since the order was placed.
+      final product = VendorProduct(
+        image: line.image,
+        name: line.name,
+        description: line.name,
+        price: line.price,
+        category: line.category,
+        vendorName: line.vendorName,
+      );
+      for (int unit = 0; unit < line.quantity; unit++) {
+        if (StockTracker.isAvailable(line.vendorName, line.name)) {
+          StockTracker.decrement(line.vendorName, line.name);
+          cart.add(product);
+          added++;
+        } else {
+          skipped++;
+        }
+      }
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    if (skipped == 0) {
+      _showSnack(
+        '$added item${added == 1 ? '' : 's'} added to your box',
+        C.success(context),
+      );
+    } else if (added == 0) {
+      _showSnack('All items are out of stock', C.error(context));
+    } else {
+      _showSnack('$added added, $skipped out of stock', C.warning(context));
+    }
+  }
+
+  void _showSnack(String message, Color background) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: background,
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+      ),
+    ));
+  }
+
+  // ── Build ───────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final order = _order;
     final hp = AppSizing.horizontalPadding(context);
+    final statusColor = _statusColor(context, order.status);
 
     return Scaffold(
       backgroundColor: C.background(context),
@@ -49,77 +167,88 @@ class OrderDetailsScreen extends StatelessWidget {
               child: Row(
                 children: [
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => Navigator.pop(context),
-                    child: Icon(Icons.arrow_back,
-                        size: 24, color: C.textPrimary(context)),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Order Details',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_back,
+                          size: 24,
                           color: C.textPrimary(context),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Text(
+                      'Order Details',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.title
+                          .copyWith(color: C.textPrimary(context)),
+                    ),
+                  ),
+                  const SizedBox(width: 40),
                 ],
               ),
             ),
-
             const SizedBox(height: AppSpacing.lg),
-
             // ── Content ─────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(hp, 0, hp, 30),
+                padding: EdgeInsets.fromLTRB(hp, 0, hp, AppSpacing.xxxl),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Order Status Card ────────────────────────
-                    _buildStatusCard(context),
+                    // ── Order ────────────────────────────────────
+                    _buildOrderCard(context, order, statusColor),
 
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // ── Order Items ──────────────────────────────
+                    // ── Status timeline ──────────────────────────
+                    _buildSectionTitle(context, 'Status'),
+                    const SizedBox(height: AppSpacing.md),
+                    _OrderTimeline(order: order),
+
+                    const SizedBox(height: AppSpacing.xxl),
+
+                    // ── Items ────────────────────────────────────
                     _buildSectionTitle(context, 'Order Items'),
                     const SizedBox(height: AppSpacing.md),
-                    ...products.map((product) => _buildProductCard(context, product)),
+                    ...order.items.map(
+                      (item) => _buildProductCard(context, item),
+                    ),
 
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // ── Delivery Information ─────────────────────
+                    // ── Delivery ─────────────────────────────────
                     _buildSectionTitle(context, 'Delivery'),
                     const SizedBox(height: AppSpacing.md),
-                    _buildDeliveryCard(context),
+                    _buildDeliveryCard(context, order),
 
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // ── Payment Status ───────────────────────────
+                    // ── Payment ──────────────────────────────────
                     _buildSectionTitle(context, 'Payment'),
                     const SizedBox(height: AppSpacing.md),
-                    _buildPaymentCard(context),
+                    _buildPaymentCard(context, order),
 
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // ── Order Summary ────────────────────────────
+                    // ── Summary ──────────────────────────────────
                     _buildSectionTitle(context, 'Summary'),
                     const SizedBox(height: AppSpacing.md),
-                    _buildSummaryCard(context),
+                    _buildSummaryCard(context, order),
 
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // ── Action Buttons ───────────────────────────
-                    if (status == 'Order placed' || status == 'Pending')
-                      _buildTrackButton(context),
-                    if (status == 'Order placed' || status == 'Pending')
-                      const SizedBox(height: AppSpacing.md),
-                    if (status == 'Delivered' || status == 'Order placed')
-                      _buildReorderButton(context),
+                    // ── Actions ──────────────────────────────────
+                    if (order.isActive)
+                      _buildTrackButton(context, order)
+                    else
+                      _buildReorderButton(context, order),
                   ],
                 ),
               ),
@@ -133,23 +262,30 @@ class OrderDetailsScreen extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
+      style: AppTypography.labelLarge.copyWith(
+        fontSize: 15,
         color: C.textPrimary(context),
       ),
     );
   }
 
-  Widget _buildStatusCard(BuildContext context) {
+  Widget _buildOrderCard(
+    BuildContext context,
+    Order order,
+    Color statusColor,
+  ) {
+    final itemLabel =
+        '${order.itemCount} item${order.itemCount == 1 ? '' : 's'}';
+    final placed = order.timestampOf(OrderStatus.confirmed) ?? order.createdAt;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: statusColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadii.md),
         border: Border.all(
-          color: statusColor.withValues(alpha: 0.2),
+          color: statusColor.withValues(alpha: 0.25),
           width: 1,
         ),
       ),
@@ -162,53 +298,56 @@ class OrderDetailsScreen extends StatelessWidget {
               color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              status == 'Delivered'
-                  ? Icons.check_circle_outline
-                  : status == 'Cancelled'
-                      ? Icons.cancel_outlined
-                      : status == 'Pending'
-                          ? Icons.access_time
-                          : Icons.receipt_long_outlined,
-              size: 24,
-              color: statusColor,
-            ),
+            child: Icon(_statusIcon(order.status), size: 24, color: statusColor),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  orderNumber,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  '#${order.id}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelMedium.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                     color: C.textPrimary(context),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  'Placed on $date',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.grey600,
+                  '${order.vendorName} · $itemLabel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySmall
+                      .copyWith(color: C.textMuted(context)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Placed ${formatOrderDate(placed)} at ${formatOrderTime(placed)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySmall.copyWith(
+                    fontSize: 12,
+                    color: C.textMuted(context),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: AppSpacing.sm),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: statusColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
             child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              order.status.label,
+              style: AppTypography.labelSmall.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
                 color: statusColor,
               ),
             ),
@@ -219,86 +358,61 @@ class OrderDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildProductCard(BuildContext context, OrderItem product) {
-    final name = product.name;
-    final quantity = product.quantity;
-    final price = product.price;
-    final image = product.image;
-
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: AppNeumorphic.cardDecoration(
+        radius: AppRadii.md,
+        context: context,
       ),
       child: Row(
         children: [
-          // Product image
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppRadii.sm),
             child: SizedBox(
               width: 56,
               height: 56,
-              child: image.isNotEmpty
+              child: product.image.isNotEmpty
                   ? SkeletonImage(
-                      imageUrl: image,
+                      imageUrl: product.image,
                       width: 56,
                       height: 56,
                       fit: BoxFit.cover,
                       scrim: kProductImageScrim,
-                      errorWidget: Container(
-                        color: AppColors.primaryTint,
-                        child: const Icon(Icons.eco_outlined,
-                            color: AppColors.primary, size: 24),
-                      ),
+                      errorWidget: _itemPlaceholder(context),
                     )
-                  : Container(
-                      color: AppColors.primaryTint,
-                      child: const Icon(Icons.eco_outlined,
-                          color: AppColors.primary, size: 24),
-                    ),
+                  : _itemPlaceholder(context),
             ),
           ),
-          const SizedBox(width: 12),
-          // Product info
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: AppTypography.labelMedium.copyWith(
                     color: C.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Qty: $quantity',
-                  style: TextStyle(
+                  '${product.quantity} × ₦${formatPrice(product.price)}',
+                  style: AppTypography.bodySmall.copyWith(
                     fontSize: 12,
-                    color: AppColors.grey600,
+                    color: C.textMuted(context),
                   ),
                 ),
               ],
             ),
           ),
-          // Price
+          const SizedBox(width: AppSpacing.sm),
           Text(
-            '₦${formatPrice(price)}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+            '₦${formatPrice(product.lineTotal)}',
+            style: AppTypography.labelMedium.copyWith(
+              fontWeight: FontWeight.w700,
               color: C.accentOrange(context),
             ),
           ),
@@ -307,20 +421,27 @@ class OrderDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDeliveryCard(BuildContext context) {
+  Widget _itemPlaceholder(BuildContext context) {
+    return Container(
+      color: C.primaryTint(context),
+      child: Icon(
+        Icons.eco_outlined,
+        color: C.primary(context),
+        size: 24,
+      ),
+    );
+  }
+
+  Widget _buildDeliveryCard(BuildContext context, Order order) {
+    final address =
+        order.deliveryAddress.isEmpty ? _fallbackAddress : order.deliveryAddress;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      decoration: AppNeumorphic.cardDecoration(
+        radius: AppRadii.md,
+        context: context,
       ),
       child: Row(
         children: [
@@ -328,34 +449,34 @@ class OrderDetailsScreen extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primaryTint,
+              color: C.primaryTint(context),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.location_on_outlined,
-                size: 20, color: AppColors.primary),
+            child: Icon(
+              Icons.location_on_outlined,
+              size: 20,
+              color: C.primary(context),
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Delivery Address',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: AppTypography.labelSmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: C.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  deliveryAddress,
+                  address,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.grey600,
-                  ),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: C.textMuted(context)),
                 ),
               ],
             ),
@@ -365,23 +486,16 @@ class OrderDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPaymentCard(BuildContext context) {
+  Widget _buildPaymentCard(BuildContext context, Order order) {
+    final paymentStatus = _paymentStatus(order);
     final isPaid = paymentStatus == 'Paid';
-    final isPending = paymentStatus == 'Pending';
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      decoration: AppNeumorphic.cardDecoration(
+        radius: AppRadii.md,
+        context: context,
       ),
       child: Row(
         children: [
@@ -389,37 +503,20 @@ class OrderDetailsScreen extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: isPaid
-                  ? AppColors.successSoft
-                  : isPending
-                      ? AppColors.warningSoft
-                      : AppColors.errorSoft,
+              color: isPaid ? C.primaryTint(context) : C.surfaceLight(context),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              isPaid
-                  ? Icons.check_circle_outline
-                  : isPending
-                      ? Icons.access_time
-                      : Icons.cancel_outlined,
+              isPaid ? Icons.check_circle_outline : Icons.replay_outlined,
               size: 20,
-              color: isPaid
-                  ? AppColors.success
-                  : isPending
-                      ? AppColors.accentOrangeDeep
-                      : AppColors.error,
+              color: isPaid ? C.primary(context) : C.textMuted(context),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
-              isPaid
-                  ? 'Payment successful'
-                  : isPending
-                      ? 'Payment pending'
-                      : 'Payment refunded',
-              style: TextStyle(
-                fontSize: 14,
+              isPaid ? 'Payment successful' : 'Payment refunded',
+              style: AppTypography.bodyMedium.copyWith(
                 fontWeight: FontWeight.w500,
                 color: C.textPrimary(context),
               ),
@@ -427,14 +524,9 @@ class OrderDetailsScreen extends StatelessWidget {
           ),
           Text(
             paymentStatus,
-            style: TextStyle(
-              fontSize: 13,
+            style: AppTypography.bodySmall.copyWith(
               fontWeight: FontWeight.w600,
-              color: isPaid
-                  ? AppColors.success
-                  : isPending
-                      ? AppColors.accentOrangeDeep
-                      : AppColors.error,
+              color: isPaid ? C.success(context) : C.textMuted(context),
             ),
           ),
         ],
@@ -442,66 +534,82 @@ class OrderDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context) {
+  Widget _buildSummaryCard(BuildContext context, Order order) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      decoration: AppNeumorphic.cardDecoration(
+        radius: AppRadii.md,
+        context: context,
       ),
       child: Column(
         children: [
-           _buildSummaryRow(context, 'Subtotal', '₦${formatPrice(subtotal)}'),
+          _buildSummaryRow(
+            context,
+            'Subtotal',
+            '₦${formatPrice(order.subtotal)}',
+          ),
           const SizedBox(height: 10),
-           _buildSummaryRow(context, 'Delivery fee', '₦${formatPrice(deliveryFee)}'),
-          const SizedBox(height: 12),
-          Container(height: 1, color: AppColors.grey200),
-          const SizedBox(height: 12),
-           _buildSummaryRow(context, 'Total', '₦${formatPrice(total)}', bold: true),
+          _buildSummaryRow(
+            context,
+            'Delivery fee',
+            order.deliveryFee == 0
+                ? 'Free'
+                : '₦${formatPrice(order.deliveryFee)}',
+            valueColor:
+                order.deliveryFee == 0 ? C.primary(context) : null,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Divider(height: 1, color: C.divider(context)),
+          const SizedBox(height: AppSpacing.md),
+          _buildSummaryRow(
+            context,
+            'Total',
+            '₦${formatPrice(order.total)}',
+            bold: true,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(BuildContext context, String label, String value, {bool bold = false}) {
+  Widget _buildSummaryRow(
+    BuildContext context,
+    String label,
+    String value, {
+    bool bold = false,
+    Color? valueColor,
+  }) {
     return Row(
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 14,
+          style: AppTypography.bodyMedium.copyWith(
             fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
-            color: bold ? AppColors.black : AppColors.grey600,
+            color: bold ? C.textPrimary(context) : C.textMuted(context),
           ),
         ),
         const Spacer(),
         Text(
           value,
-          style: TextStyle(
+          style: AppTypography.bodyMedium.copyWith(
             fontSize: bold ? 16 : 14,
-            fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-            color: bold ? AppColors.primary : AppColors.black,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+            color: valueColor ?? C.textPrimary(context),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTrackButton(BuildContext context) {
+  Widget _buildTrackButton(BuildContext context, Order order) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => DeliveryTrackingScreen(
-            orderNumber: orderNumber.replaceAll('#', ''),
+          builder: (_) => DeliveryTrackingScreen(
+            orderNumber: order.id,
             estimatedDelivery: 'Today, 2:00 PM – 4:00 PM',
           ),
         ),
@@ -510,106 +618,264 @@ class OrderDetailsScreen extends StatelessWidget {
         width: double.infinity,
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: C.primary(context),
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.local_shipping_outlined, size: 20, color: AppColors.white),
-            SizedBox(width: 10),
-            Text('Track Delivery', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.white)),
+          children: [
+            Icon(
+              Icons.local_shipping_outlined,
+              size: 20,
+              color: C.onPrimary(context),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Track Delivery',
+              style: AppTypography.labelMedium.copyWith(
+                fontWeight: FontWeight.w700,
+                color: C.onPrimary(context),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildReorderButton(BuildContext context) {
+  Widget _buildReorderButton(BuildContext context, Order order) {
     return GestureDetector(
-      onTap: () {
-        int added = 0;
-        int skipped = 0;
-        for (final p in products) {
-          for (int j = 0; j < p.quantity; j++) {
-            final productName = p.name;
-            final vendorName =
-                StockTracker.findAndDecrementByName(productName);
-            if (vendorName != null) {
-              context.read<CartNotifier>().add(VendorProduct(
-                image: p.image,
-                name: productName,
-                description: productName,
-                price: p.price,
-                category: p.category,
-                vendorName: vendorName,
-              ));
-              added++;
-            } else {
-              skipped++;
-            }
-          }
-        }
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        if (skipped == 0 && added > 0) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:
-                Text('$added item${added == 1 ? '' : 's'} added to your box'),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.sm)),
-          ));
-        } else if (added == 0) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('Items are out of stock'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.sm)),
-          ));
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('$added added, $skipped out of stock'),
-            backgroundColor: AppColors.warning,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.sm)),
-          ));
-        }
-      },
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _reorder(order),
       child: Container(
         width: double.infinity,
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.primaryTint,
+          color: C.primaryTint(context),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.replay, size: 20, color: AppColors.primary),
-            SizedBox(width: 10),
+            Icon(Icons.replay, size: 20, color: C.primary(context)),
+            const SizedBox(width: 10),
             Text(
               'Reorder All Items',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+              style: AppTypography.labelMedium.copyWith(
+                fontWeight: FontWeight.w700,
+                color: C.textPrimary(context),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// STATUS TIMELINE
+// ═══════════════════════════════════════════════════════════════════════
+
+enum _StepState { done, current, upcoming, cancelled }
+
+/// The four lifecycle steps with the time each was reached.
+///
+/// A cancelled order stops at "Confirmed" and gains a final cancelled row, so
+/// the track never pretends the delivery progressed further than it did.
+class _OrderTimeline extends StatelessWidget {
+  final Order order;
+
+  const _OrderTimeline({required this.order});
+
+  static const List<OrderStatus> _track = [
+    OrderStatus.confirmed,
+    OrderStatus.packing,
+    OrderStatus.onTheWay,
+    OrderStatus.delivered,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cancelled = order.status == OrderStatus.cancelled;
+    final currentIndex = cancelled ? -1 : order.status.stepIndex;
+
+    final steps = <(OrderStatus, _StepState)>[];
+    for (var i = 0; i < _track.length; i++) {
+      final status = _track[i];
+      final state = cancelled
+          ? (i == 0 ? _StepState.done : _StepState.upcoming)
+          : i < currentIndex
+              ? _StepState.done
+              : i == currentIndex
+                  ? _StepState.current
+                  : _StepState.upcoming;
+      steps.add((status, state));
+    }
+    if (cancelled) {
+      steps.add((OrderStatus.cancelled, _StepState.cancelled));
+    }
+
+    return Container(
+      key: const ValueKey('orderTimeline'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 8),
+      decoration: AppNeumorphic.cardDecoration(
+        radius: AppRadii.md,
+        context: context,
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < steps.length; i++)
+            _TimelineRow(
+              status: steps[i].$1,
+              state: steps[i].$2,
+              at: order.timestampOf(steps[i].$1),
+              isLast: i == steps.length - 1,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineRow extends StatelessWidget {
+  final OrderStatus status;
+  final _StepState state;
+  final DateTime? at;
+  final bool isLast;
+
+  const _TimelineRow({
+    required this.status,
+    required this.state,
+    required this.at,
+    required this.isLast,
+  });
+
+  static String _trailingLabel(_StepState state, DateTime? at) {
+    switch (state) {
+      case _StepState.done:
+        return at == null ? 'Done' : formatOrderTime(at);
+      case _StepState.current:
+        return at == null ? 'In progress' : 'In progress · ${formatOrderTime(at)}';
+      case _StepState.cancelled:
+        // The row is already labelled "Cancelled"; only the time adds anything.
+        return at == null ? '' : formatOrderTime(at);
+      case _StepState.upcoming:
+        return 'Pending';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final done = state == _StepState.done;
+    final current = state == _StepState.current;
+    final isCancelled = state == _StepState.cancelled;
+
+    final markerColor = isCancelled
+        ? C.errorBright(context)
+        : done
+            ? C.primary(context)
+            : current
+                ? C.accentOrange(context)
+                : C.divider(context);
+
+    final labelColor = state == _StepState.upcoming
+        ? C.textMuted(context)
+        : C.textPrimary(context);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Marker and connector ─────────────────────────────
+          SizedBox(
+            width: 26,
+            child: Column(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: done || isCancelled
+                        ? markerColor
+                        : AppColors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: markerColor,
+                      width: current ? 2 : 1.5,
+                    ),
+                  ),
+                  child: done
+                      ? Icon(
+                          Icons.check,
+                          size: 12,
+                          color: C.background(context),
+                        )
+                      : isCancelled
+                          ? Icon(
+                              Icons.close,
+                              size: 12,
+                              color: C.background(context),
+                            )
+                          : current
+                              ? Center(
+                                  child: Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: markerColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      color: done
+                          ? C.primary(context)
+                          : C.divider(context),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // ── Label and time ───────────────────────────────────
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 8 : AppSpacing.lg),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      status.label,
+                      style: AppTypography.labelSmall.copyWith(
+                        fontSize: 13,
+                        fontWeight:
+                            current ? FontWeight.w700 : FontWeight.w600,
+                        color: labelColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    _trailingLabel(state, at),
+                    style: AppTypography.bodySmall.copyWith(
+                      fontSize: 12,
+                      color: C.textMuted(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/orders.dart';
 import 'package:growbox/routes.dart';
 import 'package:growbox/screens/home_screen.dart';
+import 'package:growbox/screens/order_details_screen.dart';
 import 'package:growbox/screens/order_history_screen.dart';
 
 /// Deterministic in-memory repository, so the screen tests never depend on the
@@ -45,6 +46,7 @@ Order _order({
   List<OrderItem>? items,
   int deliveryFee = 500,
   Duration age = const Duration(hours: 1),
+  Map<OrderStatus, DateTime> timestamps = const {},
 }) =>
     Order(
       id: id,
@@ -54,6 +56,7 @@ Order _order({
       items: items ?? [_line('Rice', 2550, qty: 2)],
       deliveryAddress: 'Gwarinpa, Abuja',
       deliveryFee: deliveryFee,
+      timestamps: timestamps,
     );
 
 void main() {
@@ -206,6 +209,120 @@ void main() {
     // An overflow would have thrown during the pump.
     expect(find.text('20 items'), findsOneWidget);
     expect(find.text('₦56,700'), findsOneWidget);
+  });
+
+  // ── Order details ───────────────────────────────────────────────────────
+
+  Widget detailsHarness(Order order, {OrdersStore? store}) =>
+      ChangeNotifierProvider(
+        create: (_) => CartNotifier(),
+        child: MaterialApp(
+          home: OrderDetailsScreen(order: order, store: store),
+        ),
+      );
+
+  testWidgets('details are driven by the order and show its timeline',
+      (tester) async {
+    final placed = DateTime(2026, 10, 24, 11);
+    final order = _order(
+      id: 'GBX-12',
+      status: OrderStatus.onTheWay,
+      timestamps: {
+        OrderStatus.confirmed: placed,
+        OrderStatus.packing: placed.add(const Duration(minutes: 5)),
+        OrderStatus.onTheWay: placed.add(const Duration(minutes: 12)),
+      },
+    );
+
+    await tester.pumpWidget(detailsHarness(order));
+    await tester.pumpAndSettle();
+
+    // Identity, vendor and item count all come from the order itself.
+    expect(find.text('#GBX-12'), findsOneWidget);
+    expect(find.text('Green Farm · 2 items'), findsOneWidget);
+    expect(find.text('Placed Oct 24, 2026 at 11:00 AM'), findsOneWidget);
+    expect(find.byKey(const ValueKey('orderTimeline')), findsOneWidget);
+
+    // Reached steps carry their time, the current one says in progress and the
+    // untouched one stays pending.
+    expect(find.text('11:00 AM'), findsOneWidget);
+    expect(find.text('11:05 AM'), findsOneWidget);
+    expect(find.text('In progress · 11:12 AM'), findsOneWidget);
+    expect(find.text('Pending'), findsOneWidget);
+
+    // Totals are derived: 2 × 2,550 subtotal (+ 500 delivery).
+    expect(find.text('₦5,100'), findsNWidgets(2));
+    expect(find.text('₦5,600'), findsOneWidget);
+
+    expect(find.text('Track Delivery'), findsOneWidget);
+    expect(find.text('Reorder All Items'), findsNothing);
+  });
+
+  testWidgets('timeline follows status changes from the store', (tester) async {
+    final repo = _FakeOrdersRepository([
+      _order(id: 'GBX-13', status: OrderStatus.confirmed),
+    ]);
+    final store = OrdersStore(repo);
+    await store.load();
+
+    await tester.pumpWidget(
+      detailsHarness(store.orders.single, store: store),
+    );
+    await tester.pumpAndSettle();
+
+    // Chip + timeline label for the current status.
+    expect(find.text('Confirmed'), findsNWidgets(2));
+    expect(find.text('Packing'), findsOneWidget);
+    expect(find.text('In progress'), findsOneWidget);
+
+    await store.advanceStatus('GBX-13');
+    await tester.pumpAndSettle();
+
+    // The open screen re-renders from the store rather than its snapshot.
+    expect(find.text('Confirmed'), findsOneWidget); // timeline only
+    expect(find.text('Packing'), findsNWidgets(2));
+    expect(find.text('In progress'), findsOneWidget);
+  });
+
+  testWidgets('a cancelled order ends its timeline and offers a reorder',
+      (tester) async {
+    await tester.pumpWidget(detailsHarness(
+      _order(id: 'GBX-14', status: OrderStatus.cancelled),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('orderTimeline')), findsOneWidget);
+    expect(find.text('Cancelled'), findsNWidgets(2)); // chip + timeline row
+    expect(find.text('Pending'), findsNWidgets(3)); // steps never reached
+    expect(find.text('Reorder All Items'), findsOneWidget);
+    expect(find.text('Track Delivery'), findsNothing);
+    expect(find.text('Payment refunded'), findsOneWidget);
+  });
+
+  testWidgets('free delivery reads as Free in the summary', (tester) async {
+    await tester.pumpWidget(detailsHarness(
+      _order(id: 'GBX-15', status: OrderStatus.delivered, deliveryFee: 0),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Free'), findsOneWidget);
+    expect(find.text('Reorder All Items'), findsOneWidget);
+  });
+
+  testWidgets('tapping an order opens the details timeline', (tester) async {
+    final repo = _FakeOrdersRepository([
+      _order(id: 'GBX-16', status: OrderStatus.onTheWay),
+    ]);
+
+    await tester.pumpWidget(harness(store: OrdersStore(repo)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Green Farm'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OrderDetailsScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('orderTimeline')), findsOneWidget);
+    expect(find.text('Track Delivery'), findsOneWidget);
   });
 
   // ── Home banner ─────────────────────────────────────────────────────────
