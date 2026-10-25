@@ -5,7 +5,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/orders.dart';
+import 'package:growbox/routes.dart';
 import 'package:growbox/screens/order_history_screen.dart';
+
+/// A backend with nothing in it: what a brand-new install looks like once no
+/// delivery is in flight and none has finished yet.
+class _EmptyRepository implements OrdersRepository {
+  @override
+  Future<List<Order>> getOrders() async => const [];
+
+  @override
+  Future<void> advanceStatus(String orderId) async {}
+}
 
 void main() {
   setUp(() {
@@ -110,5 +121,77 @@ void main() {
     expect(advance, findsWidgets);
     expect(find.text('On the way'), findsOneWidget);
     expect(find.text('Packing'), findsOneWidget);
+  });
+
+  testWidgets('no deliveries: Active explains itself and offers a shop button',
+      (tester) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => CartNotifier(),
+        child: MaterialApp(
+          home: OrderHistoryScreen(store: OrdersStore(_EmptyRepository())),
+          routes: {
+            AppRoutes.home: (_) => const Scaffold(body: Text('Home stub')),
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No active orders'), findsOneWidget);
+    expect(find.text('Orders on their way will show up here.'), findsOneWidget);
+    expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
+
+    // "Start shopping" is the only way forward, and it lands on Home.
+    await tester.tap(find.text('Start shopping'));
+    await tester.pumpAndSettle();
+    expect(find.text('Home stub'), findsOneWidget);
+  });
+
+  testWidgets('no deliveries: Past explains itself without an action button',
+      (tester) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => CartNotifier(),
+        child: MaterialApp(
+          home: OrderHistoryScreen(store: OrdersStore(_EmptyRepository())),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Past'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No past orders'), findsOneWidget);
+    expect(find.text('Delivered and cancelled orders live here.'),
+        findsOneWidget);
+    expect(find.byIcon(Icons.history_rounded), findsOneWidget);
+    // Shopping from an empty history is what the Active tab is for.
+    expect(find.text('Start shopping'), findsNothing);
+  });
+
+  test('a fresh install lists the demo deliveries and aged-out history',
+      () async {
+    await restoreOrders();
+    final store = OrdersStore(MockOrdersRepository());
+    await store.load();
+
+    // The demo orders are stamped relative to now on every fetch, so a new
+    // install always has something in flight — they never age out.
+    expect(store.activeOrders, hasLength(3));
+    expect(
+      store.activeOrders.every(
+          (o) => DateTime.now().difference(o.createdAt).inMinutes < 60),
+      isTrue,
+    );
+
+    // Everything older has already retired into Past, so the two tabs never
+    // show the same order.
+    expect(store.pastOrders, hasLength(4));
+    expect(
+      store.pastOrders.every((o) => !o.isActive),
+      isTrue,
+    );
   });
 }
