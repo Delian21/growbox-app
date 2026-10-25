@@ -12,8 +12,8 @@ import '../widgets/skeleton_loader.dart';
 import '../widgets/pinned_bottom_bar.dart';
 import 'order_success_screen.dart';
 import 'address_management_screen.dart';
-import 'faq_screen.dart';
-import 'privacy_screen.dart';
+import 'terms_screen.dart';
+import 'privacy_policy_screen.dart';
 
 /// One line in the box: a product and how many of it are in the cart.
 ///
@@ -70,12 +70,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _openTerms() => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const FAQScreen()),
+        MaterialPageRoute(builder: (_) => const TermsScreen()),
       );
 
   void _openPrivacy() => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const ManagePrivacyScreen()),
+        MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
       );
 
   @override

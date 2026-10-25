@@ -8,8 +8,8 @@ import 'package:growbox/data/addresses.dart';
 import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/screens/checkout_screen.dart';
-import 'package:growbox/screens/faq_screen.dart';
-import 'package:growbox/screens/privacy_screen.dart';
+import 'package:growbox/screens/privacy_policy_screen.dart';
+import 'package:growbox/screens/terms_screen.dart';
 import 'package:growbox/theme.dart';
 import 'package:growbox/widgets/pinned_bottom_bar.dart';
 
@@ -278,7 +278,7 @@ void main() {
     );
   });
 
-  testWidgets('terms links open the existing policy pages', (tester) async {
+  testWidgets('terms links open the policy pages', (tester) async {
     await _pumpCheckout(tester);
 
     TextSpan spanFor(String label) {
@@ -295,14 +295,14 @@ void main() {
     (spanFor('Terms & Conditions').recognizer! as TapGestureRecognizer)
         .onTap!();
     await tester.pumpAndSettle();
-    expect(find.byType(FAQScreen), findsOneWidget);
+    expect(find.byType(TermsScreen), findsOneWidget);
 
-    Navigator.of(tester.element(find.byType(FAQScreen))).pop();
+    Navigator.of(tester.element(find.byType(TermsScreen))).pop();
     await tester.pumpAndSettle();
 
     (spanFor('Privacy Policy').recognizer! as TapGestureRecognizer).onTap!();
     await tester.pumpAndSettle();
-    expect(find.byType(ManagePrivacyScreen), findsOneWidget);
+    expect(find.byType(PrivacyPolicyScreen), findsOneWidget);
   });
 
   testWidgets('lays out on a small phone without overflowing',

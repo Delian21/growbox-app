@@ -15,6 +15,8 @@ import '../screens/privacy_screen.dart';
 import '../screens/deactivation_screen.dart';
 import '../screens/address_management_screen.dart';
 import '../screens/faq_screen.dart';
+import '../screens/terms_screen.dart';
+import '../screens/privacy_policy_screen.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -35,6 +37,8 @@ class AppRoutes {
   static const String deactivate = '/deactivate';
   static const String addresses = '/addresses';
   static const String faq = '/faq';
+  static const String terms = '/terms';
+  static const String privacyPolicy = '/privacy-policy';
 
   static Map<String, WidgetBuilder> get routes => {
         home: (_) => const HomeScreen(),
@@ -53,6 +57,8 @@ class AppRoutes {
         deactivate: (_) => DeactivationScreen(),
         addresses: (_) => AddressManagementScreen(),
         faq: (_) => FAQScreen(),
+        terms: (_) => const TermsScreen(),
+        privacyPolicy: (_) => const PrivacyPolicyScreen(),
       };
 
   /// Push a named route. Drop-in replacement for Navigator.pushNamed
