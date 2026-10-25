@@ -254,7 +254,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.textContaining('Place Order'));
+    await tester.tap(find.textContaining('Place order'));
     await tester.pumpAndSettle();
 
     expect(find.text('Order placed!'), findsOneWidget);

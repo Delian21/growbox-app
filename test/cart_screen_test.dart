@@ -193,7 +193,7 @@ void main() {
     // The order summary and the CTA report the same payable total.
     expect(find.text('₦3,050'), findsOneWidget);
     expect(find.text('₦3,550'), findsOneWidget);
-    expect(find.text('Place Order — ₦3,550'), findsOneWidget);
+    expect(find.text('Place order · ₦3,550'), findsOneWidget);
     // The old flat checkout fee is gone for good.
     expect(find.text('₦1,500'), findsNothing);
   });

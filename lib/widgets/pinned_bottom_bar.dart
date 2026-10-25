@@ -30,17 +30,26 @@ class PinnedBottomBar extends StatelessWidget {
   /// nav pill instead of touching the screen edges.
   final double horizontalInset;
 
+  /// Whether the bar must clear the floating nav.
+  ///
+  /// True by default, because the bar usually sits on a tab screen. Screens
+  /// without the nav (checkout, order confirmation) pass false so the bar rests
+  /// on their own SafeArea instead of leaving an empty nav-sized strip.
+  final bool respectNav;
+
   const PinnedBottomBar({
     super.key,
     required this.child,
     this.gap = 0,
     this.radius = 0,
     this.horizontalInset = 0,
+    this.respectNav = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final navVisible = BottomNavScope.isVisibleOf(context);
+    final navVisible =
+        respectNav && BottomNavScope.isVisibleOf(context);
     final hp = AppSizing.horizontalPadding(context);
     final floating = radius > 0;
 
@@ -97,6 +106,9 @@ class ScreenWithPinnedBar extends StatelessWidget {
   final double radius;
   final double horizontalInset;
 
+  /// Forwarded to [PinnedBottomBar]: false on screens without the bottom nav.
+  final bool respectNav;
+
   const ScreenWithPinnedBar({
     super.key,
     required this.body,
@@ -104,6 +116,7 @@ class ScreenWithPinnedBar extends StatelessWidget {
     this.gap = 0,
     this.radius = 0,
     this.horizontalInset = 0,
+    this.respectNav = true,
   });
 
   @override
@@ -115,6 +128,7 @@ class ScreenWithPinnedBar extends StatelessWidget {
           gap: gap,
           radius: radius,
           horizontalInset: horizontalInset,
+          respectNav: respectNav,
           child: bar,
         ),
       ],

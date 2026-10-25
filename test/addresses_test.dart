@@ -262,7 +262,7 @@ void main() {
       );
       expect(find.text('Add details'), findsOneWidget);
 
-      await tester.tap(find.textContaining('Place Order'));
+      await tester.tap(find.textContaining('Place order'));
       await tester.pumpAndSettle();
 
       expect(find.text('Order placed!'), findsNothing,
@@ -281,7 +281,7 @@ void main() {
 
       expect(find.textContaining('Add your street address'), findsNothing);
 
-      await tester.tap(find.textContaining('Place Order'));
+      await tester.tap(find.textContaining('Place order'));
       await tester.pumpAndSettle();
 
       expect(find.text('Order placed!'), findsOneWidget);
