@@ -89,16 +89,15 @@ class DeliveryRider {
 /// and its [Order.timestamps] supply each step's time. The screen then shows the
 /// order's truth instead of animating through stages on its own.
 ///
-/// Only callers that have no [Order] yet (the order-success screen, tests) fall
-/// back to [orderNumber] plus a demo timeline.
+/// Only callers that have no [Order] yet (tests) fall back to [orderNumber]
+/// plus a demo timeline. The ETA always comes from [Order.eta], so this screen
+/// and the confirmation screen quote the same arrival time.
 class DeliveryTrackingScreen extends StatefulWidget {
   /// The order being tracked. Authoritative when present.
   final Order? order;
 
   /// Used when [order] is null; a real order supplies its own id.
   final String? orderNumber;
-
-  final String? estimatedDelivery;
 
   /// Demo-only starting stage, used when [order] is null.
   final DeliveryStage? initialStage;
@@ -107,7 +106,6 @@ class DeliveryTrackingScreen extends StatefulWidget {
     super.key,
     this.order,
     this.orderNumber,
-    this.estimatedDelivery,
     this.initialStage,
   }) : assert(
           order != null || orderNumber != null,
@@ -135,8 +133,10 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
   late DateTime _countdownTarget;
   late DateTime _placedAt;
   late String _orderNumber;
-  late String _estimatedDelivery;
   Duration _remaining = Duration.zero;
+
+  /// The arrival promise, written the one way the app writes arrivals.
+  String get _etaLabel => formatArrival(_countdownTarget);
   Timer? _countdownTimer;
   Timer? _stageTimer;
 
@@ -164,11 +164,13 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
         ? stageForOrderStatus(order.status)
         : widget.initialStage ?? DeliveryStage.onTheWay;
     _orderNumber = order?.id ?? widget.orderNumber ?? '—';
-    _estimatedDelivery = widget.estimatedDelivery ?? 'Today, 2:00 PM – 4:00 PM';
     _placedAt = order?.createdAt ??
         DateTime.now().subtract(const Duration(minutes: 47));
 
-    _countdownTarget = DateTime.now().add(const Duration(minutes: 28));
+    // A real order carries its promised arrival; the demo counts down 28
+    // minutes from opening.
+    _countdownTarget =
+        order?.eta ?? DateTime.now().add(const Duration(minutes: 28));
     _startCountdown();
 
     _riderPulseController = AnimationController(
@@ -372,7 +374,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
           if (!isDelivered) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
-              _estimatedDelivery,
+              _etaLabel,
               style: TextStyle(fontSize: 13, color: C.textSecondary(context)),
             ),
           ],
@@ -972,12 +974,13 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          _detailRow(Icons.receipt_outlined, 'Order', '#$_orderNumber'),
+          _detailRow(
+              Icons.receipt_outlined, 'Order', orderNumberLabel(_orderNumber)),
           const SizedBox(height: AppSpacing.sm),
           _detailRow(Icons.location_on_outlined, 'Address',
               'No. 12 Gwarinpa Estate, Abuja'),
           const SizedBox(height: AppSpacing.sm),
-          _detailRow(Icons.access_time, 'Est. Delivery', _estimatedDelivery),
+          _detailRow(Icons.access_time, 'Est. Delivery', _etaLabel),
         ],
       ),
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
@@ -85,26 +87,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           // success screen takes over.
                           final orderNumber =
                               'GBX-${DateTime.now().millisecondsSinceEpoch % 100000}';
-                          recordOrder(
+                          final recorded = recordOrder(
                             orderNumber: orderNumber,
                             cartItems: products,
                             deliveryFee: deliveryFee,
                             deliveryAddress:
                                 'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria',
                           );
+                          // The box has been bought: the next visit to the cart
+                          // starts empty instead of still holding it.
+                          context.read<CartNotifier>().clear();
                           // Republish orders so the home banner and the orders
                           // screen pick up the order that was just placed.
                           ordersStore.load(force: true);
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
+                              // The confirmation reads from the recorded order,
+                              // not from copies of its numbers.
                               builder: (_) => OrderSuccessScreen(
-                                orderNumber: orderNumber,
-                                deliveryAddress:
-                                    'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria',
-                                estimatedDelivery:
-                                    'Today, 2:00 PM – 4:00 PM',
-                                total: total,
+                                order: orderFromStored(recorded),
                               ),
                             ),
                             (route) => false,

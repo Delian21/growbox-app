@@ -300,7 +300,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '#${order.id}',
+                  orderNumberLabel(order.id),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.labelMedium.copyWith(
@@ -602,11 +602,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => DeliveryTrackingScreen(
-            // The order drives the stage, the step times and the order number.
-            order: order,
-            estimatedDelivery: 'Today, 2:00 PM – 4:00 PM',
-          ),
+          // The order drives the stage, the step times, the ETA and the
+          // order number; there is nothing left to hand over by hand.
+          builder: (_) => DeliveryTrackingScreen(order: order),
         ),
       ),
       child: Container(
