@@ -25,13 +25,25 @@ void main() {
     expect(pickedUp.timestamps[OrderStatus.onTheWay], isNull);
   });
 
-  test('the newest active demo order is still the one on the way', () async {
-    // The home banner follows the newest active order, so adding the picked-up
-    // demo must not push the on-the-way delivery out of that slot.
+  test('each fresh demo order has reached its status and no further', () async {
     final store = OrdersStore(MockOrdersRepository());
     await store.load();
 
-    expect(store.latestActiveOrder?.status, OrderStatus.onTheWay);
+    // The home banner follows the newest active order, which is the packing one
+    // — the other two are further along only because they are older.
+    expect(store.latestActiveOrder?.status, OrderStatus.packing);
+
+    for (final status in [
+      OrderStatus.packing,
+      OrderStatus.pickedUp,
+      OrderStatus.onTheWay,
+    ]) {
+      final order = store.activeOrders.firstWhere((o) => o.status == status);
+      expect(order.timestamps[status], isNotNull,
+          reason: '${status.label} must be stamped');
+      expect(order.timestamps[status.nextActive!], isNull,
+          reason: 'a ${status.label} order must not have reached the next step');
+    }
   });
 
   testWidgets('Picked up is visible in Active without the debug button',

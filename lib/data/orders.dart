@@ -298,13 +298,14 @@ class MockOrdersRepository implements OrdersRepository {
   /// Three fresh active orders so "packing", "picked up" and "on the way" are
   /// each visible without the debug button or waiting on a real delivery.
   ///
-  /// Ages are 18 < 30 < 55 minutes so the newest active order — the one the
-  /// home banner follows — stays the on-the-way Green Farm delivery.
+  /// Ages are 7 < 11 < 18 minutes, one step of [_stepMinutes] apart, so each
+  /// order has reached its status but not the next one. The home banner follows
+  /// the newest active order, which is consequently the packing one.
   static List<Order> _recentActiveOrders() {
     final now = DateTime.now();
+    final placed7 = now.subtract(const Duration(minutes: 7));
+    final placed11 = now.subtract(const Duration(minutes: 11));
     final placed18 = now.subtract(const Duration(minutes: 18));
-    final placed30 = now.subtract(const Duration(minutes: 30));
-    final placed55 = now.subtract(const Duration(minutes: 55));
     return [
       Order(
         id: 'GBX-10536',
@@ -323,20 +324,20 @@ class MockOrdersRepository implements OrdersRepository {
         id: 'GBX-10528',
         vendorName: 'Real Green',
         status: OrderStatus.pickedUp,
-        createdAt: placed30,
+        createdAt: placed11,
         deliveryAddress: _demoAddress,
         deliveryFee: 800,
-        timestamps: _mockTimeline(OrderStatus.pickedUp, placed30),
+        timestamps: _mockTimeline(OrderStatus.pickedUp, placed11),
         items: [_demoItem('Fresh Vegetables', 'Real Green')],
       ),
       Order(
         id: 'GBX-10521',
         vendorName: 'Yummy Bunch',
         status: OrderStatus.packing,
-        createdAt: placed55,
+        createdAt: placed7,
         deliveryAddress: _demoAddress,
         deliveryFee: 500,
-        timestamps: _mockTimeline(OrderStatus.packing, placed55),
+        timestamps: _mockTimeline(OrderStatus.packing, placed7),
         items: [_demoItem('Tomatoes', 'Yummy Bunch', qty: 2)],
       ),
     ];
