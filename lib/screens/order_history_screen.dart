@@ -57,6 +57,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       switch (status) {
         OrderStatus.confirmed => C.primary(context),
         OrderStatus.packing => C.accentOrange(context),
+        OrderStatus.pickedUp => C.accentOrange(context),
         OrderStatus.onTheWay => C.accentOrange(context),
         OrderStatus.delivered => C.success(context),
         OrderStatus.cancelled => C.error(context),

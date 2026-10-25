@@ -181,7 +181,11 @@ void main() {
     expect(find.text('Confirmed'), findsNothing);
     expect(find.text('Packing'), findsOneWidget);
 
-    // Past its last step the button stops moving it and the order stays put.
+    // The rider collecting the box is a step of its own now.
+    await tester.tap(find.text('Advance status'));
+    await tester.pumpAndSettle();
+    expect(find.text('Picked up'), findsOneWidget);
+
     await tester.tap(find.text('Advance status'));
     await tester.pumpAndSettle();
     expect(find.text('On the way'), findsOneWidget);
@@ -293,7 +297,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('orderTimeline')), findsOneWidget);
     expect(find.text('Cancelled'), findsNWidgets(2)); // chip + timeline row
-    expect(find.text('Pending'), findsNWidgets(3)); // steps never reached
+    expect(find.text('Pending'), findsNWidgets(4)); // steps never reached
     expect(find.text('Reorder All Items'), findsOneWidget);
     expect(find.text('Track Delivery'), findsNothing);
     expect(find.text('Payment refunded'), findsOneWidget);
@@ -307,6 +311,37 @@ void main() {
 
     expect(find.text('Free'), findsOneWidget);
     expect(find.text('Reorder All Items'), findsOneWidget);
+  });
+
+  testWidgets('Track Delivery hands the real order to the tracking screen',
+      (tester) async {
+    final placed = DateTime(2026, 10, 24, 11);
+    final order = _order(
+      id: 'GBX-17',
+      status: OrderStatus.onTheWay,
+      timestamps: {
+        OrderStatus.confirmed: placed,
+        OrderStatus.packing: placed.add(const Duration(minutes: 5)),
+        OrderStatus.onTheWay: placed.add(const Duration(minutes: 12)),
+      },
+    );
+
+    await tester.pumpWidget(detailsHarness(order));
+    await tester.pumpAndSettle();
+
+    // The button sits at the bottom of the scrollable details page.
+    await tester.ensureVisible(find.text('Track Delivery'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Track Delivery'));
+    // The tracking screen pulses forever, so no pumpAndSettle here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1000));
+
+    // Identity, stage and step times all come from the order, not the demo.
+    expect(find.text('#GBX-17'), findsOneWidget);
+    expect(find.text('11:00 AM'), findsOneWidget);
+    expect(find.text('11:05 AM'), findsOneWidget);
+    expect(find.byIcon(Icons.check), findsNWidgets(3));
   });
 
   testWidgets('tapping an order opens the details timeline', (tester) async {

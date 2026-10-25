@@ -77,6 +77,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       switch (status) {
         OrderStatus.confirmed => C.primary(context),
         OrderStatus.packing => C.accentOrange(context),
+        OrderStatus.pickedUp => C.accentOrange(context),
         OrderStatus.onTheWay => C.accentOrange(context),
         OrderStatus.delivered => C.success(context),
         OrderStatus.cancelled => C.errorBright(context),
@@ -85,6 +86,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   static IconData _statusIcon(OrderStatus status) => switch (status) {
         OrderStatus.confirmed => Icons.receipt_long_outlined,
         OrderStatus.packing => Icons.inventory_2_outlined,
+        OrderStatus.pickedUp => Icons.two_wheeler_outlined,
         OrderStatus.onTheWay => Icons.local_shipping_outlined,
         OrderStatus.delivered => Icons.check_circle_outline,
         OrderStatus.cancelled => Icons.cancel_outlined,
@@ -601,7 +603,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => DeliveryTrackingScreen(
-            orderNumber: order.id,
+            // The order drives the stage, the step times and the order number.
+            order: order,
             estimatedDelivery: 'Today, 2:00 PM – 4:00 PM',
           ),
         ),
@@ -671,7 +674,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
 enum _StepState { done, current, upcoming, cancelled }
 
-/// The four lifecycle steps with the time each was reached.
+/// The five lifecycle steps with the time each was reached.
 ///
 /// A cancelled order stops at "Confirmed" and gains a final cancelled row, so
 /// the track never pretends the delivery progressed further than it did.
@@ -683,6 +686,7 @@ class _OrderTimeline extends StatelessWidget {
   static const List<OrderStatus> _track = [
     OrderStatus.confirmed,
     OrderStatus.packing,
+    OrderStatus.pickedUp,
     OrderStatus.onTheWay,
     OrderStatus.delivered,
   ];

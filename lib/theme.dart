@@ -403,6 +403,10 @@ class AppDarkColors {
   // ── Semantic (same, but may need adjustments) ───────────────────────────
   static const Color success = Color(0xFF4ADE80);
   static const Color error = Color(0xFFF87171);
+
+  /// Dark equivalent of [AppColors.successSoft]: the "arriving" panel keeps a
+  /// green cast instead of turning into a white slab.
+  static const Color successSoft = Color(0xFF16321C);
   static const Color warning = Color(0xFFFBBF24);
   static const Color info = Color(0xFFE5E5E5);
   static const Color gold = Color(0xFFD4A843);
@@ -474,6 +478,18 @@ class C {
   /// bright red on dark, the standard red on light.
   static Color errorBright(BuildContext context) =>
       _isDark(context) ? AppColors.errorBright : AppColors.error;
+
+  /// Soft green panel: the arrival card's fill, mint on light and a deep green
+  /// on dark.
+  static Color successSoft(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.successSoft : AppColors.successSoft;
+
+  /// Foreground for content painted on top of [error].
+  ///
+  /// White reads on the light theme's deep red (5.3:1); the dark theme's lifted
+  /// red needs the near-black page colour instead (7:1).
+  static Color onError(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.background : AppColors.white;
 
   static Color warning(BuildContext context) =>
       _isDark(context) ? AppDarkColors.warning : AppColors.warning;

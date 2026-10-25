@@ -11,6 +11,7 @@ import 'mock_data.dart';
 enum OrderStatus {
   confirmed,
   packing,
+  pickedUp,
   onTheWay,
   delivered,
   cancelled,
@@ -21,6 +22,7 @@ extension OrderStatusX on OrderStatus {
   String get label => switch (this) {
         OrderStatus.confirmed => 'Confirmed',
         OrderStatus.packing => 'Packing',
+        OrderStatus.pickedUp => 'Picked up',
         OrderStatus.onTheWay => 'On the way',
         OrderStatus.delivered => 'Delivered',
         OrderStatus.cancelled => 'Cancelled',
@@ -30,22 +32,25 @@ extension OrderStatusX on OrderStatus {
   bool get isActive =>
       this == OrderStatus.confirmed ||
       this == OrderStatus.packing ||
+      this == OrderStatus.pickedUp ||
       this == OrderStatus.onTheWay;
 
-  /// Position on the confirmed → packing → on the way → delivered track.
-  /// -1 for [OrderStatus.cancelled], which leaves the track entirely.
+  /// Position on the confirmed → packing → picked up → on the way → delivered
+  /// track. -1 for [OrderStatus.cancelled], which leaves the track entirely.
   int get stepIndex => switch (this) {
         OrderStatus.confirmed => 0,
         OrderStatus.packing => 1,
-        OrderStatus.onTheWay => 2,
-        OrderStatus.delivered => 3,
+        OrderStatus.pickedUp => 2,
+        OrderStatus.onTheWay => 3,
+        OrderStatus.delivered => 4,
         OrderStatus.cancelled => -1,
       };
 
   /// The next state the demo "advance" action moves to, if any.
   OrderStatus? get nextActive => switch (this) {
         OrderStatus.confirmed => OrderStatus.packing,
-        OrderStatus.packing => OrderStatus.onTheWay,
+        OrderStatus.packing => OrderStatus.pickedUp,
+        OrderStatus.pickedUp => OrderStatus.onTheWay,
         OrderStatus.onTheWay => OrderStatus.delivered,
         OrderStatus.delivered => null,
         OrderStatus.cancelled => null,
@@ -156,8 +161,8 @@ abstract class OrdersRepository {
 // Mock implementation
 // ---------------------------------------------------------------------------
 
-/// Serves the app's existing mock order history ([storedOrders]) plus a couple
-/// of recent active orders, so every status has something to show.
+/// Serves the app's existing mock order history ([storedOrders]) plus a few
+/// recent active orders, so every in-flight status has something to show.
 class MockOrdersRepository implements OrdersRepository {
   /// Status changes made by [advanceStatus], keyed by order id. Kept in memory
   /// for the session, which is enough for a demo and mirrors what a real
@@ -174,6 +179,7 @@ class MockOrdersRepository implements OrdersRepository {
   static const Map<OrderStatus, int> _stepMinutes = {
     OrderStatus.confirmed: 0,
     OrderStatus.packing: 5,
+    OrderStatus.pickedUp: 9,
     OrderStatus.onTheWay: 12,
     OrderStatus.delivered: 30,
     OrderStatus.cancelled: 2,
@@ -182,6 +188,7 @@ class MockOrdersRepository implements OrdersRepository {
   static const List<OrderStatus> _track = [
     OrderStatus.confirmed,
     OrderStatus.packing,
+    OrderStatus.pickedUp,
     OrderStatus.onTheWay,
     OrderStatus.delivered,
   ];
@@ -288,11 +295,15 @@ class MockOrdersRepository implements OrdersRepository {
     return '${names.first} +${names.length - 1}';
   }
 
-  /// Two fresh active orders so "packing" and "on the way" are visible without
-  /// waiting on a real delivery.
+  /// Three fresh active orders so "packing", "picked up" and "on the way" are
+  /// each visible without the debug button or waiting on a real delivery.
+  ///
+  /// Ages are 18 < 30 < 55 minutes so the newest active order — the one the
+  /// home banner follows — stays the on-the-way Green Farm delivery.
   static List<Order> _recentActiveOrders() {
     final now = DateTime.now();
     final placed18 = now.subtract(const Duration(minutes: 18));
+    final placed30 = now.subtract(const Duration(minutes: 30));
     final placed55 = now.subtract(const Duration(minutes: 55));
     return [
       Order(
@@ -307,6 +318,16 @@ class MockOrdersRepository implements OrdersRepository {
           _demoItem('Rice', 'Green Farm'),
           _demoItem('Beans', 'Green Farm'),
         ],
+      ),
+      Order(
+        id: 'GBX-10528',
+        vendorName: 'Real Green',
+        status: OrderStatus.pickedUp,
+        createdAt: placed30,
+        deliveryAddress: _demoAddress,
+        deliveryFee: 800,
+        timestamps: _mockTimeline(OrderStatus.pickedUp, placed30),
+        items: [_demoItem('Fresh Vegetables', 'Real Green')],
       ),
       Order(
         id: 'GBX-10521',

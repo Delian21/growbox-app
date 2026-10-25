@@ -771,6 +771,8 @@ class _ActiveOrderBanner extends StatelessWidget {
         OrderStatus.confirmed => 'Order from ${order.vendorName} confirmed',
         OrderStatus.packing =>
           'Your order from ${order.vendorName} is being packed',
+        OrderStatus.pickedUp =>
+          'Your order from ${order.vendorName} has been picked up',
         OrderStatus.onTheWay =>
           'Your order from ${order.vendorName} is on the way',
         OrderStatus.delivered =>
@@ -782,6 +784,7 @@ class _ActiveOrderBanner extends StatelessWidget {
   static IconData _icon(OrderStatus status) => switch (status) {
         OrderStatus.confirmed => Icons.receipt_long_outlined,
         OrderStatus.packing => Icons.inventory_2_outlined,
+        OrderStatus.pickedUp => Icons.two_wheeler_outlined,
         OrderStatus.onTheWay => Icons.local_shipping_outlined,
         OrderStatus.delivered => Icons.check_circle_outline,
         OrderStatus.cancelled => Icons.cancel_outlined,
