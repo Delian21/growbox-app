@@ -261,9 +261,17 @@ class MockOrdersRepository implements OrdersRepository {
     };
   }
 
+  /// How long a legacy in-flight record may stay in flight.
+  ///
+  /// A delivery is a same-day affair, so a record this old that still claims to
+  /// be "Order placed" or "Pending" is history, not a live order: the seeded
+  /// history contains exactly such records, and trusting them put a month-old
+  /// card in Active and kept the home banner alive forever.
+  static const Duration _staleInFlight = Duration(hours: 24);
+
   /// Maps a persisted checkout record onto the UI model.
   static Order _fromStoredOrder(StoredOrder o) {
-    final status = _legacyStatus(o.status);
+    final status = _statusFor(o);
     return Order(
       id: o.orderNumber,
       vendorName: _vendorLabel(o.items),
@@ -274,6 +282,19 @@ class MockOrdersRepository implements OrdersRepository {
       deliveryFee: o.deliveryFee,
       timestamps: _mockTimeline(status, o.placedAt),
     );
+  }
+
+  /// Status of a legacy record, with stale in-flight records retired.
+  ///
+  /// Records carry no event log, so a completed delivery is the only terminal
+  /// state the record itself supports; the alternative would be dropping the
+  /// order from both tabs. A record that is genuinely recent keeps its live
+  /// status, so a just-checked-out order still lands in Active.
+  static OrderStatus _statusFor(StoredOrder o) {
+    final status = _legacyStatus(o.status);
+    if (!status.isActive) return status;
+    final age = DateTime.now().difference(o.placedAt);
+    return age > _staleInFlight ? OrderStatus.delivered : status;
   }
 
   /// The legacy records store free-text statuses; they map onto the enum.
