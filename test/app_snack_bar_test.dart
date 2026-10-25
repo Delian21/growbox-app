@@ -75,6 +75,69 @@ void main() {
     });
   }
 
+  for (final withAction in [false, true]) {
+    testWidgets(
+        'dismisses itself ${withAction ? 'with' : 'without'} an action',
+        (tester) async {
+      await tester.pumpWidget(harness(
+        brightness: Brightness.light,
+        onPressed: (context) => showAppSnackBar(
+          context,
+          'Tomatoes removed from cart',
+          actionLabel: withAction ? 'Undo' : null,
+          onAction: withAction ? () {} : null,
+        ),
+      ));
+
+      await tester.tap(find.text('show'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Tomatoes removed from cart'), findsOneWidget);
+
+      // Past the longest duration (4 s with an action) plus the exit animation.
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('Tomatoes removed from cart'), findsNothing);
+    });
+  }
+
+  testWidgets('stays compact with the action inline, not stacked',
+      (tester) async {
+    await tester.pumpWidget(harness(
+      brightness: Brightness.light,
+      onPressed: (context) => showAppSnackBar(
+        context,
+        'Tomatoes removed from cart',
+        actionLabel: 'Undo',
+        onAction: () {},
+      ),
+    ));
+
+    await tester.tap(find.text('show'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final surface = tester.getRect(find
+        .descendant(of: find.byType(SnackBar), matching: find.byType(Material))
+        .first);
+    expect(surface.height, lessThan(64));
+
+    // Capped at 360 and centred on the 800 px test window.
+    expect(surface.width, lessThanOrEqualTo(360));
+    expect(surface.center.dx, closeTo(400, 1));
+
+    // Message and action share a row rather than stacking.
+    final message = tester.getRect(find.text('Tomatoes removed from cart'));
+    final action = tester.getRect(find.text('Undo'));
+    expect((message.center.dy - action.center.dy).abs(), lessThan(4));
+
+    // Let the auto-dismiss timer fire so nothing is left pending.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 500));
+  });
+
   testWidgets('snackbar floats above the nav, even with a gesture inset',
       (tester) async {
     const inset = 34.0;
