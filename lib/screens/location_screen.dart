@@ -2,30 +2,24 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../theme.dart';
-import '../data/app_state.dart';
+import '../data/addresses.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
-import '../screens/home_screen.dart';
+import '../widgets/saved_address_picker.dart';
+import 'address_management_screen.dart';
 
 class LocationScreen extends StatefulWidget {
-  final bool returnToCheckout;
-  const LocationScreen({super.key, this.returnToCheckout = false});
+  const LocationScreen({super.key});
   @override
   State<LocationScreen> createState() => _LocationScreenState();
 }
 
 class _LocationScreenState extends State<LocationScreen> {
-  /// Address the user typed or picked. Takes precedence over the detected one.
-  String? _deliveryAddress;
-
-  /// Address resolved for the map pin, null until detection finishes.
-  String? _resolvedAddress;
+  /// Guards against an older detection completing after a newer one.
+  int _resolveToken = 0;
 
   /// True while the pin is being resolved (drives the "Detecting..." copy).
   bool _detectingLocation = true;
-
-  /// Guards against an older detection completing after a newer one.
-  int _resolveToken = 0;
 
   /// True while the address sheet route is on screen.
   bool _sheetOpen = false;
@@ -102,21 +96,20 @@ class _LocationScreenState extends State<LocationScreen> {
   /// Resolves the pin to a human-readable address.
   ///
   /// The app ships no geocoding service (it is offline-first and the map's
-  /// API key is still a placeholder), so the pin is matched against the saved
-  /// delivery address rather than inventing a street name. With no saved
-  /// address the UI says so instead of printing raw coordinates.
+  /// API key is still a placeholder), so the pin shows the chosen browsing
+  /// area rather than inventing a street name. Browsing area is kept separate
+  /// from delivery addresses: it is never offered to checkout as an address.
   void _resolveAddress() {
     if (!mounted) return;
     final token = ++_resolveToken;
     setState(() => _detectingLocation = true);
     _refreshSheet();
 
-    Future<void>.delayed(const Duration(milliseconds: 700), () {
+    Future<void>(() async {
+      await browsingAreaStore.load();
+      await Future<void>.delayed(const Duration(milliseconds: 700));
       if (!mounted || token != _resolveToken) return;
-      setState(() {
-        _detectingLocation = false;
-        _resolvedAddress = defaultAddress?.address;
-      });
+      setState(() => _detectingLocation = false);
       _refreshSheet();
     });
   }
@@ -124,11 +117,10 @@ class _LocationScreenState extends State<LocationScreen> {
   /// Rebuilds the open sheet (if any) after screen-state changes.
   void _refreshSheet() => _sheetSetState?.call(() {});
 
-  /// What the subtitle shows: detected address, or an explicit state.
+  /// What the subtitle shows: the browsing area, or an explicit state.
   String get _addressLine {
     if (_detectingLocation) return 'Detecting your location...';
-    final address = _deliveryAddress ?? _resolvedAddress;
-    return address ?? 'No saved address yet — tap to add one';
+    return browsingAreaStore.area ?? 'No saved area yet — tap to set one';
   }
 
   // ── Closing / finishing ──────────────────────────────────────────────────
@@ -139,116 +131,89 @@ class _LocationScreenState extends State<LocationScreen> {
     navigator.pop();
   }
 
-  void _finishLocation(String address) {
-    final navigator = Navigator.of(context);
-    // The sheet is its own route on the root navigator: close it before
-    // popping or replacing the screen route underneath.
-    if (_sheetOpen) navigator.pop();
-    if (widget.returnToCheckout) {
-      navigator.pop(address);
+  // ── Browsing area / delivery address ───────────────────────────────
+
+  /// Edits the browsing area only.
+  ///
+  /// The pin says where the customer is shopping from, not where an order can
+  /// be delivered: an area without a street is never handed to checkout.
+  void _editArea() {
+    final controller = TextEditingController(text: browsingAreaStore.area ?? '');
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: C.surface(dialogContext),
+          title: Text('Set your browsing area',
+              style: TextStyle(color: C.textPrimary(dialogContext))),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 2,
+            style: TextStyle(color: C.textPrimary(dialogContext)),
+            decoration: InputDecoration(
+              hintText: 'Area, city (e.g. Gwarinpa, Abuja)',
+              hintStyle: TextStyle(color: C.textMuted(dialogContext)),
+              border: const OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: C.divider(dialogContext)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: C.primary(dialogContext)),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('Cancel',
+                  style: TextStyle(color: C.textMuted(dialogContext))),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final area = controller.text.trim();
+                Navigator.of(dialogContext).pop();
+                browsingAreaStore.setArea(area);
+                setState(() {});
+                _refreshSheet();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Opens the app's one address editor (with a new-address sheet ready).
+  Future<void> _openAddressEditor(Widget screen) async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => screen));
+    if (!mounted) return;
+    setState(() {});
+    _refreshSheet();
+  }
+
+  void _addNewAddress() =>
+      _openAddressEditor(const AddressManagementScreen(startAdding: true));
+
+  /// Makes [address] the delivery address and leaves the location screen, so
+  /// the caller (Home, registration) shows the new area immediately.
+  Future<void> _selectAddress(Address address) async {
+    await addressesStore.select(address.id);
+    if (!mounted) return;
+    setState(() {});
+    _exit();
+  }
+
+  /// "Missing address details": fixes the selected address, or adds one.
+  void _fixSelectedAddress() {
+    final selected = addressesStore.selectedAddress;
+    if (selected == null) {
+      _addNewAddress();
     } else {
-      navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
+      _openAddressEditor(AddressManagementScreen(editAddressId: selected.id));
     }
-  }
-
-  // ── Address dialogs ──────────────────────────────────────────────────────
-
-  void _editAddress() {
-    final controller =
-        TextEditingController(text: _deliveryAddress ?? _resolvedAddress ?? '');
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: C.surface(dialogContext),
-          title: Text('Edit delivery address',
-            style: TextStyle(color: C.textPrimary(dialogContext))),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 2,
-            style: TextStyle(color: C.textPrimary(dialogContext)),
-            decoration: InputDecoration(
-              hintText: 'Enter your delivery address',
-              hintStyle: TextStyle(color: C.textMuted(dialogContext)),
-              border: const OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: C.divider(dialogContext)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: C.primary(dialogContext)),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text('Cancel', style: TextStyle(color: C.textMuted(dialogContext))),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newAddress = controller.text.trim();
-                if (newAddress.isEmpty) return;
-                Navigator.of(dialogContext).pop();
-                setState(() => _deliveryAddress = newAddress);
-                _finishLocation(newAddress);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _addNewAddress() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: C.surface(dialogContext),
-          title: Text('Add a new address',
-            style: TextStyle(color: C.textPrimary(dialogContext))),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 2,
-            style: TextStyle(color: C.textPrimary(dialogContext)),
-            decoration: InputDecoration(
-              hintText: 'Enter your delivery address',
-              hintStyle: TextStyle(color: C.textMuted(dialogContext)),
-              border: const OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: C.divider(dialogContext)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: C.primary(dialogContext)),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text('Cancel', style: TextStyle(color: C.textMuted(dialogContext))),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newAddress = controller.text.trim();
-                if (newAddress.isEmpty) return;
-                Navigator.of(dialogContext).pop();
-                setState(() => _deliveryAddress = newAddress);
-                _finishLocation(newAddress);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   // ── Address sheet ────────────────────────────────────────────────────────
@@ -349,7 +314,7 @@ class _LocationScreenState extends State<LocationScreen> {
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               GestureDetector(
-                                onTap: _editAddress,
+                                onTap: _editArea,
                                 child: Text(
                                   _addressLine,
                                   softWrap: true,
@@ -358,12 +323,40 @@ class _LocationScreenState extends State<LocationScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.md),
-                              _buildAddressWarningChip(context),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'Browsing only — deliveries go to a saved address.',
+                                style: AppTypography.caption
+                                    .copyWith(color: C.textMuted(context)),
+                              ),
                             ],
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    Text(
+                      'Deliver to',
+                      style: AppTypography.labelLarge
+                          .copyWith(color: C.textPrimary(context)),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    ListenableBuilder(
+                      listenable: addressesStore,
+                      builder: (context, _) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SavedAddressPicker(
+                            addresses: addressesStore.addresses,
+                            selectedId: addressesStore.selectedAddress?.id,
+                            onSelect: _selectAddress,
+                          ),
+                          if (addressesStore.selectionNeedsStreet) ...[
+                            const SizedBox(height: AppSpacing.md),
+                            _buildAddressWarningChip(context),
+                          ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     SizedBox(
@@ -416,7 +409,7 @@ class _LocationScreenState extends State<LocationScreen> {
     return Align(
       alignment: Alignment.centerLeft,
       child: GestureDetector(
-        onTap: _addNewAddress,
+        onTap: _fixSelectedAddress,
         behavior: HitTestBehavior.opaque,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

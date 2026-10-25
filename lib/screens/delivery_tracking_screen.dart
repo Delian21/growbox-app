@@ -977,8 +977,15 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
           _detailRow(
               Icons.receipt_outlined, 'Order', orderNumberLabel(_orderNumber)),
           const SizedBox(height: AppSpacing.sm),
-          _detailRow(Icons.location_on_outlined, 'Address',
-              'No. 12 Gwarinpa Estate, Abuja'),
+          // The address captured when the order was placed, not the customer's
+          // current saved address: editing an address must not move an order
+          // that is already on its way.
+          _detailRow(
+              Icons.location_on_outlined,
+              'Address',
+              (widget.order?.deliveryAddress.trim().isNotEmpty ?? false)
+                  ? widget.order!.deliveryAddress
+                  : 'Not provided'),
           const SizedBox(height: AppSpacing.sm),
           _detailRow(Icons.access_time, 'Est. Delivery', _etaLabel),
         ],

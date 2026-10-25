@@ -35,9 +35,6 @@ class OrderDetailsScreen extends StatefulWidget {
 }
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
-  static const String _fallbackAddress =
-      'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria';
-
   @override
   void initState() {
     super.initState();
@@ -427,8 +424,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Widget _buildDeliveryCard(BuildContext context, Order order) {
-    final address =
-        order.deliveryAddress.isEmpty ? _fallbackAddress : order.deliveryAddress;
+    // The address snapshot taken when the order was placed. A record without
+    // one says so instead of naming a place the customer never entered.
+    final address = order.deliveryAddress.trim().isEmpty
+        ? 'Not provided'
+        : order.deliveryAddress;
 
     return Container(
       width: double.infinity,

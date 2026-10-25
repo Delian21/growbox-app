@@ -43,47 +43,8 @@ void main() {
     });
   });
 
-  group('Addresses', () {
-    test('addAddress persists and restoreAddresses reloads them', () async {
-      SharedPreferences.setMockInitialValues({});
-      savedAddresses.clear();
-
-      addAddress(DeliveryAddress(
-        id: 'addr_x',
-        label: 'Office',
-        address: 'Garki, Abuja',
-        phone: '08011111111',
-        isDefault: true,
-      ));
-      await _settle();
-
-      // Simulate restart: wipe memory, then hydrate from storage.
-      savedAddresses.clear();
-      await restoreAddresses();
-
-      expect(savedAddresses.length, 1);
-      expect(savedAddresses.single.label, 'Office');
-      expect(savedAddresses.single.address, 'Garki, Abuja');
-      expect(savedAddresses.single.isDefault, isTrue);
-    });
-
-    test('removeAddress persists too', () async {
-      SharedPreferences.setMockInitialValues({});
-      savedAddresses
-        ..clear()
-        ..add(DeliveryAddress(
-            id: 'a1', label: 'Home', address: 'Asokoro, Abuja'));
-      persistAddresses();
-      await _settle();
-
-      removeAddress('a1');
-      await _settle();
-
-      savedAddresses.clear();
-      await restoreAddresses();
-      expect(savedAddresses, isEmpty);
-    });
-  });
+  // Addresses are covered end-to-end (model, repository, store) in
+  // test/addresses_test.dart, which replaced the old in-memory globals.
 
   group('Favorites', () {
     test('vendor favorites persist across a restart', () async {

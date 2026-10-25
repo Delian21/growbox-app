@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:growbox/data/addresses.dart';
 import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/data/orders.dart';
@@ -75,10 +76,12 @@ Widget harness(Order order, {bool disableAnimations = false}) => MaterialApp(
     );
 
 void main() {
-  setUp(() {
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
     StockTracker.seed();
     storedOrders.clear();
+    // Checkout reads the selected address from the app-wide store.
+    await addressesStore.load(force: true);
   });
 
   testWidgets('every line comes from the order', (tester) async {
@@ -226,6 +229,14 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(400, 1000);
     addTearDown(tester.view.reset);
+
+    // Checkout needs a deliverable address before it will place an order.
+    await addressesStore.save(const Address(
+      id: 'a1',
+      label: 'Home',
+      street: 'No. 12 Gwarinpa Estate',
+      area: 'Gwarinpa, Abuja',
+    ));
 
     final cart = CartNotifier()..addAll([_product('Rice', 2550)]);
     expect(cart.isNotEmpty, isTrue);

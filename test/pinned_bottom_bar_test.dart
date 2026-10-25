@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:growbox/data/addresses.dart';
 import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/screens/address_management_screen.dart';
@@ -59,6 +61,8 @@ double _navReserved(WidgetTester tester) {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('the bar sits directly on the nav with no gesture inset',
       (tester) async {
     _configureSurface(tester);
@@ -168,6 +172,15 @@ void main() {
   testWidgets('the address list pins its add button above the nav',
       (tester) async {
     _configureSurface(tester);
+
+    // The list only pins its add button when there is something in it.
+    await addressesStore.load(force: true);
+    await addressesStore.save(const Address(
+      id: 'a1',
+      label: 'Home',
+      street: 'No. 12 Gwarinpa Estate',
+      area: 'Gwarinpa, Abuja',
+    ));
 
     await tester.pumpWidget(ChangeNotifierProvider(
       create: (_) => CartNotifier(),

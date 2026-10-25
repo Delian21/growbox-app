@@ -9,6 +9,7 @@ import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/vendor_card.dart';
+import '../data/addresses.dart';
 import '../data/app_state.dart';
 import '../data/categories.dart';
 import '../data/mock_data.dart';
@@ -33,8 +34,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String selectedAddress = defaultAddress?.address ?? 'Asokoro, Abuja';
-
   /// Storage key for an explicit dismissal of the profile nudge.
   static const String _nudgeDismissedKey = 'profile_nudge_dismissed';
 
@@ -67,6 +66,9 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _orders.load();
     });
+    // The header reads the selected address; make sure it is hydrated even if
+    // this screen is the first thing a test (or a deep link) opens.
+    addressesStore.load();
     _restoreNudgeDismissal();
   }
 
@@ -108,16 +110,22 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           children: [
             // ── Address Bar ─────────────────────────────────────────
-            _AddressBar(
-              address: selectedAddress,
-              onTap: () async {
-                final result = await Navigator.push<String>(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LocationScreen()),
+            ListenableBuilder(
+              listenable: addressesStore,
+              builder: (context, _) {
+                final selected = addressesStore.selectedAddress;
+                // No fake default: without a saved address the header asks for
+                // one instead of naming a place the rider was never told about.
+                final label = (selected == null || selected.summary.isEmpty)
+                    ? 'Choose location'
+                    : selected.summary;
+                return _AddressBar(
+                  address: label,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LocationScreen()),
+                  ),
                 );
-                if (result != null && result.isNotEmpty && mounted) {
-                  setState(() => selectedAddress = result);
-                }
               },
             ),
             // ── Scrollable Content ──────────────────────────────────
