@@ -123,6 +123,61 @@ void main() {
     expect(find.text('Packing'), findsOneWidget);
   });
 
+  test('demo deliveries age instead of being re-stamped on every fetch',
+      () async {
+    var now = DateTime(2026, 10, 25, 12);
+    final repo = MockOrdersRepository(clock: () => now);
+
+    await repo.getOrders(); // places the demo deliveries
+    final fresh = await repo.getOrders();
+    expect(fresh.where((o) => o.isActive), hasLength(3));
+    expect(fresh.firstWhere((o) => o.id == 'GBX-10521').status,
+        OrderStatus.packing);
+
+    // Ten minutes on, every delivery has moved a step along, and none of the
+    // placement times have been rewritten.
+    now = now.add(const Duration(minutes: 10));
+    final later = await repo.getOrders();
+    expect(
+      later.map((o) => (o.id, o.createdAt)).toSet(),
+      fresh.map((o) => (o.id, o.createdAt)).toSet(),
+    );
+    expect(
+      later.where((o) => o.isActive).map((o) => o.status),
+      everyElement(OrderStatus.onTheWay),
+    );
+
+    // Delivered at 30 minutes: Active empties on its own.
+    now = now.add(const Duration(minutes: 20));
+    final aged = await repo.getOrders();
+    expect(aged.where((o) => o.isActive), isEmpty);
+    expect(
+      aged.where((o) => o.id.startsWith('GBX-105')).map((o) => o.status),
+      everyElement(OrderStatus.delivered),
+    );
+  });
+
+  testWidgets('an install whose deliveries finished shows the empty Active tab',
+      (tester) async {
+    var now = DateTime(2026, 10, 25, 12);
+    final repo = MockOrdersRepository(clock: () => now);
+    await repo.getOrders(); // place the demo deliveries
+
+    // Come back 45 minutes later, when everything has been delivered.
+    now = now.add(const Duration(minutes: 45));
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => CartNotifier(),
+        child: MaterialApp(home: OrderHistoryScreen(store: OrdersStore(repo))),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No active orders'), findsOneWidget);
+    expect(find.text('Start shopping'), findsOneWidget);
+  });
+
   testWidgets('no deliveries: Active explains itself and offers a shop button',
       (tester) async {
     await tester.pumpWidget(

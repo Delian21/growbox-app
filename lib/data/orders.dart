@@ -162,8 +162,15 @@ abstract class OrdersRepository {
 // ---------------------------------------------------------------------------
 
 /// Serves the app's existing mock order history ([storedOrders]) plus a few
-/// recent active orders, so every in-flight status has something to show.
+/// demo deliveries, so every in-flight status has something to show.
 class MockOrdersRepository implements OrdersRepository {
+  /// [clock] exists so a test can move time forward and watch the demo
+  /// deliveries age; the app leaves it at the wall clock.
+  MockOrdersRepository({DateTime Function()? clock})
+      : _now = clock ?? DateTime.now;
+
+  final DateTime Function() _now;
+
   /// Status changes made by [advanceStatus], keyed by order id. Kept in memory
   /// for the session, which is enough for a demo and mirrors what a real
   /// backend would persist server-side.
@@ -199,7 +206,7 @@ class MockOrdersRepository implements OrdersRepository {
     // the next microtask, so the loading state is still exercised.
     final orders = <Order>[
       ...storedOrders.map(_fromStoredOrder),
-      ..._recentActiveOrders(),
+      ...(_demoOrders ??= _buildDemoOrders()).map(_aged),
     ];
 
     final resolved = orders.map(_applyOverrides).toList()
@@ -217,7 +224,7 @@ class MockOrdersRepository implements OrdersRepository {
     if (next == null) return;
     _statusOverrides[orderId] = next;
     // Stamp the transition so the details timeline moves with the status.
-    (_timeOverrides[orderId] ??= {})[next] = DateTime.now();
+    (_timeOverrides[orderId] ??= {})[next] = _now();
   }
 
   /// Replays session-only status changes over a stored order.
@@ -270,7 +277,7 @@ class MockOrdersRepository implements OrdersRepository {
   static const Duration _staleInFlight = Duration(hours: 24);
 
   /// Maps a persisted checkout record onto the UI model.
-  static Order _fromStoredOrder(StoredOrder o) {
+  Order _fromStoredOrder(StoredOrder o) {
     final status = _statusFor(o);
     return Order(
       id: o.orderNumber,
@@ -280,7 +287,7 @@ class MockOrdersRepository implements OrdersRepository {
       items: o.items,
       deliveryAddress: o.deliveryAddress,
       deliveryFee: o.deliveryFee,
-      timestamps: _mockTimeline(status, o.placedAt),
+      timestamps: _mockTimeline(status, o.placedAt, reference: _now()),
     );
   }
 
@@ -290,10 +297,10 @@ class MockOrdersRepository implements OrdersRepository {
   /// state the record itself supports; the alternative would be dropping the
   /// order from both tabs. A record that is genuinely recent keeps its live
   /// status, so a just-checked-out order still lands in Active.
-  static OrderStatus _statusFor(StoredOrder o) {
+  OrderStatus _statusFor(StoredOrder o) {
     final status = _legacyStatus(o.status);
     if (!status.isActive) return status;
-    final age = DateTime.now().difference(o.placedAt);
+    final age = _now().difference(o.placedAt);
     return age > _staleInFlight ? OrderStatus.delivered : status;
   }
 
@@ -316,52 +323,94 @@ class MockOrdersRepository implements OrdersRepository {
     return '${names.first} +${names.length - 1}';
   }
 
-  /// Three fresh active orders so "packing", "picked up" and "on the way" are
-  /// each visible without the debug button or waiting on a real delivery.
+  /// The demo deliveries, placed once and then left to age.
+  ///
+  /// They used to be re-stamped relative to now on every fetch, which pinned
+  /// their ages at 7/11/18 minutes forever: nothing ever delivered, the home
+  /// banner never cleared and Active could never empty. Built on the first
+  /// fetch and cached, so they move like real orders.
+  List<Order>? _demoOrders;
+
+  /// Three deliveries so "packing", "picked up" and "on the way" are each
+  /// visible without the debug button or a real checkout.
   ///
   /// Ages are 7 < 11 < 18 minutes, one step of [_stepMinutes] apart, so each
-  /// order has reached its status but not the next one. The home banner follows
-  /// the newest active order, which is consequently the packing one.
-  static List<Order> _recentActiveOrders() {
-    final now = DateTime.now();
-    final placed7 = now.subtract(const Duration(minutes: 7));
-    final placed11 = now.subtract(const Duration(minutes: 11));
-    final placed18 = now.subtract(const Duration(minutes: 18));
+  /// has reached its status but not the next one. The status is not authored
+  /// here: [_aged] derives it from the age, so the ladder is a consequence of
+  /// the placement times instead of a second copy of them.
+  List<Order> _buildDemoOrders() {
+    final now = _now();
+
+    Order demo({
+      required String id,
+      required String vendorName,
+      required Duration age,
+      required int deliveryFee,
+      required List<OrderItem> items,
+    }) {
+      final placedAt = now.subtract(age);
+      return Order(
+        id: id,
+        vendorName: vendorName,
+        status: _stageReached(placedAt),
+        createdAt: placedAt,
+        deliveryAddress: _demoAddress,
+        deliveryFee: deliveryFee,
+        // Filled in by [_aged] from the status above.
+        timestamps: const {},
+        items: items,
+      );
+    }
+
     return [
-      Order(
+      demo(
         id: 'GBX-10536',
         vendorName: 'Green Farm',
-        status: OrderStatus.onTheWay,
-        createdAt: placed18,
-        deliveryAddress: _demoAddress,
+        age: const Duration(minutes: 18),
         deliveryFee: 500,
-        timestamps: _mockTimeline(OrderStatus.onTheWay, placed18),
         items: [
           _demoItem('Rice', 'Green Farm'),
           _demoItem('Beans', 'Green Farm'),
         ],
       ),
-      Order(
+      demo(
         id: 'GBX-10528',
         vendorName: 'Real Green',
-        status: OrderStatus.pickedUp,
-        createdAt: placed11,
-        deliveryAddress: _demoAddress,
+        age: const Duration(minutes: 11),
         deliveryFee: 800,
-        timestamps: _mockTimeline(OrderStatus.pickedUp, placed11),
         items: [_demoItem('Fresh Vegetables', 'Real Green')],
       ),
-      Order(
+      demo(
         id: 'GBX-10521',
         vendorName: 'Yummy Bunch',
-        status: OrderStatus.packing,
-        createdAt: placed7,
-        deliveryAddress: _demoAddress,
+        age: const Duration(minutes: 7),
         deliveryFee: 500,
-        timestamps: _mockTimeline(OrderStatus.packing, placed7),
         items: [_demoItem('Tomatoes', 'Yummy Bunch', qty: 2)],
       ),
     ];
+  }
+
+  /// A demo delivery as it stands right now.
+  ///
+  /// Status and timeline come from the placement time, so the demo advances on
+  /// its own — packing at 5 minutes, picked up at 9, on the way at 12,
+  /// delivered at 30 — and once every demo has been delivered Active is
+  /// genuinely empty.
+  Order _aged(Order order) {
+    final status = _stageReached(order.createdAt);
+    return order.copyWith(
+      status: status,
+      timestamps: _mockTimeline(status, order.createdAt, reference: _now()),
+    );
+  }
+
+  /// Furthest step a delivery placed at [placedAt] has reached by now.
+  OrderStatus _stageReached(DateTime placedAt) {
+    final minutes = _now().difference(placedAt).inMinutes;
+    return _track.lastWhere(
+      (step) => minutes >= (_stepMinutes[step] ?? 0),
+      orElse: () => OrderStatus.confirmed,
+    );
   }
 
   /// Snapshots the canonical catalog entry, like a real checkout would.
