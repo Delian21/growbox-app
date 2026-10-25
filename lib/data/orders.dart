@@ -82,6 +82,12 @@ class Order {
   /// label. A backend with an event log simply fills more entries.
   final Map<OrderStatus, DateTime> timestamps;
 
+  /// When the delivery is expected, as promised at checkout.
+  ///
+  /// Null means the source never said; [eta] then falls back to the app's
+  /// standard 30 minute delivery rather than the screens inventing a time.
+  final DateTime? estimatedArrival;
+
   const Order({
     required this.id,
     required this.vendorName,
@@ -91,11 +97,16 @@ class Order {
     this.deliveryAddress = '',
     this.deliveryFee = 0,
     this.timestamps = const {},
+    this.estimatedArrival,
   });
 
   int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
   int get subtotal => items.fold(0, (sum, i) => sum + i.lineTotal);
   int get total => subtotal + deliveryFee;
+
+  /// Expected arrival: what the source said, or 30 minutes after placement.
+  DateTime get eta =>
+      estimatedArrival ?? createdAt.add(const Duration(minutes: 30));
 
   bool get isActive => status.isActive;
 
@@ -116,6 +127,7 @@ class Order {
         deliveryAddress: deliveryAddress,
         deliveryFee: deliveryFee,
         timestamps: timestamps ?? this.timestamps,
+        estimatedArrival: estimatedArrival,
       );
 }
 
@@ -139,6 +151,24 @@ String formatOrderTime(DateTime d) {
   return '$hour:$minute ${d.hour < 12 ? 'AM' : 'PM'}';
 }
 
+/// `#GBX-10482` — the one way the app writes an order number.
+///
+/// Every screen used to build its own: the confirmation screen prefixed the
+/// stored id with `#`, while the tracking screen was handed a bare `10482` and
+/// produced a different number for the same order.
+String orderNumberLabel(String id) => '#${id.replaceAll('#', '')}';
+
+/// `About 30 min · by 5:05 PM` — the one way the app writes an arrival.
+///
+/// [now] is injectable so tests and the demo clock do not depend on the wall
+/// clock. An arrival that has already passed reads as "Any minute now" instead
+/// of claiming a negative wait.
+String formatArrival(DateTime arrival, {DateTime? now}) {
+  final remaining = arrival.difference(now ?? DateTime.now()).inMinutes;
+  final wait = remaining <= 1 ? 'Any minute now' : 'About $remaining min';
+  return '$wait · by ${formatOrderTime(arrival)}';
+}
+
 // ---------------------------------------------------------------------------
 // Repository contract
 // ---------------------------------------------------------------------------
@@ -155,6 +185,120 @@ abstract class OrdersRepository {
   /// Moves an order one step along its lifecycle. Demo-only: a real backend
   /// would not expose an arbitrary "advance" mutation to the client.
   Future<void> advanceStatus(String orderId);
+}
+
+// ---------------------------------------------------------------------------
+// Mapping a persisted checkout record
+// ---------------------------------------------------------------------------
+
+/// Minutes after placement at which a delivery reaches each step.
+const Map<OrderStatus, int> _stepMinutes = {
+  OrderStatus.confirmed: 0,
+  OrderStatus.packing: 5,
+  OrderStatus.pickedUp: 9,
+  OrderStatus.onTheWay: 12,
+  OrderStatus.delivered: 30,
+  OrderStatus.cancelled: 2,
+};
+
+const List<OrderStatus> _track = [
+  OrderStatus.confirmed,
+  OrderStatus.packing,
+  OrderStatus.pickedUp,
+  OrderStatus.onTheWay,
+  OrderStatus.delivered,
+];
+
+/// How long a legacy in-flight record may stay in flight.
+///
+/// A delivery is a same-day affair, so a record this old that still claims to
+/// be "Order placed" or "Pending" is history, not a live order: the seeded
+/// history contains exactly such records, and trusting them put a month-old
+/// card in Active and kept the home banner alive forever.
+const Duration _staleInFlight = Duration(hours: 24);
+
+/// Maps a persisted checkout record onto the UI model.
+///
+/// Shared by the repository's history and by checkout's confirmation screen, so
+/// the two can never disagree about the same order. [now] is injectable for the
+/// demo clock.
+Order orderFromStored(StoredOrder o, {DateTime? now}) {
+  final at = now ?? DateTime.now();
+  final status = _statusForStored(o, at);
+  return Order(
+    id: o.orderNumber,
+    vendorName: _vendorLabel(o.items),
+    status: status,
+    createdAt: o.placedAt,
+    items: o.items,
+    deliveryAddress: o.deliveryAddress,
+    deliveryFee: o.deliveryFee,
+    timestamps: _timelineFor(status, o.placedAt, at),
+    // The checkout promise: a 30 minute delivery. A backend with a real ETA
+    // fills this in from its own estimate.
+    estimatedArrival: o.placedAt.add(const Duration(minutes: 30)),
+  );
+}
+
+/// Status of a legacy record, with stale in-flight records retired.
+///
+/// Records carry no event log, so a completed delivery is the only terminal
+/// state the record itself supports; the alternative would be dropping the
+/// order from both tabs. A record that is genuinely recent keeps its live
+/// status, so a just-checked-out order still lands in Active.
+OrderStatus _statusForStored(StoredOrder o, DateTime now) {
+  final status = _legacyStatus(o.status);
+  if (!status.isActive) return status;
+  return now.difference(o.placedAt) > _staleInFlight
+      ? OrderStatus.delivered
+      : status;
+}
+
+/// The legacy records store free-text statuses; they map onto the enum.
+OrderStatus _legacyStatus(String status) => switch (status) {
+      'Delivered' => OrderStatus.delivered,
+      'Cancelled' => OrderStatus.cancelled,
+      'Pending' => OrderStatus.packing,
+      _ => OrderStatus.confirmed,
+    };
+
+/// One vendor name, or "First +N" when a box spans several vendors.
+String _vendorLabel(List<OrderItem> items) {
+  final names = <String>{
+    for (final item in items)
+      if (item.vendorName.isNotEmpty) item.vendorName,
+  };
+  if (names.isEmpty) return 'GROWBOX';
+  if (names.length == 1) return names.first;
+  return '${names.first} +${names.length - 1}';
+}
+
+/// Mock event log: each reached step is stamped a fixed number of minutes after
+/// placement, capped at [now] so no step is ever dated in the future. A backend
+/// that returns real events makes this unnecessary.
+Map<OrderStatus, DateTime> _timelineFor(
+  OrderStatus status,
+  DateTime placedAt,
+  DateTime now,
+) {
+  DateTime stamp(OrderStatus step) {
+    final at = placedAt.add(Duration(minutes: _stepMinutes[step] ?? 0));
+    return at.isAfter(now) ? now : at;
+  }
+
+  if (status == OrderStatus.cancelled) {
+    return {
+      OrderStatus.confirmed: stamp(OrderStatus.confirmed),
+      OrderStatus.cancelled: stamp(OrderStatus.cancelled),
+    };
+  }
+
+  // Delivered is the last step on the track, so `<=` covers everything reached
+  // on the way to it.
+  return {
+    for (final step in _track)
+      if (step.stepIndex <= status.stepIndex) step: stamp(step),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -182,30 +326,12 @@ class MockOrdersRepository implements OrdersRepository {
   static const String _demoAddress =
       'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria';
 
-  /// Minutes after placement at which the mock reaches each step.
-  static const Map<OrderStatus, int> _stepMinutes = {
-    OrderStatus.confirmed: 0,
-    OrderStatus.packing: 5,
-    OrderStatus.pickedUp: 9,
-    OrderStatus.onTheWay: 12,
-    OrderStatus.delivered: 30,
-    OrderStatus.cancelled: 2,
-  };
-
-  static const List<OrderStatus> _track = [
-    OrderStatus.confirmed,
-    OrderStatus.packing,
-    OrderStatus.pickedUp,
-    OrderStatus.onTheWay,
-    OrderStatus.delivered,
-  ];
-
   @override
   Future<List<Order>> getOrders() async {
     // A real implementation would await the network here; the mock resolves on
     // the next microtask, so the loading state is still exercised.
     final orders = <Order>[
-      ...storedOrders.map(_fromStoredOrder),
+      ...storedOrders.map((o) => orderFromStored(o, now: _now())),
       ...(_demoOrders ??= _buildDemoOrders()).map(_aged),
     ];
 
@@ -236,91 +362,6 @@ class MockOrdersRepository implements OrdersRepository {
       status: status,
       timestamps: {...order.timestamps, ...?times},
     );
-  }
-
-  /// Mock event log: each reached step is stamped a fixed number of minutes
-  /// after placement, capped at [reference] so no step is ever dated in the
-  /// future. A backend that returns real events makes this unnecessary.
-  static Map<OrderStatus, DateTime> _mockTimeline(
-    OrderStatus status,
-    DateTime placedAt, {
-    DateTime? reference,
-  }) {
-    final now = reference ?? DateTime.now();
-
-    DateTime stamp(OrderStatus step) {
-      final at = placedAt.add(Duration(minutes: _stepMinutes[step] ?? 0));
-      return at.isAfter(now) ? now : at;
-    }
-
-    if (status == OrderStatus.cancelled) {
-      return {
-        OrderStatus.confirmed: stamp(OrderStatus.confirmed),
-        OrderStatus.cancelled: stamp(OrderStatus.cancelled),
-      };
-    }
-
-    // Delivered is the last step on the track, so `<=` covers everything
-    // reached on the way to it.
-    return {
-      for (final step in _track)
-        if (step.stepIndex <= status.stepIndex) step: stamp(step),
-    };
-  }
-
-  /// How long a legacy in-flight record may stay in flight.
-  ///
-  /// A delivery is a same-day affair, so a record this old that still claims to
-  /// be "Order placed" or "Pending" is history, not a live order: the seeded
-  /// history contains exactly such records, and trusting them put a month-old
-  /// card in Active and kept the home banner alive forever.
-  static const Duration _staleInFlight = Duration(hours: 24);
-
-  /// Maps a persisted checkout record onto the UI model.
-  Order _fromStoredOrder(StoredOrder o) {
-    final status = _statusFor(o);
-    return Order(
-      id: o.orderNumber,
-      vendorName: _vendorLabel(o.items),
-      status: status,
-      createdAt: o.placedAt,
-      items: o.items,
-      deliveryAddress: o.deliveryAddress,
-      deliveryFee: o.deliveryFee,
-      timestamps: _mockTimeline(status, o.placedAt, reference: _now()),
-    );
-  }
-
-  /// Status of a legacy record, with stale in-flight records retired.
-  ///
-  /// Records carry no event log, so a completed delivery is the only terminal
-  /// state the record itself supports; the alternative would be dropping the
-  /// order from both tabs. A record that is genuinely recent keeps its live
-  /// status, so a just-checked-out order still lands in Active.
-  OrderStatus _statusFor(StoredOrder o) {
-    final status = _legacyStatus(o.status);
-    if (!status.isActive) return status;
-    final age = _now().difference(o.placedAt);
-    return age > _staleInFlight ? OrderStatus.delivered : status;
-  }
-
-  /// The legacy records store free-text statuses; they map onto the enum.
-  static OrderStatus _legacyStatus(String status) => switch (status) {
-        'Delivered' => OrderStatus.delivered,
-        'Cancelled' => OrderStatus.cancelled,
-        'Pending' => OrderStatus.packing,
-        _ => OrderStatus.confirmed,
-      };
-
-  /// One vendor name, or "First +N" when a box spans several vendors.
-  static String _vendorLabel(List<OrderItem> items) {
-    final names = <String>{
-      for (final item in items)
-        if (item.vendorName.isNotEmpty) item.vendorName,
-    };
-    if (names.isEmpty) return 'GROWBOX';
-    if (names.length == 1) return names.first;
-    return '${names.first} +${names.length - 1}';
   }
 
   /// The demo deliveries, placed once and then left to age.
@@ -359,6 +400,7 @@ class MockOrdersRepository implements OrdersRepository {
         // Filled in by [_aged] from the status above.
         timestamps: const {},
         items: items,
+        estimatedArrival: placedAt.add(const Duration(minutes: 30)),
       );
     }
 
@@ -400,7 +442,7 @@ class MockOrdersRepository implements OrdersRepository {
     final status = _stageReached(order.createdAt);
     return order.copyWith(
       status: status,
-      timestamps: _mockTimeline(status, order.createdAt, reference: _now()),
+      timestamps: _timelineFor(status, order.createdAt, _now()),
     );
   }
 

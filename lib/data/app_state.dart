@@ -119,6 +119,15 @@ class CartNotifier extends ChangeNotifier {
     _save();
   }
 
+  /// Empties the box — used once an order is placed, so the next visit to the
+  /// cart starts clean instead of still holding what was just bought.
+  void clear() {
+    if (_items.isEmpty) return;
+    _items.clear();
+    notifyListeners();
+    _save();
+  }
+
   /// Puts [product] back at [index] — used by Undo so a removed line returns
   /// to its old slot instead of jumping to the end of the box.
   void insertAt(int index, VendorProduct product) {
@@ -136,12 +145,6 @@ class CartNotifier extends ChangeNotifier {
     notifyListeners();
     _save();
     return true;
-  }
-
-  void clear() {
-    _items.clear();
-    notifyListeners();
-    _save();
   }
 
   /// Count how many times a specific product appears.
