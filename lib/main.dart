@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'theme.dart';
+import 'data/addresses.dart';
 import 'data/app_state.dart';
 import 'data/mock_data.dart';
 import 'data/orders.dart';
@@ -24,14 +25,18 @@ void main() async {
   seedPurchaseHistory();
   StockTracker.seed();
 
-  // Restore persisted user data (profile, addresses, favorites, orders)
-  // before the first frame so screens read hydrated state.
+  // Restore persisted user data (profile, favorites, orders) before the first
+  // frame so screens read hydrated state.
   await Future.wait([
     CustomerData.restore(),
-    restoreAddresses(),
     restoreFavorites(),
     restoreOrders(),
   ]);
+
+  // Addresses are restored through their repository, after the profile: the
+  // storage bucket is chosen from the logged-in account.
+  await addressesStore.load();
+  await browsingAreaStore.load();
 
   // Orders are read through the repository-backed store; warm it up so the
   // home banner and orders screen have data on their first frame.
