@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import '../theme.dart';
+import 'privacy_policy_screen.dart';
+import 'terms_screen.dart';
 import 'login_screen.dart';
 import 'location_screen.dart';
 import '../data/mock_data.dart';
@@ -521,17 +524,7 @@ class _WelcomeStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child:          Text(
-            'By continuing, you automatically\naccept our Terms & Conditions, Privacy Policy\nand Cookies Policy',
-            textAlign: TextAlign.center,
-            // Secondary, not muted: this is legal copy that must stay
-            // comfortably readable rather than fade into the panel.
-            style: AppTypography.bodySmall
-                .copyWith(color: C.textSecondary(context)),
-          ),
-          ),
+          const _LegalNotice(),
           const SizedBox(height: AppSpacing.md),
           Align(
             alignment: Alignment.centerRight,
@@ -636,12 +629,7 @@ class _EmailStep extends StatelessWidget {
                       const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'By continuing, you automatically\naccept our Terms & Conditions, Privacy Policy\nand Cookies Policy',
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySmall
-                    .copyWith(color: C.textMuted(context)),
-              ),
+              const _LegalNotice(),
             ],
           ),
         ),
@@ -796,12 +784,7 @@ class _PasswordStep extends StatelessWidget {
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'By continuing, you automatically\naccept our Terms & Conditions, Privacy Policy\nand Cookies Policy',
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySmall
-                    .copyWith(color: C.textMuted(context)),
-              ),
+              const _LegalNotice(),
             ],
           ),
         ),
@@ -891,12 +874,7 @@ class _NameStep extends StatelessWidget {
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'By continuing, you automatically\naccept our Terms & Conditions, Privacy Policy\nand Cookies Policy',
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySmall
-                    .copyWith(color: C.textMuted(context)),
-              ),
+              const _LegalNotice(),
             ],
           ),
         ),
@@ -982,6 +960,77 @@ class _EmailConfirmationStep extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Legal notice – shared by every step that ends in a CTA
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// "By continuing, you automatically accept our …" with the two policy names
+/// as links into the real documents.
+///
+/// One widget for all four steps that show it: a [TextSpan] recognizer is not
+/// owned by the framework, so it needs a [State] that can dispose it.
+class _LegalNotice extends StatefulWidget {
+  const _LegalNotice();
+
+  @override
+  State<_LegalNotice> createState() => _LegalNoticeState();
+}
+
+class _LegalNoticeState extends State<_LegalNotice> {
+  late final TapGestureRecognizer _terms;
+  late final TapGestureRecognizer _privacy;
+
+  @override
+  void initState() {
+    super.initState();
+    _terms = TapGestureRecognizer()..onTap = () => _open(const TermsScreen());
+    _privacy = TapGestureRecognizer()
+      ..onTap = () => _open(const PrivacyPolicyScreen());
+  }
+
+  @override
+  void dispose() {
+    _terms.dispose();
+    _privacy.dispose();
+    super.dispose();
+  }
+
+  void _open(Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+
+  @override
+  Widget build(BuildContext context) {
+    final body =
+        AppTypography.bodySmall.copyWith(color: C.textSecondary(context));
+    final link = body.copyWith(
+      color: C.primary(context),
+      fontWeight: FontWeight.w600,
+      decoration: TextDecoration.underline,
+      decorationColor: C.primary(context),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            const TextSpan(
+                text: 'By continuing, you automatically accept our '),
+            TextSpan(
+                text: 'Terms & Conditions', recognizer: _terms, style: link),
+            const TextSpan(text: ', '),
+            TextSpan(
+                text: 'Privacy Policy', recognizer: _privacy, style: link),
+            const TextSpan(text: ' and Cookies Policy'),
+          ],
+        ),
+        textAlign: TextAlign.center,
+        style: body,
       ),
     );
   }
