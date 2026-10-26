@@ -10,6 +10,7 @@ import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/screens/checkout_screen.dart';
 import 'package:growbox/screens/cookies_screen.dart';
 import 'package:growbox/screens/privacy_policy_screen.dart';
+import 'package:growbox/screens/registration_screen.dart';
 import 'package:growbox/screens/terms_screen.dart';
 import 'package:growbox/theme.dart';
 import 'package:growbox/widgets/pinned_bottom_bar.dart';
@@ -313,6 +314,42 @@ void main() {
     (spanFor('Cookies Policy').recognizer! as TapGestureRecognizer).onTap!();
     await tester.pumpAndSettle();
     expect(find.byType(CookiesScreen), findsOneWidget);
+  });
+
+  testWidgets('sign-up states the same sentence this bar shows',
+      (tester) async {
+    await _pumpCheckout(tester);
+
+    // The one Text holding the three links, as plain text.
+    final checkoutSentence = tester
+        .widget<Text>(find.byWidgetPredicate((w) =>
+            w is Text &&
+            (w.textSpan?.toPlainText().contains('Terms & Conditions') ??
+                false)))
+        .textSpan!
+        .toPlainText();
+    expect(checkoutSentence,
+        'By placing your order, you agree to our Terms & Conditions, '
+        'Privacy Policy and Cookies Policy.');
+
+    // Now the same document names on the sign-up screen: the two sentences may
+    // differ only in the lead-in clause, so one edit can't drift from the
+    // other unnoticed. Give it a roomy viewport — the sign-up wizard is laid
+    // out for a tall phone, and the test font is wider than a real one.
+    tester.view.physicalSize = const Size(800, 1200);
+    await tester.pumpWidget(const MaterialApp(home: RegistrationScreen()));
+    await tester.pumpAndSettle();
+
+    final signUpSentence = tester
+        .widgetList<RichText>(find.byType(RichText))
+        .firstWhere((r) => r.text.toPlainText().contains('By continuing,'))
+        .text
+        .toPlainText();
+
+    expect(
+      signUpSentence.replaceFirst('By continuing,', 'By placing your order,'),
+      checkoutSentence,
+    );
   });
 
   testWidgets('lays out on a small phone without overflowing',

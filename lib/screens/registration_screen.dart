@@ -970,8 +970,10 @@ class _EmailConfirmationStep extends StatelessWidget {
 // Legal notice – shared by every step that ends in a CTA
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// "By continuing, you automatically accept our …" with the two policy names
-/// as links into the real documents.
+/// "By continuing, you agree to our …" — the same sentence checkout shows
+/// before an order, so sign-up and checkout accept the same three documents in
+/// the same words: [TermsScreen], [PrivacyPolicyScreen] and [CookiesScreen] are
+/// the links into the real documents.
 ///
 /// One widget for all four steps that show it: a [TextSpan] recognizer is not
 /// owned by the framework, so it needs a [State] that can dispose it.
@@ -1025,7 +1027,7 @@ class _LegalNoticeState extends State<_LegalNotice> {
         TextSpan(
           children: [
             const TextSpan(
-                text: 'By continuing, you automatically accept our '),
+                text: 'By continuing, you agree to our '),
             TextSpan(
                 text: 'Terms & Conditions', recognizer: _terms, style: link),
             const TextSpan(text: ', '),
