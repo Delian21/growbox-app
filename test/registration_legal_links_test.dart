@@ -35,6 +35,21 @@ String _legalText(WidgetTester tester) => tester
     .text
     .toPlainText();
 
+/// Asserts no screen in the wizard repeats the consent sentence or its links.
+void _expectNoConsentSentence(WidgetTester tester, String step) {
+  expect(
+    find.byWidgetPredicate((w) =>
+        w is RichText && w.text.toPlainText().contains('By continuing,')),
+    findsNothing,
+    reason: '$step must not repeat the consent sentence',
+  );
+  expect(
+    find.textRange.ofSubstring('Terms & Conditions'),
+    findsNothing,
+    reason: '$step must not repeat the policy links',
+  );
+}
+
 /// The legal sentence is one [RichText]; pull the span whose text matches.
 TextSpan _spanFor(WidgetTester tester, String text) {
   final rich = tester
@@ -111,57 +126,43 @@ void main() {
         isA<TapGestureRecognizer>());
   });
 
-  testWidgets('the links also appear on the email step', (tester) async {
-    await _pumpRegistration(tester);
-
-    await tester.tap(find.text('Continue with Email'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(TextField), findsOneWidget);
-    expect(find.textRange.ofSubstring('Terms & Conditions'), findsOneWidget);
-
-    await tester.tapOnText(find.textRange.ofSubstring('Terms & Conditions'));
-    await tester.pumpAndSettle();
-    expect(find.byType(TermsScreen), findsOneWidget);
-  });
-
-  testWidgets('welcome, email, password and name all state that same sentence',
+  testWidgets('the sentence appears once, on the welcome step only',
       (tester) async {
     await _pumpRegistration(tester);
 
-    // Step 1 – Welcome, which ends in "Continue with Email".
-    expect(_legalText(tester), kConsentSentence,
-        reason: 'welcome step: the sentence must match checkout word for word');
+    // Welcome: the whole sentence with three live links, sitting under the
+    // sign-up buttons that actually create the account — Google and Apple
+    // included — which is the point at which consent is given.
+    expect(_legalText(tester), kConsentSentence);
+    for (final label in [
+      'Terms & Conditions',
+      'Privacy Policy',
+      'Cookies Policy',
+    ]) {
+      expect(_spanFor(tester, label).recognizer, isA<TapGestureRecognizer>(),
+          reason: '$label must stay a real tap target');
+    }
 
-    // Step 2 – Email.
+    // Email, password and name are one continuous form the user already agreed
+    // to enter at that point, so none of them repeats the paragraph.
     await tester.ensureVisible(find.text('Continue with Email'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue with Email'));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsOneWidget);
-    expect(_legalText(tester), kConsentSentence, reason: 'email step');
+    _expectNoConsentSentence(tester, 'email step');
 
-    // Step 3 – Password (password + confirmation).
     await tester.enterText(find.byType(TextField), 'ada@growbox.ng');
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNWidgets(2));
-    expect(_legalText(tester), kConsentSentence, reason: 'password step');
+    _expectNoConsentSentence(tester, 'password step');
 
-    // Step 4 – Name.
     await tester.enterText(find.byType(TextField).at(0), 'secret123');
     await tester.enterText(find.byType(TextField).at(1), 'secret123');
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     expect(find.text('What is your name?'), findsOneWidget);
-    expect(_legalText(tester), kConsentSentence, reason: 'name step');
-
-    // The three names are still real links on the last step that shows them.
-    expect(_spanFor(tester, 'Terms & Conditions').recognizer,
-        isA<TapGestureRecognizer>());
-    expect(_spanFor(tester, 'Privacy Policy').recognizer,
-        isA<TapGestureRecognizer>());
-    expect(_spanFor(tester, 'Cookies Policy').recognizer,
-        isA<TapGestureRecognizer>());
+    _expectNoConsentSentence(tester, 'name step');
   });
 }

@@ -629,8 +629,7 @@ class _EmailStep extends StatelessWidget {
                   child:
                       const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-              ),              const SizedBox(height: AppSpacing.lg),
-              const _LegalNotice(),
+              ),
             ],
           ),
         ),
@@ -784,8 +783,7 @@ class _PasswordStep extends StatelessWidget {
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-              ),              const SizedBox(height: AppSpacing.lg),
-              const _LegalNotice(),
+              ),
             ],
           ),
         ),
@@ -874,8 +872,7 @@ class _NameStep extends StatelessWidget {
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-              ),              const SizedBox(height: AppSpacing.lg),
-              const _LegalNotice(),
+              ),
             ],
           ),
         ),
@@ -975,7 +972,10 @@ class _EmailConfirmationStep extends StatelessWidget {
 /// the same words: [TermsScreen], [PrivacyPolicyScreen] and [CookiesScreen] are
 /// the links into the real documents.
 ///
-/// One widget for all four steps that show it: a [TextSpan] recognizer is not
+/// Shown once, on the welcome step: that is where the account is actually
+/// created (including the Google and Apple buttons just above this notice), so
+/// the email, password and name steps are one continuous form the user already
+/// agreed to enter and repeat nothing here. A [TextSpan] recognizer is not
 /// owned by the framework, so it needs a [State] that can dispose it.
 class _LegalNotice extends StatefulWidget {
   const _LegalNotice();
