@@ -12,6 +12,7 @@ import '../screens/order_history_screen.dart';
 import '../screens/change_email_screen.dart';
 import '../screens/change_phone_screen.dart';
 import '../screens/privacy_screen.dart';
+import '../screens/cookies_screen.dart';
 import '../screens/deactivation_screen.dart';
 import '../screens/address_management_screen.dart';
 import '../screens/faq_screen.dart';
@@ -34,6 +35,7 @@ class AppRoutes {
   static const String changeEmail = '/change-email';
   static const String changePhone = '/change-phone';
   static const String privacy = '/privacy';
+  static const String cookies = '/cookies';
   static const String deactivate = '/deactivate';
   static const String addresses = '/addresses';
   static const String faq = '/faq';
@@ -54,6 +56,7 @@ class AppRoutes {
         changeEmail: (_) => ChangeEmailScreen(),
         changePhone: (_) => ChangePhoneNumberScreen(),
         privacy: (_) => ManagePrivacyScreen(),
+        cookies: (_) => const CookiesScreen(),
         deactivate: (_) => DeactivationScreen(),
         addresses: (_) => AddressManagementScreen(),
         faq: (_) => FAQScreen(),

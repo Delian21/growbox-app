@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:growbox/routes.dart';
+import 'package:growbox/screens/cookies_screen.dart';
 import 'package:growbox/screens/privacy_policy_screen.dart';
 import 'package:growbox/screens/terms_screen.dart';
 import 'package:growbox/theme.dart';
@@ -96,9 +97,25 @@ void main() {
     expect(body.style!.color, isNotNull);
   });
 
+  testWidgets('cookies page is short and describes real local storage',
+      (tester) async {
+    await _pumpPage(tester, const CookiesScreen());
+
+    expect(find.text('Cookies Policy'), findsOneWidget);
+    expect(find.text('Last updated 25 October 2026'), findsOneWidget);
+    expect(find.text('What GROWBOX stores'), findsOneWidget);
+    expect(find.text('What we do not use'), findsOneWidget);
+    expect(find.text('Managing cookies'), findsOneWidget);
+    expect(find.textContaining('No advertising cookies'), findsOneWidget);
+    expect(find.textContaining('Profile › Manage Privacy'), findsWidgets);
+    expect(find.textContaining(TermsScreen.supportEmail), findsOneWidget);
+  });
+
   test('legal pages are registered routes', () {
     expect(AppRoutes.routes[AppRoutes.terms], isNotNull);
     expect(AppRoutes.routes[AppRoutes.privacyPolicy], isNotNull);
+    expect(AppRoutes.routes[AppRoutes.cookies], isNotNull);
     expect(AppRoutes.terms, isNot(AppRoutes.privacy));
+    expect(AppRoutes.cookies, isNot(AppRoutes.privacy));
   });
 }

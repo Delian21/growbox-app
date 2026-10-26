@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:growbox/screens/cookies_screen.dart';
 import 'package:growbox/screens/privacy_policy_screen.dart';
 import 'package:growbox/screens/registration_screen.dart';
 import 'package:growbox/screens/terms_screen.dart';
@@ -62,7 +63,19 @@ void main() {
     expect(find.text('What we collect'), findsOneWidget);
   });
 
-  testWidgets('both links use the theme-aware primary colour', (tester) async {
+  testWidgets('the cookies link opens the Cookies Policy page',
+      (tester) async {
+    await _pumpRegistration(tester);
+
+    await tester.tapOnText(find.textRange.ofSubstring('Cookies Policy'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CookiesScreen), findsOneWidget);
+    expect(find.text('Managing cookies'), findsOneWidget);
+  });
+
+  testWidgets('all three links use the theme-aware primary colour',
+      (tester) async {
     await _pumpRegistration(tester);
 
     final context = tester.element(find.byType(RegistrationScreen));
@@ -70,6 +83,7 @@ void main() {
 
     expect(_spanFor(tester, 'Terms & Conditions').style!.color, primary);
     expect(_spanFor(tester, 'Privacy Policy').style!.color, primary);
+    expect(_spanFor(tester, 'Cookies Policy').style!.color, primary);
     expect(
       _spanFor(tester, 'Terms & Conditions').style!.decoration,
       TextDecoration.underline,
@@ -79,6 +93,8 @@ void main() {
     expect(_spanFor(tester, 'Terms & Conditions').recognizer,
         isA<TapGestureRecognizer>());
     expect(_spanFor(tester, 'Privacy Policy').recognizer,
+        isA<TapGestureRecognizer>());
+    expect(_spanFor(tester, 'Cookies Policy').recognizer,
         isA<TapGestureRecognizer>());
   });
 

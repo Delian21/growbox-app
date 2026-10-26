@@ -8,6 +8,7 @@ import 'package:growbox/data/addresses.dart';
 import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/screens/checkout_screen.dart';
+import 'package:growbox/screens/cookies_screen.dart';
 import 'package:growbox/screens/privacy_policy_screen.dart';
 import 'package:growbox/screens/terms_screen.dart';
 import 'package:growbox/theme.dart';
@@ -237,7 +238,9 @@ void main() {
           spans.firstWhere((span) => span.text == 'Terms & Conditions');
       final privacySpan =
           spans.firstWhere((span) => span.text == 'Privacy Policy');
-      for (final span in [termsSpan, privacySpan]) {
+      final cookiesSpan =
+          spans.firstWhere((span) => span.text == 'Cookies Policy');
+      for (final span in [termsSpan, privacySpan, cookiesSpan]) {
         expect(span.style!.color, C.primary(context));
         expect(span.style!.decoration, TextDecoration.underline);
         expect(span.recognizer, isNotNull);
@@ -303,6 +306,13 @@ void main() {
     (spanFor('Privacy Policy').recognizer! as TapGestureRecognizer).onTap!();
     await tester.pumpAndSettle();
     expect(find.byType(PrivacyPolicyScreen), findsOneWidget);
+
+    Navigator.of(tester.element(find.byType(PrivacyPolicyScreen))).pop();
+    await tester.pumpAndSettle();
+
+    (spanFor('Cookies Policy').recognizer! as TapGestureRecognizer).onTap!();
+    await tester.pumpAndSettle();
+    expect(find.byType(CookiesScreen), findsOneWidget);
   });
 
   testWidgets('lays out on a small phone without overflowing',

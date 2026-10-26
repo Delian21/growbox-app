@@ -14,6 +14,7 @@ import 'order_success_screen.dart';
 import 'address_management_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'cookies_screen.dart';
 
 /// One line in the box: a product and how many of it are in the cart.
 ///
@@ -50,6 +51,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   /// screen, because a TextSpan recognizer is not managed by the framework.
   late final TapGestureRecognizer _termsLink;
   late final TapGestureRecognizer _privacyLink;
+  late final TapGestureRecognizer _cookiesLink;
 
   AddressesStore get _addresses => widget.addressStore ?? addressesStore;
 
@@ -59,12 +61,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _addresses.load();
     _termsLink = TapGestureRecognizer()..onTap = _openTerms;
     _privacyLink = TapGestureRecognizer()..onTap = _openPrivacy;
+    _cookiesLink = TapGestureRecognizer()..onTap = _openCookies;
   }
 
   @override
   void dispose() {
     _termsLink.dispose();
     _privacyLink.dispose();
+    _cookiesLink.dispose();
     super.dispose();
   }
 
@@ -76,6 +80,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _openPrivacy() => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+      );
+
+  void _openCookies() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CookiesScreen()),
       );
 
   @override
@@ -629,13 +638,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
               TextSpan(
-                text: ' and ',
+                text: ', ',
                 style: AppTypography.caption
                     .copyWith(color: C.textSecondary(context)),
               ),
               TextSpan(
                 text: 'Privacy Policy',
                 recognizer: _privacyLink,
+                style: AppTypography.caption.copyWith(
+                  color: C.primary(context),
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                  decorationColor: C.primary(context),
+                ),
+              ),
+              TextSpan(
+                text: ' and ',
+                style: AppTypography.caption
+                    .copyWith(color: C.textSecondary(context)),
+              ),
+              TextSpan(
+                text: 'Cookies Policy',
+                recognizer: _cookiesLink,
                 style: AppTypography.caption.copyWith(
                   color: C.primary(context),
                   fontWeight: FontWeight.w600,

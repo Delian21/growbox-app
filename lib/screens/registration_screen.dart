@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import '../theme.dart';
+import 'cookies_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_screen.dart';
 import 'login_screen.dart';
@@ -984,6 +985,7 @@ class _LegalNotice extends StatefulWidget {
 class _LegalNoticeState extends State<_LegalNotice> {
   late final TapGestureRecognizer _terms;
   late final TapGestureRecognizer _privacy;
+  late final TapGestureRecognizer _cookies;
 
   @override
   void initState() {
@@ -991,12 +993,15 @@ class _LegalNoticeState extends State<_LegalNotice> {
     _terms = TapGestureRecognizer()..onTap = () => _open(const TermsScreen());
     _privacy = TapGestureRecognizer()
       ..onTap = () => _open(const PrivacyPolicyScreen());
+    _cookies = TapGestureRecognizer()
+      ..onTap = () => _open(const CookiesScreen());
   }
 
   @override
   void dispose() {
     _terms.dispose();
     _privacy.dispose();
+    _cookies.dispose();
     super.dispose();
   }
 
@@ -1026,7 +1031,10 @@ class _LegalNoticeState extends State<_LegalNotice> {
             const TextSpan(text: ', '),
             TextSpan(
                 text: 'Privacy Policy', recognizer: _privacy, style: link),
-            const TextSpan(text: ' and Cookies Policy'),
+            const TextSpan(text: ' and '),
+            TextSpan(
+                text: 'Cookies Policy', recognizer: _cookies, style: link),
+            const TextSpan(text: '.'),
           ],
         ),
         textAlign: TextAlign.center,
