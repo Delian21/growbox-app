@@ -223,7 +223,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     return Scaffold(
       backgroundColor: C.primary(context),
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Stack(
           children: [
@@ -297,7 +297,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               left: 0,
               right: 0,
               top: bandHeight + panelGap,
-              bottom: 0,
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
               child: Container(
                 decoration: BoxDecoration(
                   color: C.surface(context),
@@ -324,7 +324,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         children: [
                           _WelcomeStep(
                             compact: compact,
-                            onContinueWithEmail: _next,
                             onLogin: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                   builder: (_) => const LoginScreen()),
@@ -334,10 +333,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                   builder: (_) => const LocationScreen()),
                             ),
                           ),
-                          _EmailStep(
-                            controller: _emailController,
-                            onContinue: _continueEmail,
-                          ),
+                          _EmailStep(controller: _emailController),
                           _PasswordStep(
                             passwordController: _passwordController,
                             confirmPasswordController: _confirmPasswordController,
@@ -348,12 +344,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             onToggleConfirmPassword: () => setState(
                                 () =>
                                     _obscureConfirmPassword = !_obscureConfirmPassword),
-                            onContinue: _continuePassword,
                           ),
-                          _NameStep(
-                            controller: _nameController,
-                            onContinue: _continueName,
-                          ),
+                          _NameStep(controller: _nameController),
                           _EmailConfirmationStep(
                             email: _email,
                             isChecking: _isChecking,
@@ -364,6 +356,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ],
                       ),
                     ),
+                    if (_currentStep <= 3)
+                      SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            AppSizing.horizontalPadding(context),
+                            AppSpacing.sm,
+                            AppSizing.horizontalPadding(context),
+                            AppSpacing.md,
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: AppSizing.buttonHeight(context),
+                            child: AppButton(
+                              label: _currentStep == 0
+                                  ? 'Continue with Email'
+                                  : 'Continue',
+                              onPressed: switch (_currentStep) {
+                                0 => _next,
+                                1 => _continueEmail,
+                                2 => _continuePassword,
+                                _ => _continueName,
+                              },
+                              expand: true,
+                              height: AppSizing.buttonHeight(context),
+                              radius: AppRadii.pill,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -382,13 +404,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 class _WelcomeStep extends StatelessWidget {
   /// Whether this is a short phone: tighter gaps and buttons, same content.
   final bool compact;
-  final VoidCallback onContinueWithEmail;
   final VoidCallback onLogin;
   final VoidCallback onSkip;
 
   const _WelcomeStep({
     required this.compact,
-    required this.onContinueWithEmail,
     required this.onLogin,
     required this.onSkip,
   });
@@ -400,7 +420,6 @@ class _WelcomeStep extends StatelessWidget {
     // Skip shortcut sit above the fold at 360×640 instead of below it.
     final sectionSpacing =
         AppSizing.welcomeFontSize(context) * (compact ? 0.45 : 0.9);
-    final ctaHeight = compact ? 48.0 : AppSizing.buttonHeightLarge(context);
     final socialHeight = compact ? 48.0 : AppSizing.buttonHeight(context);
 
     return SingleChildScrollView(
@@ -438,17 +457,6 @@ class _WelcomeStep extends StatelessWidget {
             ),
           ),
           SizedBox(height: sectionSpacing * 0.75),
-          SizedBox(
-            width: double.infinity,
-            height: ctaHeight,
-            child: AppButton(
-              label: 'Continue with Email',
-              onPressed: onContinueWithEmail,
-              expand: true,
-              height: ctaHeight,
-              radius: AppRadii.pill,
-            ),
-          ),
           SizedBox(height: compact ? 10 : AppSpacing.lg - 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -584,14 +592,12 @@ class _WelcomeStep extends StatelessWidget {
 
 class _EmailStep extends StatelessWidget {
   final TextEditingController controller;
-  final VoidCallback onContinue;
 
-  const _EmailStep({required this.controller, required this.onContinue});
+  const _EmailStep({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final bottomPadding = MediaQuery.viewInsetsOf(context).bottom;
 
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -599,7 +605,7 @@ class _EmailStep extends StatelessWidget {
         AppSizing.horizontalPadding(context),
         24,
         AppSizing.horizontalPadding(context),
-        24 + bottomPadding,
+        24,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -645,18 +651,6 @@ class _EmailStep extends StatelessWidget {
                   ),
                 ),
               ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: AppSizing.buttonHeight(context),
-                child: AppButton(
-                  label: 'Continue',
-                  onPressed: onContinue,
-                  expand: true,
-                  height: AppSizing.buttonHeight(context),
-                  radius: AppRadii.pill,
-                ),
-              ),
             ],
           ),
         ),
@@ -678,7 +672,6 @@ class _PasswordStep extends StatelessWidget {
   final bool obscureConfirmPassword;
   final VoidCallback onTogglePassword;
   final VoidCallback onToggleConfirmPassword;
-  final VoidCallback onContinue;
 
   const _PasswordStep({
     required this.passwordController,
@@ -687,13 +680,11 @@ class _PasswordStep extends StatelessWidget {
     required this.obscureConfirmPassword,
     required this.onTogglePassword,
     required this.onToggleConfirmPassword,
-    required this.onContinue,
   });
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final bottomPadding = MediaQuery.viewInsetsOf(context).bottom;
 
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -701,7 +692,7 @@ class _PasswordStep extends StatelessWidget {
         AppSizing.horizontalPadding(context),
         24,
         AppSizing.horizontalPadding(context),
-        24 + bottomPadding,
+        24,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -799,18 +790,7 @@ class _PasswordStep extends StatelessWidget {
                       .copyWith(color: C.textSecondary(context)),
                 ),
               ),
-              SizedBox(height: size.height < 700 ? 30 : 50),
-              SizedBox(
-                width: double.infinity,
-                height: AppSizing.buttonHeight(context),
-                child: AppButton(
-                  label: 'Continue',
-                  onPressed: onContinue,
-                  expand: true,
-                  height: AppSizing.buttonHeight(context),
-                  radius: AppRadii.pill,
-                ),
-              ),
+              const SizedBox(height: AppSpacing.md),
             ],
           ),
         ),
@@ -827,14 +807,12 @@ class _PasswordStep extends StatelessWidget {
 
 class _NameStep extends StatelessWidget {
   final TextEditingController controller;
-  final VoidCallback onContinue;
 
-  const _NameStep({required this.controller, required this.onContinue});
+  const _NameStep({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final bottomPadding = MediaQuery.viewInsetsOf(context).bottom;
 
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -842,7 +820,7 @@ class _NameStep extends StatelessWidget {
         AppSizing.horizontalPadding(context),
         24,
         AppSizing.horizontalPadding(context),
-        24 + bottomPadding,
+        24,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -888,18 +866,7 @@ class _NameStep extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: size.height < 700 ? 30 : 50),
-              SizedBox(
-                width: double.infinity,
-                height: AppSizing.buttonHeight(context),
-                child: AppButton(
-                  label: 'Continue',
-                  onPressed: onContinue,
-                  expand: true,
-                  height: AppSizing.buttonHeight(context),
-                  radius: AppRadii.pill,
-                ),
-              ),
+              const SizedBox(height: AppSpacing.md),
             ],
           ),
         ),
