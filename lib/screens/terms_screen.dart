@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/policy_page.dart';
 
-/// GROWBOX Terms & Conditions, reached from checkout.
+/// Growbox Terms & Conditions, reached from checkout.
 class TermsScreen extends StatelessWidget {
   const TermsScreen({super.key});
 
@@ -10,10 +10,10 @@ class TermsScreen extends StatelessWidget {
 
   static const List<PolicySection> _sections = [
     PolicySection('1. About these terms', [
-      'These terms are the agreement between you and GROWBOX when you use the '
+      'These terms are the agreement between you and Growbox when you use the '
           'app, browse the marketplace or place an order. By creating an '
           'account or ordering, you accept them.',
-      'GROWBOX is a marketplace. The produce you buy is grown, prepared and '
+      'Growbox is a marketplace. The produce you buy is grown, prepared and '
           'packed by independent farms and food vendors listed in the app; we '
           'run the storefront, take your order and arrange the delivery.',
     ]),
@@ -80,7 +80,7 @@ class TermsScreen extends StatelessWidget {
       'We may update these terms as the service changes. The date at the top '
           'of this page shows the current version. If a change materially '
           'affects your rights we will tell you in the app before it applies, '
-          'and continuing to use GROWBOX after that means you accept the '
+          'and continuing to use Growbox after that means you accept the '
           'updated terms.',
     ]),
     PolicySection('10. Contact us', [
@@ -95,7 +95,7 @@ class TermsScreen extends StatelessWidget {
       title: 'Terms & Conditions',
       lastUpdated: 'Last updated 25 October 2026',
       intro: 'Please read these terms before you order. They explain how the '
-          'GROWBOX marketplace works, what you can expect from an order, and '
+          'Growbox marketplace works, what you can expect from an order, and '
           'what we ask of you.',
       sections: _sections,
     );

@@ -56,9 +56,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   static Color _statusColor(BuildContext context, OrderStatus status) =>
       switch (status) {
         OrderStatus.confirmed => C.primary(context),
-        OrderStatus.packing => C.accentOrange(context),
-        OrderStatus.pickedUp => C.accentOrange(context),
-        OrderStatus.onTheWay => C.accentOrange(context),
+        OrderStatus.packing => C.warning(context),
+        OrderStatus.pickedUp => C.warning(context),
+        OrderStatus.onTheWay => C.warning(context),
         OrderStatus.delivered => C.success(context),
         OrderStatus.cancelled => C.error(context),
       };
@@ -574,7 +574,13 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: switch (color) {
+          _ when color == C.primary(context) => C.primaryTint(context),
+          _ when color == C.warning(context) => C.warningSoft(context),
+          _ when color == C.success(context) => C.successSoft(context),
+          _ when color == C.error(context) => C.errorSoft(context),
+          _ => C.surfaceLighter(context),
+        },
         borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
       child: Text(
@@ -582,7 +588,13 @@ class _StatusChip extends StatelessWidget {
         style: AppTypography.labelSmall.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: color,
+          color: switch (color) {
+            _ when color == C.primary(context) => C.textPrimary(context),
+            _ when color == C.warning(context) => C.onWarningSoft(context),
+            _ when color == C.success(context) => C.onSuccessSoft(context),
+            _ when color == C.error(context) => C.onErrorSoft(context),
+            _ => C.textPrimary(context),
+          },
         ),
       ),
     );

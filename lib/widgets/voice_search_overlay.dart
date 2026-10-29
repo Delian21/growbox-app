@@ -212,8 +212,8 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                     style: TextStyle(
                       fontSize: 14,
                       color: _isListening || (_hasResult && _intent?.hasMatch == true)
-                          ? AppColors.primary
-                          : AppColors.grey700,
+                          ? C.primary(context)
+                          : C.textSecondary(context),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -230,8 +230,8 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
 
                   if (_isProcessing) ...[
                     const SizedBox(height: 24),
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(C.primary(context)),
                     ),
                   ],
 
@@ -288,7 +288,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                     size: const Size(160, 160),
                     painter: _WavePainter(
                       progress: _waveController.value,
-                      color: AppColors.primaryTint,
+                      color: C.primaryTint(context),
                     ),
                   );
                 },
@@ -306,8 +306,8 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _isListening
-                          ? AppColors.primary
-                          : AppColors.grey200,
+                          ? C.primary(context)
+                          : C.surfaceLighter(context),
                     ),
                   ),
                 );
@@ -317,7 +317,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
             Icon(
               _isListening ? Icons.mic : Icons.mic_none,
               size: 40,
-              color: _isListening ? AppColors.white : AppColors.grey600,
+              color: _isListening ? C.onPrimary(context) : C.textSecondary(context),
             ),
           ],
         ),
@@ -338,16 +338,16 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.grey100,
+        color: C.surface(context),
         borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: C.divider(context)),
       ),
       child: Row(
         children: [
           Icon(
             Icons.format_quote,
             size: 20,
-            color: AppColors.grey600,
+            color: C.textSecondary(context),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -356,8 +356,8 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
               style: TextStyle(
                 fontSize: 16,
                 color: displayText.isNotEmpty
-                    ? AppColors.black
-                    : AppColors.grey500,
+                    ? C.textPrimary(context)
+                    : C.textMuted(context),
                 fontStyle: displayText.isEmpty ? FontStyle.italic : null,
               ),
             ),
@@ -368,7 +368,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
               height: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                valueColor: AlwaysStoppedAnimation(C.primary(context)),
               ),
             ),
         ],
@@ -386,10 +386,12 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: intent.hasMatch ? AppColors.successSoft : AppColors.warningSoft,
+        color: intent.hasMatch
+            ? C.successSoft(context)
+            : C.warning(context).withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(AppRadii.md),
         border: Border.all(
-          color: intent.hasMatch ? AppColors.success : AppColors.warning,
+          color: intent.hasMatch ? C.success(context) : C.warning(context),
         ),
       ),
       child: Column(
@@ -400,7 +402,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
               Icon(
                 intent.hasMatch ? Icons.check_circle : Icons.help_outline,
                 size: 20,
-                color: intent.hasMatch ? AppColors.success : AppColors.warning,
+                color: intent.hasMatch ? C.onSuccessSoft(context) : C.textPrimary(context),
               ),
               const SizedBox(width: 8),
               Text(
@@ -408,7 +410,7 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: intent.hasMatch ? AppColors.success : AppColors.warning,
+                  color: intent.hasMatch ? C.onSuccessSoft(context) : C.textPrimary(context),
                 ),
               ),
             ],
@@ -418,15 +420,15 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.primaryTint,
+              color: C.primaryTint(context),
               borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
             child: Text(
               intent.displayAction,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+                color: C.textPrimary(context),
               ),
             ),
           ),
@@ -434,24 +436,24 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
           // Product info
           Text(
             intent.hasMatch ? intent.matchedProductName! : '"${intent.productQuery}"',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.black,
+              color: C.textPrimary(context),
             ),
           ),
           if (intent.hasQuantity) ...[
             const SizedBox(height: 4),
             Text(
               'Quantity: ${intent.quantity}',
-              style: const TextStyle(fontSize: 14, color: AppColors.grey700),
+              style: TextStyle(fontSize: 14, color: C.textSecondary(context)),
             ),
           ],
           if (intent.matchedVendorName != null) ...[
             const SizedBox(height: 4),
             Text(
               'Vendor: ${intent.matchedVendorName}',
-              style: const TextStyle(fontSize: 14, color: AppColors.grey700),
+              style: TextStyle(fontSize: 14, color: C.textSecondary(context)),
             ),
           ],
           if (!intent.hasMatch && intent.productQuery.isNotEmpty) ...[
@@ -513,8 +515,8 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                 height: 50,
                 decoration: BoxDecoration(
                   color: _intent!.hasMatch
-                      ? AppColors.primary
-                      : AppColors.grey300,
+                      ? C.primary(context)
+                      : C.surfaceLighter(context),
                   borderRadius: BorderRadius.circular(AppRadii.lg),
                 ),
                 child: Row(
@@ -524,8 +526,8 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                       _intent!.hasMatch ? Icons.check : Icons.search,
                       size: 20,
                       color: _intent!.hasMatch
-                          ? AppColors.white
-                          : AppColors.grey700,
+                          ? C.onPrimary(context)
+                          : C.textMuted(context),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -534,8 +536,8 @@ class _VoiceSearchOverlayState extends State<VoiceSearchOverlay>
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: _intent!.hasMatch
-                            ? AppColors.white
-                            : AppColors.grey700,
+                            ? C.onPrimary(context)
+                            : C.textMuted(context),
                       ),
                     ),
                   ],

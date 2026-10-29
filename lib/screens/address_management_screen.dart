@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_button.dart';
 import '../data/addresses.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/pinned_bottom_bar.dart';
@@ -134,11 +135,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                     color: C.primaryTint(context),
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                   ),
-                  child: Icon(
-                    Icons.add,
-                    size: 22,
-                    color: C.primary(context),
-                  ),
+                  child: Icon(Icons.add, size: 22, color: C.primary(context)),
                 ),
               ),
             ],
@@ -163,10 +160,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
-                    return _buildAddressCard(
-                      context,
-                      _store.addresses[index],
-                    );
+                    return _buildAddressCard(context, _store.addresses[index]);
                   },
                 ),
         ),
@@ -183,10 +177,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
         width: double.infinity,
         height: 48,
         decoration: BoxDecoration(
-          border: Border.all(
-            color: C.primary(context),
-            width: 1.5,
-          ),
+          border: Border.all(color: C.primary(context), width: 1.5),
           borderRadius: BorderRadius.circular(AppRadii.pill),
         ),
         child: Center(
@@ -215,7 +206,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
             Icon(
               Icons.location_off_outlined,
               size: 64,
-              color: AppColors.grey400,
+              color: C.textMuted(context),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
@@ -276,11 +267,16 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: C.surface(context),
+          color: selected
+              ? Color.alphaBlend(
+                  C.primaryTint(context).withValues(alpha: 0.18),
+                  C.surface(context),
+                )
+              : C.surface(context),
           borderRadius: BorderRadius.circular(AppRadii.md),
           border: Border.all(
             color: selected ? C.primary(context) : C.divider(context),
-            width: selected ? 1.5 : 0.5,
+            width: selected ? 2 : 0.5,
           ),
           boxShadow: selected
               ? AppNeumorphic.primaryGlowShadows(context)
@@ -294,7 +290,9 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: selected ? C.primaryTint(context) : C.surfaceLight(context),
+                color: selected
+                    ? C.primaryTint(context)
+                    : C.surfaceLight(context),
                 borderRadius: BorderRadius.circular(AppRadii.sm),
               ),
               child: Icon(
@@ -394,11 +392,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
             ),
 
             // Chevron
-            Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: C.textMuted(context),
-            ),
+            Icon(Icons.chevron_right, size: 20, color: C.textMuted(context)),
           ],
         ),
       ),
@@ -445,7 +439,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.grey300,
+                    color: C.divider(ctx),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -491,11 +485,10 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    addr.fullAddress.isEmpty ? 'No address details yet' : addr.fullAddress,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: C.textSecondary(ctx),
-                    ),
+                    addr.fullAddress.isEmpty
+                        ? 'No address details yet'
+                        : addr.fullAddress,
+                    style: TextStyle(fontSize: 13, color: C.textSecondary(ctx)),
                   ),
                 ),
 
@@ -576,30 +569,34 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text(
+          backgroundColor: C.surface(ctx),
+          title: Text(
             'Delete address?',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: C.textPrimary(ctx),
+            ),
           ),
           content: Text(
             'This will remove "${addr.label}" (${addr.fullAddress}) from your '
             'saved addresses.',
+            style: TextStyle(color: C.textSecondary(ctx)),
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.text,
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
             ),
-            TextButton(
+            AppButton(
+              label: 'Delete',
+              variant: AppButtonVariant.destructive,
               onPressed: () {
                 Navigator.pop(ctx);
                 // The store moves the selection to another saved address, or
                 // clears it — it never falls back to a placeholder.
                 _store.delete(addr.id);
               },
-              child: Text(
-                'Delete',
-                style: TextStyle(color: C.errorBright(context)),
-              ),
             ),
           ],
         );
@@ -661,7 +658,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                         height: 4,
                         margin: const EdgeInsets.only(top: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.grey300,
+                          color: C.divider(ctx),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -806,7 +803,8 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                               // Deliver here toggle
                               GestureDetector(
                                 onTap: () => setSheetState(
-                                    () => deliverHere = !deliverHere),
+                                  () => deliverHere = !deliverHere,
+                                ),
                                 child: Row(
                                   children: [
                                     Icon(
@@ -845,7 +843,8 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                         child: SizedBox(
                           width: double.infinity,
                           height: 48,
-                          child: ElevatedButton(
+                          child: AppButton(
+                            label: isEditing ? 'Update address' : 'Save address',
                             onPressed: () async {
                               final street = streetController.text.trim();
                               final area = areaController.text.trim();
@@ -853,8 +852,8 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
 
                               final label = selectedLabel == 'Other'
                                   ? (labelController.text.trim().isEmpty
-                                      ? 'Other'
-                                      : labelController.text.trim())
+                                        ? 'Other'
+                                        : labelController.text.trim())
                                   : selectedLabel;
 
                               final landmark = landmarkController.text.trim();
@@ -875,21 +874,9 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                               if (deliverHere) await _store.select(saved.id);
                               navigator.pop();
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: AppColors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadii.pill),
-                              ),
-                            ),
-                            child: Text(
-                              isEditing ? 'Update Address' : 'Save Address',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            expand: true,
+                            height: 48,
+                            radius: AppRadii.pill,
                           ),
                         ),
                       ),
@@ -911,11 +898,11 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   }
 
   Widget _fieldLabel(BuildContext ctx, String text) => Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: C.textSecondary(ctx),
-        ),
-      );
+    text,
+    style: TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: C.textSecondary(ctx),
+    ),
+  );
 }

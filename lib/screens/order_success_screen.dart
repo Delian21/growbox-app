@@ -5,6 +5,7 @@ import '../data/orders.dart';
 import '../routes.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/app_button.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/pinned_bottom_bar.dart';
 import 'delivery_tracking_screen.dart';
@@ -157,7 +158,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
   /// vendor to name (an empty box, or a record whose lines carried no vendor).
   String get _bodyCopy {
     final vendor = widget.order.vendorName.trim();
-    final named = vendor.isNotEmpty && vendor != 'GROWBOX';
+    final named = vendor.isNotEmpty && vendor != 'Growbox';
     return named
         ? '$vendor has your order and will start packing it shortly.'
         : "Thank you for your order. We've received it and will begin processing it shortly.";
@@ -383,43 +384,26 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
         SizedBox(
           width: double.infinity,
           height: 52,
-          child: ElevatedButton.icon(
+          child: AppButton(
+            label: 'Track delivery',
             onPressed: _trackDelivery,
-            icon: const Icon(Icons.local_shipping_outlined, size: 20),
-            label: Text(
-              'Track delivery',
-              style: AppTypography.labelLarge.copyWith(
-                color: C.onPrimary(context),
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: C.primary(context),
-              foregroundColor: C.onPrimary(context),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.pill),
-              ),
-            ),
+            icon: Icons.local_shipping_outlined,
+            expand: true,
+            height: 52,
+            radius: AppRadii.pill,
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
         SizedBox(
           width: double.infinity,
           height: 52,
-          child: OutlinedButton(
+          child: AppButton(
+            label: 'Continue shopping',
             onPressed: _continueShopping,
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: C.divider(context)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.pill),
-              ),
-            ),
-            child: Text(
-              'Continue shopping',
-              style: AppTypography.labelMedium.copyWith(
-                color: C.primary(context),
-              ),
-            ),
+            variant: AppButtonVariant.secondary,
+            expand: true,
+            height: 52,
+            radius: AppRadii.pill,
           ),
         ),
       ],

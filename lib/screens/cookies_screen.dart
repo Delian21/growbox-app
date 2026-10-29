@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/policy_page.dart';
 import 'terms_screen.dart';
 
-/// GROWBOX Cookies Policy, reached from sign-up and checkout.
+/// Growbox Cookies Policy, reached from sign-up and checkout.
 ///
 /// Short on purpose: the app sets no advertising or tracking cookies, so the
 /// page only has to describe the local storage it genuinely uses.
@@ -16,13 +16,13 @@ class CookiesScreen extends StatelessWidget {
           'device. Apps use the same idea under other names — local storage, '
           'preferences or an app cache — and this policy covers all of them.',
     ]),
-    PolicySection('What GROWBOX stores', [
+    PolicySection('What Growbox stores', [
       'We keep the things that make the app work the way you left it: your '
           'sign-in state, your theme choice, the delivery addresses you save, '
           'the options in Profile › Manage Privacy, and prompts you have '
           'dismissed. These are stored on your device and are not shared with '
           'vendors or advertisers.',
-      'When you use GROWBOX in a browser, the same information is kept in that '
+      'When you use Growbox in a browser, the same information is kept in that '
           "browser's local storage for the site. Clearing it signs you out and "
           'removes the addresses saved on that device.',
     ]),
@@ -55,7 +55,7 @@ class CookiesScreen extends StatelessWidget {
       title: 'Cookies Policy',
       lastUpdated: 'Last updated 25 October 2026',
       intro:
-          'This policy explains the small amount of data GROWBOX stores on '
+          'This policy explains the small amount of data Growbox stores on '
           'your device, why we store it, and how to clear it.',
       sections: _sections,
     );

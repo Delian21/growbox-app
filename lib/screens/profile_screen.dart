@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/app_button.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../data/mock_data.dart';
@@ -58,8 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: AppSpacing.lg),
               // ── Header with Help button ──────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -74,12 +74,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     GestureDetector(
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) => FAQScreen()),
+                        MaterialPageRoute(builder: (_) => FAQScreen()),
                       ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: C.surfaceLight(context),
                           borderRadius: BorderRadius.circular(20),
@@ -87,9 +88,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.help_outline,
-                                size: 18,
-                                color: C.textPrimary(context)),
+                            Icon(
+                              Icons.help_outline,
+                              size: 18,
+                              color: C.textPrimary(context),
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Help',
@@ -123,8 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: 'Order History',
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (_) => OrderHistoryScreen()),
+                    MaterialPageRoute(builder: (_) => OrderHistoryScreen()),
                   ),
                 ),
                 _MenuItem(
@@ -132,8 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: 'Favorites',
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (_) => FavoritesScreen()),
+                    MaterialPageRoute(builder: (_) => FavoritesScreen()),
                   ),
                 ),
               ]),
@@ -143,8 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: 'Account Settings',
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (_) => AccountScreen()),
+                    MaterialPageRoute(builder: (_) => AccountScreen()),
                   ),
                 ),
                 _MenuItem(
@@ -153,8 +153,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) =>
-                            const AddressManagementScreen()),
+                      builder: (_) => const AddressManagementScreen(),
+                    ),
                   ),
                 ),
                 _MenuItem(
@@ -162,8 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: 'Notifications',
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (_) => NotificationsScreen()),
+                    MaterialPageRoute(builder: (_) => NotificationsScreen()),
                   ),
                 ),
               ]),
@@ -190,8 +189,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.logout_outlined,
-                            size: 18, color: C.errorBright(context)),
+                        Icon(
+                          Icons.logout_outlined,
+                          size: 18,
+                          color: C.errorBright(context),
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Log Out',
@@ -211,16 +213,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: Text(
                   'Version 2026.20.vfhvf',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: C.textMuted(context),
-                  ),
+                  style: TextStyle(fontSize: 12, color: C.textMuted(context)),
                 ),
               ),
               // Clears the floating nav bar.
-              SizedBox(
-                height: BottomNavMetrics.contentInset(context),
-              ),
+              SizedBox(height: BottomNavMetrics.contentInset(context)),
             ],
           ),
         ),
@@ -233,28 +230,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text('Log Out',
-              style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: C.textPrimary(dialogContext))),
-          content: Text('Are you sure you want to log out?',
-              style: TextStyle(color: C.textPrimary(dialogContext))),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+          backgroundColor: C.surface(dialogContext),
+          title: Text(
+            'Log Out',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: C.textPrimary(dialogContext),
             ),
-            TextButton(
+          ),
+          content: Text(
+            'Are you sure you want to log out?',
+            style: TextStyle(color: C.textPrimary(dialogContext)),
+          ),
+          actions: [
+            AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.text,
+              onPressed: () => Navigator.pop(dialogContext),
+            ),
+            AppButton(
+              label: 'Log Out',
+              variant: AppButtonVariant.destructive,
               onPressed: () {
                 CustomerData.clear();
                 Navigator.pop(dialogContext);
                 setState(() {});
                 showAppSnackBar(context, 'You have been logged out.');
               },
-              child: Text(
-                'Log Out',
-                style: TextStyle(color: C.errorBright(dialogContext)),
-              ),
             ),
           ],
         );
@@ -293,17 +295,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
+              decoration: BoxDecoration(
+                color: C.primary(context),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: Text(
                 initial,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.white,
+                  color: C.onPrimary(context),
                 ),
               ),
             ),
@@ -328,10 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     email,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: C.textMuted(context),
-                    ),
+                    style: TextStyle(fontSize: 13, color: C.textMuted(context)),
                   ),
                   // Prompt shown only while the profile is incomplete.
                   if (showDetailsPrompt) ...[
@@ -377,8 +376,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: C.primaryTint(context),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.edit_outlined,
-                    size: 18, color: C.primary(context)),
+                child: Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: C.primary(context),
+                ),
               ),
             ),
           ],
@@ -388,7 +390,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMenuSection(
-      BuildContext context, String title, List<Widget> items) {
+    BuildContext context,
+    String title,
+    List<Widget> items,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Column(
@@ -431,11 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     item,
                     if (!isLast)
-                      Divider(
-                        height: 1,
-                        indent: 52,
-                        color: C.divider(context),
-                      ),
+                      Divider(height: 1, indent: 52, color: C.divider(context)),
                   ],
                 );
               }).toList(),
@@ -510,15 +511,12 @@ class _ThemeModeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     // Reading through ThemeProvider rebuilds this widget when the mode changes.
     final notifier = ThemeProvider.of(context);
-    final current = _options.firstWhere((option) => option.$1 == notifier.value);
+    final current = _options.firstWhere(
+      (option) => option.$1 == notifier.value,
+    );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        14,
-        AppSpacing.md,
-        14,
-        AppSpacing.md,
-      ),
+      padding: const EdgeInsets.fromLTRB(14, AppSpacing.md, 14, AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

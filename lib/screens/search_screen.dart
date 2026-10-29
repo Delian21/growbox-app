@@ -257,7 +257,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Text('Start searching',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
           const SizedBox(height: AppSpacing.sm + 2),
-          Text('Search for products, vendors on GROWBOX.',
+          Text('Search for products, vendors on Growbox.',
             softWrap: true,
             style: TextStyle(fontSize: 15, height: 1.5, color: C.textMuted(context))),
           const SizedBox(height: AppSpacing.xxxl),

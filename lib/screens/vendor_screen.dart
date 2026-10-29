@@ -253,8 +253,8 @@ class _VendorScreenState extends State<VendorScreen> {
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: isOpen
-                                ? AppColors.successSoft
-                                : AppColors.errorSoft,
+                                ? C.successSoft(context)
+                                : C.errorSoft(context),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -263,8 +263,8 @@ class _VendorScreenState extends State<VendorScreen> {
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: isOpen
-                                  ? AppColors.success
-                                  : AppColors.error,
+                                  ? C.onSuccessSoft(context)
+                                  : C.error(context),
                             ),
                           ),
                         ),
@@ -330,13 +330,13 @@ class _VendorScreenState extends State<VendorScreen> {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primary
+                        ? C.primary(context)
                         : C.surface(context),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
+                              color: C.primary(context).withValues(alpha: 0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -348,7 +348,7 @@ class _VendorScreenState extends State<VendorScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? AppColors.white : C.textPrimary(context),
+                      color: isSelected ? C.onPrimary(context) : C.textPrimary(context),
                     ),
                   ),
                 ),

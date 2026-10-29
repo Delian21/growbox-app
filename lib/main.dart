@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -19,7 +18,8 @@ void main() async {
   // suspect when the Maps JavaScript key is missing on web) would otherwise
   // paint Flutter's stock grey "Sorry! Something went wrong" panel. Swap it
   // for an on-brand state so a failure never looks like a broken app.
-  ErrorWidget.builder = (FlutterErrorDetails details) => const BrandedErrorView();
+  ErrorWidget.builder = (FlutterErrorDetails details) =>
+      const BrandedErrorView();
 
   // Seed mock purchase history for Buy Again + personalisation.
   seedPurchaseHistory();
@@ -42,15 +42,6 @@ void main() async {
   // home banner and orders screen have data on their first frame.
   await ordersStore.load();
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: AppColors.primary,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AppColors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
-
   // Restore the appearance choice before the first frame, so a user who picked
   // Dark never sees a light flash on launch.
   final savedThemeMode = await ThemeNotifier.loadSavedMode();
@@ -69,8 +60,9 @@ class GrowboxApp extends StatefulWidget {
 }
 
 class _GrowboxAppState extends State<GrowboxApp> {
-  late final ThemeNotifier _themeNotifier =
-      ThemeNotifier(initialMode: widget.initialThemeMode);
+  late final ThemeNotifier _themeNotifier = ThemeNotifier(
+    initialMode: widget.initialThemeMode,
+  );
 
   @override
   void dispose() {
@@ -85,107 +77,135 @@ class _GrowboxAppState extends State<GrowboxApp> {
       child: AnimatedBuilder(
         animation: _themeNotifier,
         builder: (context, _) {
-      // Google Fonts text themes need a base whose colors match the
-      // theme brightness. The ambient Theme.of(context) here resolves to
-      // the default *light* text theme (near-black), which made dark-mode
-      // text that relies on theme defaults — e.g. TextField input and
-      // hint text — render black on black.
-      final lightTextBase = ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-      ).textTheme;
-      final darkTextBase = ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-      ).textTheme;
-      return ChangeNotifierProvider(
-      create: (_) => CartNotifier(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'GROWBOX',
-        themeMode: _themeNotifier.value,
-            theme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.light,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: AppColors.primary,
+          // Google Fonts text themes need a base whose colors match the
+          // theme brightness. The ambient Theme.of(context) here resolves to
+          // the default *light* text theme (near-black), which made dark-mode
+          // text that relies on theme defaults — e.g. TextField input and
+          // hint text — render black on black.
+          final lightTextBase = ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+          ).textTheme;
+          final darkTextBase = ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+          ).textTheme;
+          return ChangeNotifierProvider(
+            create: (_) => CartNotifier(),
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Growbox',
+              themeMode: _themeNotifier.value,
+              theme: ThemeData(
+                useMaterial3: true,
                 brightness: Brightness.light,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: AppColors.primary,
+                  brightness: Brightness.light,
+                ),
+                scaffoldBackgroundColor: AppColors.background,
+                textTheme: GoogleFonts.interTextTheme(lightTextBase).copyWith(
+                  // Headlines use Poppins
+                  headlineLarge: GoogleFonts.poppins(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  headlineMedium: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  headlineSmall: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  titleLarge: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  titleMedium: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  titleSmall: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  // Buttons use Poppins
+                  labelLarge: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  labelMedium: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                pageTransitionsTheme: const PageTransitionsTheme(
+                  builders: {
+                    TargetPlatform.android: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.iOS: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.windows: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.macOS: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.linux: SlideFadeTransitionsBuilder(),
+                  },
+                ),
               ),
-              scaffoldBackgroundColor: AppColors.background,
-              textTheme: GoogleFonts.interTextTheme(
-                lightTextBase,
-              ).copyWith(
-                // Headlines use Poppins
-                headlineLarge: GoogleFonts.poppins(
-                  fontSize: 32, fontWeight: FontWeight.bold),
-                headlineMedium: GoogleFonts.poppins(
-                  fontSize: 28, fontWeight: FontWeight.bold),
-                headlineSmall: GoogleFonts.poppins(
-                  fontSize: 24, fontWeight: FontWeight.bold),
-                titleLarge: GoogleFonts.poppins(
-                  fontSize: 20, fontWeight: FontWeight.bold),
-                titleMedium: GoogleFonts.poppins(
-                  fontSize: 18, fontWeight: FontWeight.w600),
-                titleSmall: GoogleFonts.poppins(
-                  fontSize: 16, fontWeight: FontWeight.w600),
-                // Buttons use Poppins
-                labelLarge: GoogleFonts.poppins(
-                  fontSize: 16, fontWeight: FontWeight.w600),
-                labelMedium: GoogleFonts.poppins(
-                  fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              pageTransitionsTheme: const PageTransitionsTheme(
-                builders: {
-                  TargetPlatform.android: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.iOS: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.windows: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.macOS: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.linux: SlideFadeTransitionsBuilder(),
-                },
-              ),
-            ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.dark,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: AppColors.primary,
+              darkTheme: ThemeData(
+                useMaterial3: true,
                 brightness: Brightness.dark,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: AppColors.primary,
+                  brightness: Brightness.dark,
+                ),
+                scaffoldBackgroundColor: AppDarkColors.background,
+                textTheme: GoogleFonts.interTextTheme(darkTextBase).copyWith(
+                  headlineLarge: GoogleFonts.poppins(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  headlineMedium: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  headlineSmall: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  titleLarge: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  titleMedium: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  titleSmall: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  labelLarge: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  labelMedium: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                pageTransitionsTheme: const PageTransitionsTheme(
+                  builders: {
+                    TargetPlatform.android: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.iOS: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.windows: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.macOS: SlideFadeTransitionsBuilder(),
+                    TargetPlatform.linux: SlideFadeTransitionsBuilder(),
+                  },
+                ),
               ),
-              scaffoldBackgroundColor: AppDarkColors.background,
-              textTheme: GoogleFonts.interTextTheme(
-                darkTextBase,
-              ).copyWith(
-                headlineLarge: GoogleFonts.poppins(
-                  fontSize: 32, fontWeight: FontWeight.bold),
-                headlineMedium: GoogleFonts.poppins(
-                  fontSize: 28, fontWeight: FontWeight.bold),
-                headlineSmall: GoogleFonts.poppins(
-                  fontSize: 24, fontWeight: FontWeight.bold),
-                titleLarge: GoogleFonts.poppins(
-                  fontSize: 20, fontWeight: FontWeight.bold),
-                titleMedium: GoogleFonts.poppins(
-                  fontSize: 18, fontWeight: FontWeight.w600),
-                titleSmall: GoogleFonts.poppins(
-                  fontSize: 16, fontWeight: FontWeight.w600),
-                labelLarge: GoogleFonts.poppins(
-                  fontSize: 16, fontWeight: FontWeight.w600),
-                labelMedium: GoogleFonts.poppins(
-                  fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              pageTransitionsTheme: const PageTransitionsTheme(
-                builders: {
-                  TargetPlatform.android: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.iOS: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.windows: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.macOS: SlideFadeTransitionsBuilder(),
-                  TargetPlatform.linux: SlideFadeTransitionsBuilder(),
-                },
-              ),
+              routes: AppRoutes.routes,
+              home: const SplashScreen(),
             ),
-            routes: AppRoutes.routes,
-            home: const SplashScreen(),
-          ),
-        );
+          );
         },
       ),
     );
@@ -215,11 +235,7 @@ class BrandedErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 28,
-              color: AppColors.error,
-            ),
+            const Icon(Icons.error_outline, size: 28, color: AppColors.error),
             const SizedBox(height: AppSpacing.sm),
             const Text(
               'Something went wrong',

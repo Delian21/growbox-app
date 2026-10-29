@@ -21,7 +21,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'message': 'Your order #GBX-10431 has been delivered successfully.',
       'time': '2 hours ago',
       'icon': Icons.check_circle_outline,
-      'color': AppColors.success,
+      'color': null,
     },
     {
       'title': 'New Vendor',
@@ -183,8 +183,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 value: pushNotifications,
                 onChanged: (value) =>
                     setState(() => pushNotifications = value),
-                activeThumbColor: C.primary(context),
-                activeTrackColor: C.primaryTint(context),
+                activeThumbColor: C.onPrimary(context),
+                activeTrackColor: C.primary(context),
                 inactiveThumbColor: AppColors.grey500,
                 inactiveTrackColor: AppColors.grey300,
               ),

@@ -132,15 +132,15 @@ class ProductCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.warningSoft,
+                            color: C.warningSoft(context),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Low stock',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.accentOrangeDeep,
+                              color: C.onWarningSoft(context),
                             ),
                           ),
                         ),
@@ -170,7 +170,7 @@ class ProductCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isAvailable ? AppColors.primaryTint : C.surfaceLighter(context),
+                  color: isAvailable ? C.primaryTint(context) : C.surfaceLighter(context),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(

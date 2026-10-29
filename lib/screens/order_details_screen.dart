@@ -73,11 +73,29 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   static Color _statusColor(BuildContext context, OrderStatus status) =>
       switch (status) {
         OrderStatus.confirmed => C.primary(context),
-        OrderStatus.packing => C.accentOrange(context),
-        OrderStatus.pickedUp => C.accentOrange(context),
-        OrderStatus.onTheWay => C.accentOrange(context),
+        OrderStatus.packing => C.warning(context),
+        OrderStatus.pickedUp => C.warning(context),
+        OrderStatus.onTheWay => C.warning(context),
         OrderStatus.delivered => C.success(context),
         OrderStatus.cancelled => C.errorBright(context),
+      };
+
+  static Color _statusTint(BuildContext context, OrderStatus status) =>
+      switch (status) {
+        OrderStatus.confirmed => C.primaryTint(context),
+        OrderStatus.packing || OrderStatus.pickedUp || OrderStatus.onTheWay =>
+          C.warningSoft(context),
+        OrderStatus.delivered => C.successSoft(context),
+        OrderStatus.cancelled => C.errorSoft(context),
+      };
+
+  static Color _statusForeground(BuildContext context, OrderStatus status) =>
+      switch (status) {
+        OrderStatus.confirmed => C.textPrimary(context),
+        OrderStatus.packing || OrderStatus.pickedUp || OrderStatus.onTheWay =>
+          C.onWarningSoft(context),
+        OrderStatus.delivered => C.onSuccessSoft(context),
+        OrderStatus.cancelled => C.onErrorSoft(context),
       };
 
   static IconData _statusIcon(OrderStatus status) => switch (status) {
@@ -273,10 +291,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.08),
+        color: C.surface(context),
         borderRadius: BorderRadius.circular(AppRadii.md),
         border: Border.all(
-          color: statusColor.withValues(alpha: 0.25),
+          color: C.divider(context),
           width: 1,
         ),
       ),
@@ -286,10 +304,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.15),
+              color: _statusTint(context, order.status),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(_statusIcon(order.status), size: 24, color: statusColor),
+            child: Icon(
+              _statusIcon(order.status),
+              size: 24,
+              color: _statusForeground(context, order.status),
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -331,7 +353,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.15),
+              color: _statusTint(context, order.status),
               borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
             child: Text(
@@ -339,7 +361,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               style: AppTypography.labelSmall.copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: statusColor,
+                color: _statusForeground(context, order.status),
               ),
             ),
           ),
@@ -775,7 +797,7 @@ class _TimelineRow extends StatelessWidget {
                 : C.divider(context);
 
     final labelColor = state == _StepState.upcoming
-        ? C.textMuted(context)
+        ? C.textSecondary(context)
         : C.textPrimary(context);
 
     return IntrinsicHeight(

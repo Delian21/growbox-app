@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_button.dart';
 import '../data/mock_data.dart';
 import '../widgets/app_snack_bar.dart';
 
@@ -68,8 +69,10 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
               padding:   EdgeInsets.fromLTRB(21, 50, 21, 25),
               child: Row(
                 children: [
-                  GestureDetector(onTap: () => Navigator.of(context).pop(),
-                    child:   Icon(Icons.arrow_back, size: 24, color: AppColors.info)),
+                  GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Icon(Icons.arrow_back, size: 24, color: C.textPrimary(context)),
+                ),
                     SizedBox(width: AppSpacing.sm + 2),
                     Text('Change email',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
@@ -86,7 +89,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                       Text('Change your email address',
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
                       SizedBox(height: AppSpacing.sm + 2),
-                      Text('Enter the email address you want to use for your GROWBOX account.',
+                      Text('Enter the email address you want to use for your Growbox account.',
                       style: TextStyle(fontSize: 16, height: 1.5, color: C.textPrimary(context))),
                       SizedBox(height: 35),
                       Text('New email address',
@@ -97,7 +100,9 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                       keyboardType: TextInputType.emailAddress,
                       enabled: !isLoading,
                       decoration: AppDecorations.inputDecoration(
-                          hintText: 'Enter new email address'),
+                        hintText: 'Enter new email address',
+                        context: context,
+                      ),
                     ),
                       SizedBox(height: AppSpacing.md),
                       Text('You will need to verify your new email address.',
@@ -105,14 +110,22 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                       Spacer(),
                     SizedBox(
                       width: double.infinity, height: AppSizing.buttonHeight(context),
-                      child: ElevatedButton(
+                      child: AppButton(
+                        label: 'Update email',
                         onPressed: isLoading ? null : updateEmail,
-                        style: AppDecorations.primaryButtonStyle(),
+                        expand: true,
+                        height: AppSizing.buttonHeight(context),
+                        radius: AppRadii.pill,
                         child: isLoading
-                            ?   SizedBox(width: 22, height: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: C.textPrimary(context)))
-                            :   Text('Update email',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ? SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: C.textMuted(context),
+                                ),
+                              )
+                            : null,
                       ),
                     ),
                       SizedBox(height: AppSpacing.xxl),

@@ -166,8 +166,12 @@ class AppColors {
   static const Color grey800 = Color(0xFF666666);
   static const Color grey900 = Color(0xFF555555);
 
+  /// Quietly tinted disabled-control surface, not a bright gray or mint fill.
+  static const Color surfaceVariant = Color(0xFFE7EBE4);
+
   // ── Semantic ────────────────────────────────────────────────────────────
-  static const Color success = Color(0xFF16A34A);
+  /// Deep, light-theme success green; dark surfaces use the lifted C.success token.
+  static const Color success = Color(0xFF166534);
   static const Color error = Color(0xFFDC2626);
 
   /// Destructive red for dark surfaces. 6.8:1 on the dark page (#121212) and
@@ -397,6 +401,7 @@ class AppDarkColors {
 
   // ── Borders & Dividers ──────────────────────────────────────────────────
   static const Color divider = Color(0xFF333333);
+  static const Color surfaceVariant = Color(0xFF303630);
   static const Color shimmer = Color(0xFF2A2A2A);
   static const Color border = Color(0xFF404040);
 
@@ -407,6 +412,8 @@ class AppDarkColors {
   /// Dark equivalent of [AppColors.successSoft]: the "arriving" panel keeps a
   /// green cast instead of turning into a white slab.
   static const Color successSoft = Color(0xFF16321C);
+  static const Color warningSoft = Color(0xFF3A321B);
+  static const Color errorSoft = Color(0xFF3B1F1F);
   static const Color warning = Color(0xFFFBBF24);
   static const Color info = Color(0xFFE5E5E5);
   static const Color gold = Color(0xFFD4A843);
@@ -434,6 +441,9 @@ class C {
 
   static Color surfaceLighter(BuildContext context) =>
       _isDark(context) ? AppDarkColors.surfaceLighter : AppColors.grey200;
+
+  static Color surfaceVariant(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.surfaceVariant : AppColors.surfaceVariant;
 
   static Color surfaceDark(BuildContext context) =>
       _isDark(context) ? AppDarkColors.surfaceDark : AppColors.surfaceDark;
@@ -471,6 +481,13 @@ class C {
   static Color success(BuildContext context) =>
       _isDark(context) ? AppDarkColors.success : AppColors.success;
 
+  /// Contrasting foreground for status text/icons on the matching soft tint.
+  static Color onSuccessSoft(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.textPrimary : AppColors.textPrimary;
+
+  static Color onWarningSoft(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.textPrimary : AppColors.textPrimary;
+
   static Color error(BuildContext context) =>
       _isDark(context) ? AppDarkColors.error : AppColors.error;
 
@@ -483,6 +500,16 @@ class C {
   /// on dark.
   static Color successSoft(BuildContext context) =>
       _isDark(context) ? AppDarkColors.successSoft : AppColors.successSoft;
+
+  static Color warningSoft(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.warningSoft : AppColors.warningSoft;
+
+  static Color errorSoft(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.errorSoft : AppColors.errorSoft;
+
+  /// Foreground for status content on the error tint.
+  static Color onErrorSoft(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.textPrimary : AppColors.textPrimary;
 
   /// Foreground for content painted on top of [error].
   ///
@@ -614,8 +641,8 @@ class AppDecorations {
   static ButtonStyle primaryButtonStyle({double radius = AppRadii.pill, BuildContext? context}) {
     return ElevatedButton.styleFrom(
       elevation: 0,
-      backgroundColor: context != null ? C.primaryTint(context) : AppColors.primaryTint,
-      foregroundColor: context != null ? C.textPrimary(context) : AppColors.black,
+      backgroundColor: context != null ? C.primary(context) : AppColors.primary,
+      foregroundColor: context != null ? C.onPrimary(context) : AppColors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius),
       ),
@@ -640,6 +667,36 @@ String formatPrice(int price) {
 // ---------------------------------------------------------------------------
 class AppSizing {
   AppSizing._();
+
+  /// Height the sign-up wizard can actually lay out in: the window minus the
+  /// system bars, since its whole layout sits inside a [SafeArea].
+  static double _usableHeight(BuildContext context) =>
+      MediaQuery.sizeOf(context).height - MediaQuery.paddingOf(context).vertical;
+
+  /// True on phones too short for the sign-up wizard's full brand band.
+  ///
+  /// The welcome step is the only place sign-up states the consent sentence, so
+  /// on these screens the band gives up height until the notice and the Skip
+  /// shortcut sit above the fold without scrolling (verified at 360×640).
+  ///
+  /// Read this once, at the top of the wizard's [Scaffold], and pass the result
+  /// down. Inside a [SafeArea] the padding it consumed is zero, so the same
+  /// call would answer differently there.
+  static bool compactSignUp(BuildContext context) => _usableHeight(context) < 700;
+
+  /// Brand band height for the sign-up wizard.
+  ///
+  /// The full share of the screen on ordinary phones; on short ones it takes a
+  /// smaller cut of the height so the step's content fits above the fold. The
+  /// floor keeps the logo and tagline inside the band.
+  static double signUpLogoAreaHeight(BuildContext context) {
+    if (!compactSignUp(context)) return logoAreaHeight(context);
+    return (_usableHeight(context) * 0.24).clamp(140.0, 290.0);
+  }
+
+  /// Gap between the sign-up brand band and the white content panel.
+  static double signUpPanelGap(BuildContext context) =>
+      compactSignUp(context) ? 12.0 : 20.0;
 
   static double logoAreaHeight(BuildContext context) {
     final h = MediaQuery.sizeOf(context).height;

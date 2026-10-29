@@ -10,6 +10,7 @@ import '../data/orders.dart';
 import '../widgets/saved_address_picker.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/pinned_bottom_bar.dart';
+import '../widgets/app_button.dart';
 import 'order_success_screen.dart';
 import 'address_management_screen.dart';
 import 'terms_screen.dart';
@@ -35,11 +36,7 @@ class CheckoutScreen extends StatefulWidget {
   /// Test seam; defaults to the app-wide store.
   final AddressesStore? addressStore;
 
-  const CheckoutScreen({
-    super.key,
-    required this.products,
-    this.addressStore,
-  });
+  const CheckoutScreen({super.key, required this.products, this.addressStore});
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
@@ -73,19 +70,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _openTerms() => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const TermsScreen()),
-      );
+    context,
+    MaterialPageRoute(builder: (_) => const TermsScreen()),
+  );
 
   void _openPrivacy() => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-      );
+    context,
+    MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+  );
 
   void _openCookies() => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CookiesScreen()),
-      );
+    context,
+    MaterialPageRoute(builder: (_) => const CookiesScreen()),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +106,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // The address checkout will snapshot onto the order. Without a street the
     // rider cannot find the door, so ordering stays disabled.
     final deliveryAddress = _addresses.selectedAddress;
-    final canPlaceOrder =
-        deliveryAddress != null && deliveryAddress.isComplete;
+    final canPlaceOrder = deliveryAddress != null && deliveryAddress.isComplete;
 
     final double hp = AppSizing.horizontalPadding(context);
 
@@ -161,8 +157,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: SizedBox(
                 width: 48,
                 height: 48,
-                child: Icon(Icons.arrow_back,
-                    size: 24, color: C.textPrimary(context)),
+                child: Icon(
+                  Icons.arrow_back,
+                  size: 24,
+                  color: C.textPrimary(context),
+                ),
               ),
             ),
           ),
@@ -186,13 +185,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   /// Section heading: plain 17px semibold text — no icon tile.
   Widget _sectionTitle(String title) => Text(
-        title,
-        style: AppTypography.title.copyWith(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          color: C.textPrimary(context),
-        ),
-      );
+    title,
+    style: AppTypography.title.copyWith(
+      fontSize: 17,
+      fontWeight: FontWeight.w600,
+      color: C.textPrimary(context),
+    ),
+  );
 
   /// The one card every section uses: surface fill, 12px radius, 16px padding,
   /// 1px divider border, no shadow.
@@ -255,8 +254,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           width: size,
           height: size,
           color: C.surfaceLight(context),
-          child: Icon(Icons.image_outlined,
-              size: size * 0.5, color: C.textMuted(context)),
+          child: Icon(
+            Icons.image_outlined,
+            size: size * 0.5,
+            color: C.textMuted(context),
+          ),
         ),
       ),
     );
@@ -272,8 +274,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _card(
           child: Text(
             'Your box is empty',
-            style: AppTypography.bodyMedium
-                .copyWith(color: C.textSecondary(context)),
+            style: AppTypography.bodyMedium.copyWith(
+              color: C.textSecondary(context),
+            ),
           ),
         ),
       );
@@ -302,15 +305,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       summary,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.labelMedium
-                          .copyWith(color: C.textPrimary(context)),
+                      style: AppTypography.labelMedium.copyWith(
+                        color: C.textPrimary(context),
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     '$itemCount item${itemCount == 1 ? '' : 's'}',
-                    style: AppTypography.bodySmall
-                        .copyWith(color: C.textSecondary(context)),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: C.textSecondary(context),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Icon(
@@ -337,8 +342,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             '${line.product.name} × ${line.quantity}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTypography.bodyMedium
-                                .copyWith(color: C.textPrimary(context)),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: C.textPrimary(context),
+                            ),
                           ),
                         ),
                         Text(
@@ -397,8 +403,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: _card(
             child: Row(
               children: [
-                Icon(Icons.location_on_outlined,
-                    color: C.primary(context), size: 20),
+                Icon(
+                  Icons.location_on_outlined,
+                  color: C.primary(context),
+                  size: 20,
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
@@ -406,8 +415,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     children: [
                       Text(
                         addr == null ? 'Choose location' : addr.label,
-                        style: AppTypography.labelMedium
-                            .copyWith(color: C.textPrimary(context)),
+                        style: AppTypography.labelMedium.copyWith(
+                          color: C.textPrimary(context),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -423,23 +433,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         const SizedBox(height: 2),
                         Text(
                           'Near ${addr!.landmark!.trim()}',
-                          style: AppTypography.caption
-                              .copyWith(color: C.textMuted(context)),
+                          style: AppTypography.caption.copyWith(
+                            color: C.textMuted(context),
+                          ),
                         ),
                       ],
                       if (addr?.phone?.trim().isNotEmpty ?? false) ...[
                         const SizedBox(height: 2),
                         Text(
                           addr!.phone!.trim(),
-                          style: AppTypography.caption
-                              .copyWith(color: C.textMuted(context)),
+                          style: AppTypography.caption.copyWith(
+                            color: C.textMuted(context),
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right,
-                    size: 20, color: C.textMuted(context)),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: C.textMuted(context),
+                ),
               ],
             ),
           ),
@@ -459,8 +474,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded,
-              size: 18, color: C.accentOrange(context)),
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 18,
+            color: C.accentOrange(context),
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
@@ -475,7 +493,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: TextButton(
+                  child: AppButton(
+                    label: 'Add details',
+                    variant: AppButtonVariant.text,
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -483,18 +503,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             AddressManagementScreen(editAddressId: addr.id),
                       ),
                     ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      minimumSize: const Size(0, 32),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      'Add details',
-                      style: AppTypography.labelSmall.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: C.primary(context),
-                      ),
-                    ),
+                    height: 32,
+                    radius: AppRadii.sm,
                   ),
                 ),
               ],
@@ -514,8 +524,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _card(
         child: Row(
           children: [
-            Icon(Icons.local_shipping_outlined,
-                size: 22, color: C.textPrimary(context)),
+            Icon(
+              Icons.local_shipping_outlined,
+              size: 22,
+              color: C.textPrimary(context),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -523,18 +536,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 children: [
                   Text(
                     'Standard delivery',
-                    style: AppTypography.labelMedium
-                        .copyWith(color: C.textPrimary(context)),
+                    style: AppTypography.labelMedium.copyWith(
+                      color: C.textPrimary(context),
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     // The app's standard promise, worded the same way the
                     // confirmation and tracking screens word it.
-                    formatArrival(DateTime.now().add(
-                      const Duration(minutes: 30),
-                    )),
-                    style: AppTypography.bodySmall
-                        .copyWith(color: C.textSecondary(context)),
+                    formatArrival(
+                      DateTime.now().add(const Duration(minutes: 30)),
+                    ),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: C.textSecondary(context),
+                    ),
                   ),
                 ],
               ),
@@ -546,7 +561,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildOrderSummary(
-      double hp, int subtotal, int deliveryFee, int total) {
+    double hp,
+    int subtotal,
+    int deliveryFee,
+    int total,
+  ) {
     return _section(
       hp,
       _sectionTitle('Order Summary'),
@@ -596,8 +615,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         Text(
           label,
           // Secondary, not muted: 6.9:1 on the page and 8.9:1 on a dark card.
-          style: AppTypography.bodyMedium
-              .copyWith(color: C.textSecondary(context)),
+          style: AppTypography.bodyMedium.copyWith(
+            color: C.textSecondary(context),
+          ),
         ),
         const Spacer(),
         Text(
@@ -624,8 +644,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               TextSpan(
                 text: 'By placing your order, you agree to our ',
-                style: AppTypography.caption
-                    .copyWith(color: C.textSecondary(context)),
+                style: AppTypography.caption.copyWith(
+                  color: C.textSecondary(context),
+                ),
               ),
               TextSpan(
                 text: 'Terms & Conditions',
@@ -639,8 +660,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               TextSpan(
                 text: ', ',
-                style: AppTypography.caption
-                    .copyWith(color: C.textSecondary(context)),
+                style: AppTypography.caption.copyWith(
+                  color: C.textSecondary(context),
+                ),
               ),
               TextSpan(
                 text: 'Privacy Policy',
@@ -654,8 +676,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               TextSpan(
                 text: ' and ',
-                style: AppTypography.caption
-                    .copyWith(color: C.textSecondary(context)),
+                style: AppTypography.caption.copyWith(
+                  color: C.textSecondary(context),
+                ),
               ),
               TextSpan(
                 text: 'Cookies Policy',
@@ -669,8 +692,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               TextSpan(
                 text: '.',
-                style: AppTypography.caption
-                    .copyWith(color: C.textSecondary(context)),
+                style: AppTypography.caption.copyWith(
+                  color: C.textSecondary(context),
+                ),
               ),
             ],
           ),
@@ -719,8 +743,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (deliveryAddress == null || !deliveryAddress.isComplete) return;
 
     final deliveryFee = CartTotals.forItems(products).deliveryFee;
-    final orderNumber =
-        'GBX-${DateTime.now().millisecondsSinceEpoch % 100000}';
+    final orderNumber = 'GBX-${DateTime.now().millisecondsSinceEpoch % 100000}';
     // Snapshot each line item's price/image and the address at checkout time,
     // so later edits never rewrite this order.
     final recorded = recordOrder(
@@ -751,7 +774,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   /// Selecting in the sheet closes it so the card behind is visible.
   Future<void> _selectFromSheet(
-      BuildContext sheetContext, Address address) async {
+    BuildContext sheetContext,
+    Address address,
+  ) async {
     await _addresses.select(address.id);
     if (sheetContext.mounted) Navigator.pop(sheetContext);
   }
@@ -800,7 +825,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: OutlinedButton.icon(
+                child: AppButton(
+                  label: 'Add new address',
                   onPressed: () {
                     final navigator = Navigator.of(context);
                     navigator.pop();
@@ -811,18 +837,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     );
                   },
-                  icon: Icon(Icons.add, color: C.primary(context)),
-                  label: Text(
-                    'Add New Address',
-                    style: AppTypography.labelMedium
-                        .copyWith(color: C.primary(context)),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: C.primary(context)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                    ),
-                  ),
+                  icon: Icons.add,
+                  variant: AppButtonVariant.secondary,
+                  expand: true,
+                  height: 48,
+                  radius: AppRadii.md,
                 ),
               ),
             ],

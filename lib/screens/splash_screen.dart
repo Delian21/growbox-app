@@ -9,7 +9,7 @@ import 'registration_screen.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
-  /// Official GROWBOX brand logo (white planter icon + orange "Growbox"
+  /// Official Growbox brand logo (white planter icon + orange "Growbox"
   /// wordmark on transparent background).
   ///
   /// White art is always correct here: the splash background is the brand
@@ -161,7 +161,7 @@ class _SplashScreenState extends State<SplashScreen>
         .reduce((a, b) => a < b ? a : b);
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: C.primary(context),
       body: SafeArea(
         child: SizedBox.expand(
           child: Column(
@@ -206,7 +206,7 @@ class _SplashScreenState extends State<SplashScreen>
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) {
                                 return Text(
-                                  'GROWBOX',
+                                  'Growbox',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: AppColors.white,

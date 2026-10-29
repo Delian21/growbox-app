@@ -13,9 +13,9 @@ class _FAQScreenState extends State<FAQScreen> {
 
   final List<Map<String, String>> faqItems = [
     {
-      'question': 'What is GROWBOX?',
+      'question': 'What is Growbox?',
       'answer':
-          'GROWBOX is an agricultural marketplace that makes it easier to discover and buy agricultural products and other offerings from vendors.',
+          'Growbox is an agricultural marketplace that makes it easier to discover and buy agricultural products and other offerings from vendors.',
     },
     {
       'question': 'How do I place an order?',
@@ -45,12 +45,12 @@ class _FAQScreenState extends State<FAQScreen> {
     {
       'question': 'How can I contact a vendor?',
       'answer':
-          'Vendor contact options will be available where applicable. You can also contact GROWBOX support (uianetwork.ng@gmail.com) if you need assistance with an order.',
+          'Vendor contact options will be available where applicable. You can also contact Growbox support (uianetwork.ng@gmail.com) if you need assistance with an order.',
     },
     {
       'question': 'What happens if my order is delayed?',
       'answer':
-          'If your order is delayed, check your order information for the latest status. If you need further assistance, contact GROWBOX support (uianetwork.ng@gmail.com).',
+          'If your order is delayed, check your order information for the latest status. If you need further assistance, contact Growbox support (uianetwork.ng@gmail.com).',
     },
     {
       'question': 'How do I change my account information?',
@@ -60,7 +60,7 @@ class _FAQScreenState extends State<FAQScreen> {
     {
       'question': 'How do I report a problem with my order?',
       'answer':
-          'If you experience a problem with an order, contact GROWBOX support (uianetwork.ng@gmail.com) and provide your order details so the issue can be reviewed.',
+          'If you experience a problem with an order, contact Growbox support (uianetwork.ng@gmail.com) and provide your order details so the issue can be reviewed.',
     },
   ];
 
@@ -84,17 +84,20 @@ class _FAQScreenState extends State<FAQScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.arrow_back,
-                        size: 24, color: AppColors.black),
+                    child: Icon(
+                      Icons.arrow_back,
+                      size: 24,
+                      color: C.textPrimary(context),
+                    ),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
                         'FAQ',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.black,
+                          color: C.textPrimary(context),
                         ),
                       ),
                     ),
@@ -124,11 +127,11 @@ class _FAQScreenState extends State<FAQScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Find answers to some of the most common questions about using GROWBOX.',
+                    Text(
+                      'Find answers to some of the most common questions about using Growbox.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.grey600,
+                        color: C.textSecondary(context),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
@@ -154,8 +157,7 @@ class _FAQScreenState extends State<FAQScreen> {
     );
   }
 
-  Widget _buildFAQItem(
-      Map<String, String> faq, bool isExpanded, int index) {
+  Widget _buildFAQItem(Map<String, String> faq, bool isExpanded, int index) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Container(
@@ -205,7 +207,7 @@ class _FAQScreenState extends State<FAQScreen> {
                         size: 18,
                         color: isExpanded
                             ? C.primary(context)
-                            : AppColors.grey600,
+                            : C.textSecondary(context),
                       ),
                     ),
                   ],
@@ -217,10 +219,10 @@ class _FAQScreenState extends State<FAQScreen> {
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                 child: Text(
                   faq['answer']!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
-                    color: AppColors.grey600,
+                    color: C.textSecondary(context),
                   ),
                 ),
               ),
@@ -243,8 +245,7 @@ class _FAQScreenState extends State<FAQScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline,
-                  size: 20, color: C.primary(context)),
+              Icon(Icons.help_outline, size: 20, color: C.primary(context)),
               const SizedBox(width: 10),
               Text(
                 'Still need help?',
@@ -257,12 +258,12 @@ class _FAQScreenState extends State<FAQScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
-            'If you cannot find the answer you are looking for, contact GROWBOX support (uianetwork.ng@gmail.com) for assistance.',
+          Text(
+            'If you cannot find the answer you are looking for, contact Growbox support (uianetwork.ng@gmail.com) for assistance.',
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
-              color: AppColors.grey700,
+              color: C.textSecondary(context),
             ),
           ),
         ],

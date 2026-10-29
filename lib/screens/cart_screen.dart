@@ -5,6 +5,7 @@ import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/pinned_bottom_bar.dart';
+import '../widgets/app_button.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
@@ -120,33 +121,14 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const SizedBox(height: AppSpacing.xxxl),
           // Browse button
-          GestureDetector(
-            onTap: () => Navigator.pushReplacement(
+          AppButton(
+            label: 'Browse produce',
+            onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => HomeScreen()),
             ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Text(
-                'Browse Produce',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                ),
-              ),
-            ),
+            width: 220,
+            height: 52,
           ),
           const SizedBox(height: AppSpacing.xxl),
           // Order history link
@@ -448,8 +430,8 @@ class _CartScreenState extends State<CartScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: isOutOfStock
-                            ? AppColors.errorSoft
-                            : AppColors.warningSoft,
+                            ? C.errorSoft(context)
+                            : C.warningSoft(context),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -458,8 +440,8 @@ class _CartScreenState extends State<CartScreen> {
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: isOutOfStock
-                              ? AppColors.error
-                              : AppColors.accentOrangeDeep,
+                              ? C.onErrorSoft(context)
+                              : C.onWarningSoft(context),
                         ),
                       ),
                     ),

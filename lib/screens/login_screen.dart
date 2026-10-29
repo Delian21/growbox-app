@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/placeholder_images.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/app_button.dart';
 import 'home_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return;
-      showAppSnackBar(context, 'Welcome back to GROWBOX!');
+      showAppSnackBar(context, 'Welcome back to Growbox!');
       Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -71,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Logo ──────────────────────────────────────
-              // Official GROWBOX logo. The surface behind it follows the
+              // Official Growbox logo. The surface behind it follows the
               // theme (white in light mode, near-black in dark mode), so the
               // matching logo variant is picked automatically: dark art on
               // light surfaces, white art on dark surfaces.
@@ -88,13 +89,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: C.primary(context),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.eco,
                       size: 32,
-                      color: AppColors.white,
+                      color: C.onPrimary(context),
                     ),
                   ),
                 ),
@@ -112,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Sign in to your GROWBOX account',
+                'Sign in to your Growbox account',
                 style: TextStyle(
                   fontSize: 15,
                   color: C.textMuted(context),
@@ -223,46 +224,21 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 32),
 
               // ── Login Button ──────────────────────────────
-              GestureDetector(
-                onTap: _isLoading ? null : _login,
-                child: Container(
-                  width: double.infinity,
-                  height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _isLoading
-                        ? C.textMuted(context)
-                        : AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: _isLoading
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: AppColors.primary
-                                  .withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Log in',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.white,
-                          ),
+              AppButton(
+                label: 'Log in',
+                onPressed: _isLoading ? null : _login,
+                expand: true,
+                height: 52,
+                child: _isLoading
+                    ? SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: C.onPrimary(context),
                         ),
-                ),
+                      )
+                    : null,
               ),
               const SizedBox(height: 24),
 

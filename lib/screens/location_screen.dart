@@ -6,6 +6,7 @@ import '../data/addresses.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/saved_address_picker.dart';
+import '../widgets/app_button.dart';
 import 'address_management_screen.dart';
 
 class LocationScreen extends StatefulWidget {
@@ -36,8 +37,7 @@ class _LocationScreenState extends State<LocationScreen> {
   /// Google paints its own grey "Oops! Something went wrong" box inside the
   /// map view, so we show a branded placeholder instead of mounting the map.
   /// Enable it with: flutter run/build --dart-define=GROWBOX_MAPS_ENABLED=true
-  static const bool _mapsEnabled =
-      bool.fromEnvironment('GROWBOX_MAPS_ENABLED');
+  static const bool _mapsEnabled = bool.fromEnvironment('GROWBOX_MAPS_ENABLED');
 
   bool get _mapSupported => !kIsWeb || _mapsEnabled;
 
@@ -138,14 +138,18 @@ class _LocationScreenState extends State<LocationScreen> {
   /// The pin says where the customer is shopping from, not where an order can
   /// be delivered: an area without a street is never handed to checkout.
   void _editArea() {
-    final controller = TextEditingController(text: browsingAreaStore.area ?? '');
+    final controller = TextEditingController(
+      text: browsingAreaStore.area ?? '',
+    );
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: C.surface(dialogContext),
-          title: Text('Set your browsing area',
-              style: TextStyle(color: C.textPrimary(dialogContext))),
+          title: Text(
+            'Set your browsing area',
+            style: TextStyle(color: C.textPrimary(dialogContext)),
+          ),
           content: TextField(
             controller: controller,
             autofocus: true,
@@ -164,12 +168,15 @@ class _LocationScreenState extends State<LocationScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.text,
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text('Cancel',
-                  style: TextStyle(color: C.textMuted(dialogContext))),
+              height: 44,
+              radius: AppRadii.sm,
             ),
-            ElevatedButton(
+            AppButton(
+              label: 'Save',
               onPressed: () {
                 final area = controller.text.trim();
                 Navigator.of(dialogContext).pop();
@@ -177,7 +184,8 @@ class _LocationScreenState extends State<LocationScreen> {
                 setState(() {});
                 _refreshSheet();
               },
-              child: const Text('Save'),
+              height: 44,
+              radius: AppRadii.sm,
             ),
           ],
         );
@@ -187,8 +195,7 @@ class _LocationScreenState extends State<LocationScreen> {
 
   /// Opens the app's one address editor (with a new-address sheet ready).
   Future<void> _openAddressEditor(Widget screen) async {
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => screen));
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     if (!mounted) return;
     setState(() {});
     _refreshSheet();
@@ -289,8 +296,9 @@ class _LocationScreenState extends State<LocationScreen> {
                       child: Text(
                         'Where should we deliver?',
                         textAlign: TextAlign.center,
-                        style: AppTypography.title
-                            .copyWith(color: C.textPrimary(context)),
+                        style: AppTypography.title.copyWith(
+                          color: C.textPrimary(context),
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
@@ -309,8 +317,9 @@ class _LocationScreenState extends State<LocationScreen> {
                             children: [
                               Text(
                                 'Current location',
-                                style: AppTypography.labelLarge
-                                    .copyWith(color: C.textPrimary(context)),
+                                style: AppTypography.labelLarge.copyWith(
+                                  color: C.textPrimary(context),
+                                ),
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               GestureDetector(
@@ -326,8 +335,9 @@ class _LocationScreenState extends State<LocationScreen> {
                               const SizedBox(height: AppSpacing.xs),
                               Text(
                                 'Browsing only — deliveries go to a saved address.',
-                                style: AppTypography.caption
-                                    .copyWith(color: C.textMuted(context)),
+                                style: AppTypography.caption.copyWith(
+                                  color: C.textMuted(context),
+                                ),
                               ),
                             ],
                           ),
@@ -337,8 +347,9 @@ class _LocationScreenState extends State<LocationScreen> {
                     const SizedBox(height: AppSpacing.xxl),
                     Text(
                       'Deliver to',
-                      style: AppTypography.labelLarge
-                          .copyWith(color: C.textPrimary(context)),
+                      style: AppTypography.labelLarge.copyWith(
+                        color: C.textPrimary(context),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     ListenableBuilder(
@@ -361,29 +372,13 @@ class _LocationScreenState extends State<LocationScreen> {
                     const SizedBox(height: AppSpacing.xxl),
                     SizedBox(
                       width: double.infinity,
-                      height: AppSizing.buttonHeight(context),
-                      child: ElevatedButton(
+                      child: AppButton(
+                        label: 'Add a new address',
                         onPressed: _addNewAddress,
-                        style: ElevatedButton.styleFrom(
-                          elevation: 0,
-                          backgroundColor: C.isDark(context)
-                              ? AppColors.white.withValues(alpha: 0.1)
-                              : AppColors.black.withValues(alpha: 0.1),
-                          foregroundColor: C.textPrimary(context),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppRadii.pill),
-                          ),
-                        ),
-                        child: Text(
-                          'Add a new address',
-                          textAlign: TextAlign.center,
-                          style: AppTypography.labelMedium.copyWith(
-                            color: C.textPrimary(context),
-                          ),
-                        ),
+                        variant: AppButtonVariant.secondary,
+                        expand: true,
+                        height: AppSizing.buttonHeight(context),
+                        radius: AppRadii.pill,
                       ),
                     ),
                   ],
@@ -399,12 +394,8 @@ class _LocationScreenState extends State<LocationScreen> {
   /// Amber "missing details" chip: readable in both themes and tappable, so
   /// it opens the add-address flow instead of just stating the problem.
   Widget _buildAddressWarningChip(BuildContext context) {
-    final isDark = C.isDark(context);
-    final background = isDark
-        ? AppColors.warning.withValues(alpha: 0.16)
-        : AppColors.warningSoft;
-    final foreground =
-        isDark ? AppColors.warning : AppColors.accentOrangeDeep;
+    final background = C.warningSoft(context);
+    final foreground = C.onWarningSoft(context);
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -477,90 +468,91 @@ class _LocationScreenState extends State<LocationScreen> {
               // ── Interactive Google Map ──────────────────────────────
               if (_mapSupported)
                 Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                height: mapHeight,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(AppRadii.md),
-                    bottomRight: Radius.circular(AppRadii.md),
-                  ),
-                  child: Stack(
-                    children: [
-                      GoogleMap(
-                        initialCameraPosition: const CameraPosition(
-                          target: _defaultCenter,
-                          zoom: 15,
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: mapHeight,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(AppRadii.md),
+                      bottomRight: Radius.circular(AppRadii.md),
+                    ),
+                    child: Stack(
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: const CameraPosition(
+                            target: _defaultCenter,
+                            zoom: 15,
+                          ),
+                          onMapCreated: _onMapCreated,
+                          onCameraIdle: _onCameraIdle,
+                          myLocationEnabled: false,
+                          myLocationButtonEnabled: false,
+                          zoomControlsEnabled: false,
+                          mapToolbarEnabled: false,
+                          rotateGesturesEnabled: true,
+                          scrollGesturesEnabled: true,
+                          tiltGesturesEnabled: false,
+                          markers: {_deliveryMarker},
+                          mapType: _currentMapType,
+                          onCameraMove: (position) {
+                            // Update marker in real-time while panning
+                            setState(() {
+                              _selectedPosition = position.target;
+                              _deliveryMarker = _deliveryMarker.copyWith(
+                                positionParam: position.target,
+                              );
+                            });
+                          },
                         ),
-                        onMapCreated: _onMapCreated,
-                        onCameraIdle: _onCameraIdle,
-                        myLocationEnabled: false,
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        mapToolbarEnabled: false,
-                        rotateGesturesEnabled: true,
-                        scrollGesturesEnabled: true,
-                        tiltGesturesEnabled: false,
-                        markers: {_deliveryMarker},
-                        mapType: _currentMapType,
-                        onCameraMove: (position) {
-                          // Update marker in real-time while panning
-                          setState(() {
-                            _selectedPosition = position.target;
-                            _deliveryMarker = _deliveryMarker
-                                .copyWith(positionParam: position.target);
-                          });
-                        },
-                      ),
-                      // User-location button
-                      Positioned(
-                        right: 12,
-                        bottom: 12,
-                        child: _MapIconButton(
-                          icon: Icons.my_location,
-                          onTap: _centerOnDefault,
+                        // User-location button
+                        Positioned(
+                          right: 12,
+                          bottom: 12,
+                          child: _MapIconButton(
+                            icon: Icons.my_location,
+                            onTap: _centerOnDefault,
+                          ),
                         ),
-                      ),
-                      // Map style toggle
-                      Positioned(
-                        right: 12,
-                        bottom: 60,
-                        child: _MapIconButton(
-                          icon: Icons.layers_outlined,
-                          onTap: _cycleMapType,
+                        // Map style toggle
+                        Positioned(
+                          right: 12,
+                          bottom: 60,
+                          child: _MapIconButton(
+                            icon: Icons.layers_outlined,
+                            onTap: _cycleMapType,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
               // ── Center pin ───────────────────────────────────────────
               // Positioned by map geometry (not Center) so it stays clear of
               // the sheet's header row.
               if (_mapSupported)
                 Positioned(
-                top: pinTop,
-                left: 0,
-                right: 0,
-                child: IgnorePointer(
-                  child: Center(
-                    child: Icon(
-                      Icons.location_on,
-                      size: 44,
-                      color: AppColors.primary,
-                      shadows: [
-                        Shadow(
-                          color: AppColors.black26,
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                  top: pinTop,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Icon(
+                        Icons.location_on,
+                        size: 44,
+                        color: C.primary(context),
+                        shadows: [
+                          Shadow(
+                            color: AppColors.black26,
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
               // ── Close button ─────────────────────────────────────────
               Positioned(
@@ -576,8 +568,11 @@ class _LocationScreenState extends State<LocationScreen> {
                       shape: BoxShape.circle,
                       boxShadow: AppNeumorphic.card,
                     ),
-                    child: Icon(Icons.close,
-                        size: 22, color: C.textPrimary(context)),
+                    child: Icon(
+                      Icons.close,
+                      size: 22,
+                      color: C.textPrimary(context),
+                    ),
                   ),
                 ),
               ),
@@ -603,20 +598,27 @@ class _LocationScreenState extends State<LocationScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 20, color: C.textPrimary(context)),
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 20,
+                            color: C.textPrimary(context),
+                          ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
                               _addressLine,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTypography.labelMedium
-                                  .copyWith(color: C.textPrimary(context)),
+                              style: AppTypography.labelMedium.copyWith(
+                                color: C.textPrimary(context),
+                              ),
                             ),
                           ),
-                          Icon(Icons.keyboard_arrow_up,
-                              size: 22, color: C.textMuted(context)),
+                          Icon(
+                            Icons.keyboard_arrow_up,
+                            size: 22,
+                            color: C.textMuted(context),
+                          ),
                         ],
                       ),
                     ),
@@ -673,14 +675,17 @@ class _MapUnavailableView extends StatelessWidget {
           Text(
             'Map preview unavailable',
             textAlign: TextAlign.center,
-            style: AppTypography.labelLarge
-                .copyWith(color: C.textPrimary(context)),
+            style: AppTypography.labelLarge.copyWith(
+              color: C.textPrimary(context),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Add your delivery address below and we will pin it for you.',
             textAlign: TextAlign.center,
-            style: AppTypography.bodySmall.copyWith(color: C.textMuted(context)),
+            style: AppTypography.bodySmall.copyWith(
+              color: C.textMuted(context),
+            ),
           ),
         ],
       ),

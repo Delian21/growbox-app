@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_button.dart';
 import 'home_screen.dart';
 import 'cart_screen.dart';
 
@@ -39,7 +40,7 @@ class OrderPendingScreen extends StatelessWidget {
                     style: TextStyle(fontSize: titleSize, height: 1.1, fontWeight: FontWeight.bold, color: C.textPrimary(context))),
                   const SizedBox(height: 50),
                   Container(width: iconSize, height: iconSize,
-                    decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: C.warning(context), shape: BoxShape.circle),
                     child: Icon(Icons.access_time, size: iconSize * 0.55, color: C.textPrimary(context))),
                   const SizedBox(height: 30),
                   Text('Your order is being processed', textAlign: TextAlign.center,
@@ -77,13 +78,13 @@ class OrderPendingScreen extends StatelessWidget {
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity, height: 56,
-                    child: ElevatedButton(
+                    child: AppButton(
+                      label: 'Back to checkout',
                       onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success, foregroundColor: AppColors.white, elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md))),
-                      child: Text('BACK TO CHECKOUT',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.white)))),
+                      expand: true,
+                      height: 56,
+                      radius: AppRadii.md,
+                    )),
                   const SizedBox(height: 30),
                   GestureDetector(
                     onTap: () => Navigator.pushAndRemoveUntil(context,
@@ -137,8 +138,8 @@ class OrderFailedScreen extends StatelessWidget {
                     style: TextStyle(fontSize: titleSize, height: 1.1, fontWeight: FontWeight.bold, color: C.textPrimary(context))),
                   const SizedBox(height: 50),
                   Container(width: iconSize, height: iconSize,
-                    decoration: const BoxDecoration(color: AppColors.errorSoft, shape: BoxShape.circle),
-                    child: Icon(Icons.close, size: iconSize * 0.57, color: AppColors.error)),
+                    decoration: BoxDecoration(color: C.errorBright(context).withValues(alpha: 0.15), shape: BoxShape.circle),
+                    child: Icon(Icons.close, size: iconSize * 0.57, color: C.errorBright(context))),
                   const SizedBox(height: 30),
                   Text("We couldn't complete your order", textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
@@ -175,13 +176,13 @@ class OrderFailedScreen extends StatelessWidget {
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity, height: 56,
-                    child: ElevatedButton(
+                    child: AppButton(
+                      label: 'Try again',
                       onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success, foregroundColor: AppColors.white, elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md))),
-                      child: Text('TRY AGAIN',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.white)))),
+                      expand: true,
+                      height: 56,
+                      radius: AppRadii.md,
+                    )),
                   const SizedBox(height: AppSpacing.xxl),
                   GestureDetector(
                     onTap: () => Navigator.pushAndRemoveUntil(context,

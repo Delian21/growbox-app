@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/policy_page.dart';
 import 'terms_screen.dart';
 
-/// GROWBOX Privacy Policy, reached from checkout.
+/// Growbox Privacy Policy, reached from checkout.
 ///
 /// This is the policy itself; the toggles that control personalised
 /// recommendations, marketing and analytics live in Profile › Manage Privacy.
@@ -75,7 +75,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           'the app.',
     ]),
     PolicySection('Children', [
-      'GROWBOX is intended for adults. The app is not directed at children '
+      'Growbox is intended for adults. The app is not directed at children '
           'under 18, and we do not knowingly collect their personal '
           'information. If you believe a child has given us data, contact us '
           'and we will remove it.',
@@ -102,7 +102,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     return const PolicyPage(
       title: 'Privacy Policy',
       lastUpdated: 'Last updated 25 October 2026',
-      intro: 'This policy explains what GROWBOX collects when you use the app, '
+      intro: 'This policy explains what Growbox collects when you use the app, '
           'why we collect it, who we share it with and the choices you have.',
       sections: _sections,
     );

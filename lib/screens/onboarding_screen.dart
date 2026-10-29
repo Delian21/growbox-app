@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
+import '../widgets/app_button.dart';
 import 'registration_screen.dart';
 
 /// Shows the onboarding flow on first launch.
@@ -150,14 +151,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       SizedBox(
                         width: double.infinity,
                         height: 54,
-                        child: ElevatedButton(
+                        child: AppButton(
+                          label: isLastPage ? 'Get started' : 'Next',
                           onPressed: _next,
-                          style: _ctaStyle(context),
-                          child: Text(
-                            isLastPage ? 'Get Started' : 'Next',
-                            style: AppTypography.labelLarge
-                                .copyWith(color: _ctaForeground(context)),
-                          ),
+                          expand: true,
+                          height: 54,
+                          radius: AppRadii.pill,
                         ),
                       ),
                     ],
@@ -171,48 +170,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  /// Same primary CTA shape as the welcome screen's "Continue with Email"
-  /// (pill, full width, bold label) but theme-aware: on the dark background
-  /// the deep brand green would disappear, so it flips to the lifted green
-  /// with dark text instead of staying white-on-dark-green.
-  ButtonStyle _ctaStyle(BuildContext context) {
-    return ElevatedButton.styleFrom(
-      elevation: 0,
-      backgroundColor: C.primary(context),
-      foregroundColor: _ctaForeground(context),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-      ),
-    );
-  }
-
-  Color _ctaForeground(BuildContext context) =>
-      C.isDark(context) ? AppColors.primary : AppColors.white;
-
   Widget _buildPage(int index, double screenHeight) {
     final pages = [
-      const _OnboardingPageData(
+      _OnboardingPageData(
         icon: Icons.shopping_basket_outlined,
-        iconColor: AppColors.primary,
-        iconBgColor: AppColors.primaryTint,
+        iconColor: C.primary(context),
+        iconBgColor: C.primaryTint(context),
         title: 'Fresh Produce,\nDelivered',
         imagePath: null, // drop a bundled illustration path here later
         subtitle:
             'Browse farm-fresh vegetables, fruits, grains and more from local vendors near you.',
       ),
-      const _OnboardingPageData(
+      _OnboardingPageData(
         icon: Icons.storefront_outlined,
-        iconColor: AppColors.primary,
-        iconBgColor: AppColors.primaryTint,
+        iconColor: C.primary(context),
+        iconBgColor: C.primaryTint(context),
         title: 'Browse Local\nVendors',
         imagePath: null,
         subtitle:
             'Discover trusted vendors in your area. Compare prices, read reviews, and find the best deals.',
       ),
-      const _OnboardingPageData(
+      _OnboardingPageData(
         icon: Icons.local_shipping_outlined,
-        iconColor: AppColors.primary,
-        iconBgColor: AppColors.primaryTint,
+        iconColor: C.primary(context),
+        iconBgColor: C.primaryTint(context),
         title: 'Fast & Reliable\nDelivery',
         imagePath: null,
         subtitle:

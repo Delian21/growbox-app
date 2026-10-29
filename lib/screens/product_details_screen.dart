@@ -6,6 +6,7 @@ import '../data/mock_data.dart';
 import '../routes.dart';
 import '../widgets/animated_entrance.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/app_button.dart';
 import '../widgets/skeleton_loader.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -197,7 +198,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   children: [
                     Text('$threshold+', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
                     const SizedBox(width: 4),
-                    Text('-$pctOff%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isCurrentTier ? AppColors.success : AppColors.accentOrangeDeep)),
+                    Text('-$pctOff%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isCurrentTier ? C.success(context) : AppColors.accentOrangeDeep)),
                   ]));
             }).toList()),
         ]),
@@ -211,36 +212,36 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.errorSoft,
+            color: C.errorSoft(context),
             borderRadius: BorderRadius.circular(AppRadii.sm)),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.error_outline, size: 14, color: AppColors.error),
-            SizedBox(width: 4),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.error_outline, size: 14, color: C.onErrorSoft(context)),
+            const SizedBox(width: 4),
             Text('Out of Stock',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.error))]));
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: C.onErrorSoft(context)))]));
       case StockStatus.lowStock:
         final qty = StockTracker.quantityFor(widget.product.vendorName, widget.product.name);
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.warningSoft,
+            color: C.warningSoft(context),
             borderRadius: BorderRadius.circular(AppRadii.sm)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.warning_amber, size: 14, color: AppColors.accentOrangeDeep),
+            Icon(Icons.warning_amber, size: 14, color: C.onWarningSoft(context)),
             const SizedBox(width: 4),
             Text('Only $qty left in stock',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accentOrangeDeep))]));
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: C.onWarningSoft(context)))]));
       case StockStatus.inStock:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.successSoft,
+            color: C.successSoft(context),
             borderRadius: BorderRadius.circular(AppRadii.sm)),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.check_circle_outline, size: 14, color: AppColors.success),
-            SizedBox(width: 4),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.check_circle_outline, size: 14, color: C.onSuccessSoft(context)),
+            const SizedBox(width: 4),
             Text('In Stock',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.success))]));
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: C.onSuccessSoft(context)))]));
     }
   }
 
@@ -303,7 +304,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.sm),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.primaryTint : AppColors.grey100,
+                    color: selected ? C.primaryTint(context) : C.surfaceLight(context),
                     borderRadius: BorderRadius.circular(18)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -315,7 +316,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: mul > 1 ? AppColors.accentOrangeDeep : AppColors.success)),
+                            color: mul > 1 ? AppColors.accentOrangeDeep : C.success(context))),
                       ],
                     ])));
             }).toList())),
@@ -464,12 +465,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 final pctOff = ((1 - nextTier.value) * 100).round();
                                 return Text(
                                   'Buy ${nextTier.key}+ for $pctOff% off each',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.success));
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: C.success(context)));
                               } else if (_bulkMultiplier < 1.0) {
                                 final pctOff = ((1 - _bulkMultiplier) * 100).round();
                                 return Text(
                                   'Bulk discount applied: $pctOff% off',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.success));
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: C.success(context)));
                               }
                               return const SizedBox.shrink();
                             }),
@@ -510,32 +511,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             index: 5,
                             child: TapScale(
                               onTap: _addToBox,
-                              child: Container(
-                                width: double.infinity, height: 52,
-                                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.shopping_bag_outlined, size: 20, color: AppColors.white),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Add to Box — ₦${formatPrice(_totalPrice)}',
-                                      style: const TextStyle(
-                                        fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.white),
-                                    ),
-                                  ],
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                                child: AppButton(
+                                  label: 'Add to box · ₦${formatPrice(_totalPrice)}',
+                                  onPressed: _addToBox,
+                                  icon: Icons.shopping_bag_outlined,
+                                  expand: true,
+                                  height: 52,
+                                  radius: 14,
                                 ),
                               ),
                             ),
@@ -619,10 +603,10 @@ class _BundleOption extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Save $savingsPct%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.success,
+                      color: C.success(context),
                     ),
                   ),
                 ],

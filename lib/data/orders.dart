@@ -268,7 +268,7 @@ String _vendorLabel(List<OrderItem> items) {
     for (final item in items)
       if (item.vendorName.isNotEmpty) item.vendorName,
   };
-  if (names.isEmpty) return 'GROWBOX';
+  if (names.isEmpty) return 'Growbox';
   if (names.length == 1) return names.first;
   return '${names.first} +${names.length - 1}';
 }

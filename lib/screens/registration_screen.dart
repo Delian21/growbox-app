@@ -10,6 +10,7 @@ import 'location_screen.dart';
 import '../data/mock_data.dart';
 import '../data/placeholder_images.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/app_button.dart';
 
 // ---------------------------------------------------------------------------
 // Single multi-step registration wizard (replaces 5 separate screens)
@@ -86,13 +87,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   void dispose() {
-    // Hand the chrome back to the app default so the next screen (light
-    // surface) doesn't inherit light icons on a transparent bar.
+    // Restore the system chrome to match the selected appearance after leaving
+    // the branded welcome/signup surface.
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: _isDark ? AppDarkColors.background : AppColors.primary,
-      statusBarIconBrightness: Brightness.light,
+      statusBarColor:
+          _isDark ? AppDarkColors.background : AppColors.background,
+      statusBarIconBrightness: Brightness.dark,
       systemNavigationBarColor:
-          _isDark ? AppDarkColors.background : AppColors.white,
+          _isDark ? AppDarkColors.background : AppColors.background,
       systemNavigationBarIconBrightness:
           _isDark ? Brightness.light : Brightness.dark,
     ));
@@ -211,8 +213,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Short phones give the brand band less height so the welcome step's
+    // content — the consent notice and Skip included — fits without scrolling.
+    // Decided once here, above the SafeArea, and passed down: inside it the
+    // consumed padding is zero, so the same question has a different answer.
+    final compact = AppSizing.compactSignUp(context);
+    final bandHeight = AppSizing.signUpLogoAreaHeight(context);
+    final panelGap = AppSizing.signUpPanelGap(context);
+
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: C.primary(context),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Stack(
@@ -226,7 +236,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               left: 0,
               right: 0,
               top: 0,
-              height: AppSizing.logoAreaHeight(context),
+              height: bandHeight,
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -236,13 +246,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       // scale to ~80% of the banner height so it floats on the
                       // green instead of filling it like the old photo did.
                       RegistrationScreen.logoUrl,
-                      width: AppSizing.logoAreaHeight(context) * 0.8,
-                      height: AppSizing.logoAreaHeight(context) * 0.8,
+                      width: bandHeight * 0.8,
+                      height: bandHeight * 0.8,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Text(
+                      errorBuilder: (_, _, _) => Text(
                         'Growbox',
                         style: TextStyle(
-                          color: AppColors.white,
+                          color: C.onPrimary(context),
                           fontSize: 42,
                           fontWeight: FontWeight.bold,
                         ),
@@ -253,7 +263,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       'Fresh from the farm to your door',
                       textAlign: TextAlign.center,
                       style: AppTypography.bodySmall
-                          .copyWith(color: AppColors.white70),
+                          .copyWith(color: C.onPrimary(context).withValues(alpha: 0.82)),
                     ),
                   ],
                 ),
@@ -286,7 +296,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               key: const ValueKey('registration-panel'),
               left: 0,
               right: 0,
-              top: AppSizing.logoAreaHeight(context) + 20,
+              top: bandHeight + panelGap,
               bottom: 0,
               child: Container(
                 decoration: BoxDecoration(
@@ -300,7 +310,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     // Step dots removed: the wizard advances only through
                     // Continue, so a carousel-style indicator was misleading.
-                    const SizedBox(height: AppSpacing.xl),
+                    SizedBox(
+                      height: compact ? 6 : AppSpacing.xl,
+                    ),
 
                     // ── PageView body ──
                     Expanded(
@@ -311,6 +323,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             setState(() => _currentStep = index),
                         children: [
                           _WelcomeStep(
+                            compact: compact,
                             onContinueWithEmail: _next,
                             onLogin: () => Navigator.of(context).push(
                               MaterialPageRoute(
@@ -367,11 +380,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _WelcomeStep extends StatelessWidget {
+  /// Whether this is a short phone: tighter gaps and buttons, same content.
+  final bool compact;
   final VoidCallback onContinueWithEmail;
   final VoidCallback onLogin;
   final VoidCallback onSkip;
 
   const _WelcomeStep({
+    required this.compact,
     required this.onContinueWithEmail,
     required this.onLogin,
     required this.onSkip,
@@ -379,7 +395,13 @@ class _WelcomeStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sectionSpacing = AppSizing.welcomeFontSize(context) * 0.9;
+    // Short phones tighten this column and nothing else: the same content in the
+    // same order with smaller gaps and buttons, so the consent notice and the
+    // Skip shortcut sit above the fold at 360×640 instead of below it.
+    final sectionSpacing =
+        AppSizing.welcomeFontSize(context) * (compact ? 0.45 : 0.9);
+    final ctaHeight = compact ? 48.0 : AppSizing.buttonHeightLarge(context);
+    final socialHeight = compact ? 48.0 : AppSizing.buttonHeight(context);
 
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -404,7 +426,10 @@ class _WelcomeStep extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm + 2),
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm + 2,
+                vertical: compact ? 4 : AppSpacing.sm + 2,
+              ),
               child: Text(
                 'Create your account',
                 style: AppTypography.labelLarge
@@ -415,23 +440,16 @@ class _WelcomeStep extends StatelessWidget {
           SizedBox(height: sectionSpacing * 0.75),
           SizedBox(
             width: double.infinity,
-            height: AppSizing.buttonHeightLarge(context),
-            child: ElevatedButton(
+            height: ctaHeight,
+            child: AppButton(
+              label: 'Continue with Email',
               onPressed: onContinueWithEmail,
-              // Brand green with a white label: the mint tint is a chip/selection
-              // colour and too weak to carry the primary CTA.
-              style: AppDecorations.primaryButtonStyle(context: context).copyWith(
-                backgroundColor: const WidgetStatePropertyAll(AppColors.primary),
-                foregroundColor: const WidgetStatePropertyAll(AppColors.white),
-              ),
-              child: const Text(
-                'Continue with Email',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+              expand: true,
+              height: ctaHeight,
+              radius: AppRadii.pill,
             ),
           ),
-          const SizedBox(height: AppSpacing.lg - 2),
+          SizedBox(height: compact ? 10 : AppSpacing.lg - 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -459,20 +477,20 @@ class _WelcomeStep extends StatelessWidget {
               Expanded(child: Divider(color: C.divider(context), thickness: 1)),
             ],
           ),
-          const SizedBox(height: AppSpacing.md + 4),
+          SizedBox(height: compact ? 12 : AppSpacing.md + 4),
           // Google button
           SizedBox(
             width: double.infinity,
-            height: AppSizing.buttonHeight(context),
-            child: OutlinedButton(
+            height: socialHeight,
+            child: AppButton(
+              label: 'Continue with Google',
+              foregroundColorOverride: AppColors.black,
+              backgroundColorOverride: AppColors.white,
               onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                backgroundColor: AppColors.white,
-                side: const BorderSide(color: AppColors.grey300, width: 1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                ),
-              ),
+              variant: AppButtonVariant.secondary,
+              expand: true,
+              height: socialHeight,
+              radius: AppRadii.md,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -489,44 +507,52 @@ class _WelcomeStep extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Button background is always white, so the label must
-                  // stay dark even in dark mode (C.textPrimary would be
-                  // near-white there and vanish on the white button).
-                  Text('Continue with Google',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.black),
+                  Text(
+                    'Continue with Google',
+                    style: const TextStyle(
+                      color: AppColors.black,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md - 2),
+          SizedBox(height: compact ? 8 : AppSpacing.md - 2),
           // Apple button
           SizedBox(
             width: double.infinity,
-            height: AppSizing.buttonHeight(context),
-            child: OutlinedButton(
+            height: socialHeight,
+            child: AppButton(
+              label: 'Continue with Apple',
+              foregroundColorOverride: AppColors.white,
+              backgroundColorOverride: AppColors.black,
               onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                backgroundColor: AppColors.black,
-                side: BorderSide(color: C.textPrimary(context), width: 1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                ),
-              ),
+              variant: AppButtonVariant.secondary,
+              expand: true,
+              height: socialHeight,
+              radius: AppRadii.md,
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.apple, size: 24, color: AppColors.white),
                   SizedBox(width: 12),
-                  Text('Continue with Apple',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.white)),
+                  Text(
+                    'Continue with Apple',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          const _LegalNotice(),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: compact ? 12 : AppSpacing.lg),
+          _LegalNotice(compact: compact),
+          SizedBox(height: compact ? 8 : AppSpacing.md),
           Align(
             alignment: Alignment.centerRight,
             child: GestureDetector(
@@ -623,11 +649,12 @@ class _EmailStep extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: AppSizing.buttonHeight(context),
-                child: ElevatedButton(
+                child: AppButton(
+                  label: 'Continue',
                   onPressed: onContinue,
-                  style: AppDecorations.primaryButtonStyle(),
-                  child:
-                      const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  expand: true,
+                  height: AppSizing.buttonHeight(context),
+                  radius: AppRadii.pill,
                 ),
               ),
             ],
@@ -694,7 +721,7 @@ class _PasswordStep extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md + 2),
               Text(
-                'Create a password to keep your GROWBOX account secure.',
+                'Create a password to keep your Growbox account secure.',
                 textAlign: TextAlign.center,
                 style: AppTypography.subtitle
                     .copyWith(color: C.textSecondary(context)),
@@ -776,12 +803,12 @@ class _PasswordStep extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: AppSizing.buttonHeight(context),
-                child: ElevatedButton(
+                child: AppButton(
+                  label: 'Continue',
                   onPressed: onContinue,
-                  style: AppDecorations.primaryButtonStyle(),
-                  child: const Text('Continue',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  expand: true,
+                  height: AppSizing.buttonHeight(context),
+                  radius: AppRadii.pill,
                 ),
               ),
             ],
@@ -835,7 +862,7 @@ class _NameStep extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md + 2),
               Text(
-                'Enter your full name to personalize your GROWBOX experience.',
+                'Enter your full name to personalize your Growbox experience.',
                 textAlign: TextAlign.center,
                 style: AppTypography.subtitle
                     .copyWith(color: C.textSecondary(context)),
@@ -865,12 +892,12 @@ class _NameStep extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: AppSizing.buttonHeight(context),
-                child: ElevatedButton(
+                child: AppButton(
+                  label: 'Continue',
                   onPressed: onContinue,
-                  style: AppDecorations.primaryButtonStyle(),
-                  child: const Text('Continue',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  expand: true,
+                  height: AppSizing.buttonHeight(context),
+                  radius: AppRadii.pill,
                 ),
               ),
             ],
@@ -932,21 +959,22 @@ class _EmailConfirmationStep extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             height: AppSizing.buttonHeight(context),
-            child: ElevatedButton(
+            child: AppButton(
+              label: "I've confirmed my email",
               onPressed: isChecking ? null : onConfirm,
-              style: AppDecorations.primaryButtonStyle(),
+              expand: true,
+              height: AppSizing.buttonHeight(context),
+              radius: AppRadii.pill,
               child: isChecking
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.black),
+                        strokeWidth: 2,
+                        color: C.onPrimary(context),
+                      ),
                     )
-                  : const Text(
-                      "I've confirmed my email",
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
+                  : null,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -978,7 +1006,10 @@ class _EmailConfirmationStep extends StatelessWidget {
 /// agreed to enter and repeat nothing here. A [TextSpan] recognizer is not
 /// owned by the framework, so it needs a [State] that can dispose it.
 class _LegalNotice extends StatefulWidget {
-  const _LegalNotice();
+  /// Tighter line height on short phones, where the whole step must fit.
+  final bool compact;
+
+  const _LegalNotice({required this.compact});
 
   @override
   State<_LegalNotice> createState() => _LegalNoticeState();
@@ -1012,8 +1043,12 @@ class _LegalNoticeState extends State<_LegalNotice> {
 
   @override
   Widget build(BuildContext context) {
-    final body =
-        AppTypography.bodySmall.copyWith(color: C.textSecondary(context));
+    // Shorter leading on short phones: two lines instead of three eats into the
+    // step's height budget, and the sentence still reads as one block.
+    final body = AppTypography.bodySmall.copyWith(
+      color: C.textSecondary(context),
+      height: widget.compact ? 1.15 : null,
+    );
     final link = body.copyWith(
       color: C.primary(context),
       fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_button.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../data/mock_data.dart';
@@ -9,7 +10,7 @@ import 'deactivation_screen.dart';
 import 'privacy_screen.dart';
 
 class AccountScreen extends StatelessWidget {
-    const AccountScreen({super.key});
+  const AccountScreen({super.key});
 
   /// Destructive account actions live here, away from the everyday menu.
   /// The deletion flow itself is untouched: a typed confirmation gates the
@@ -20,9 +21,9 @@ class AccountScreen extends StatelessWidget {
       builder: (_) => const _DeleteAccountDialog(),
     );
     if (confirmed != true || !context.mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const DeactivationScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const DeactivationScreen()));
   }
 
   @override
@@ -39,56 +40,93 @@ class AccountScreen extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(horizontalPadding, topPadding, horizontalPadding, AppSpacing.xxl),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                topPadding,
+                horizontalPadding,
+                AppSpacing.xxl,
+              ),
               child: Row(
                 children: [
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => Navigator.pop(context),
-                    child: SizedBox(width: 40, height: 40,
-                      child: Center(child: Icon(Icons.arrow_back,
-                        size: (screenWidth * 0.06).clamp(22.0, 26.0),
-                        color: AppColors.info))),
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_back,
+                          size: (screenWidth * 0.06).clamp(22.0, 26.0),
+                          color: AppColors.info,
+                        ),
+                      ),
+                    ),
                   ),
                   SizedBox(width: AppSpacing.sm),
-                  Text('Account',
-                    style: TextStyle(fontSize: headerFontSize,
-                      fontWeight: FontWeight.w600, color: C.textPrimary(context))),
+                  Text(
+                    'Account',
+                    style: TextStyle(
+                      fontSize: headerFontSize,
+                      fontWeight: FontWeight.w600,
+                      color: C.textPrimary(context),
+                    ),
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: SingleChildScrollView(
                 physics: BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: AppSpacing.sm),
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: AppSpacing.sm,
+                ),
                 child: Column(
                   children: [
-                    _AccountMenuItem(icon: Icons.person_outline,
-                      title: CustomerData.name ?? 'Customer'),
-                    _AccountMenuItem(icon: Icons.mail_outline,
-                      title: CustomerData.email ?? 'No email added'),
+                    _AccountMenuItem(
+                      icon: Icons.person_outline,
+                      title: CustomerData.name ?? 'Customer',
+                    ),
+                    _AccountMenuItem(
+                      icon: Icons.mail_outline,
+                      title: CustomerData.email ?? 'No email added',
+                    ),
                     SizedBox(height: AppSpacing.md),
                     _AccountActionItem(
-                      icon: Icons.lock_outline, title: 'Change email',
+                      icon: Icons.lock_outline,
+                      title: 'Change email',
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => ChangeEmailScreen()))),
+                        MaterialPageRoute(builder: (_) => ChangeEmailScreen()),
+                      ),
+                    ),
                     _AccountActionItem(
-                      icon: Icons.phone_iphone_outlined, title: 'Change phone number',
+                      icon: Icons.phone_iphone_outlined,
+                      title: 'Change phone number',
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => ChangePhoneNumberScreen()))),
+                        MaterialPageRoute(
+                          builder: (_) => ChangePhoneNumberScreen(),
+                        ),
+                      ),
+                    ),
                     _AccountActionItem(
-                      icon: Icons.privacy_tip_outlined, title: 'Manage Privacy',
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'Manage Privacy',
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => ManagePrivacyScreen()))),
+                        MaterialPageRoute(
+                          builder: (_) => ManagePrivacyScreen(),
+                        ),
+                      ),
+                    ),
                     // Destructive action, kept last and away from the profile.
                     _AccountActionItem(
-                      icon: Icons.delete_outline, title: 'Delete Account',
+                      icon: Icons.delete_outline,
+                      title: 'Delete Account',
                       color: C.errorBright(context),
-                      onTap: () => _confirmDeletion(context)),
-                    // Clears the floating nav bar.
-                    SizedBox(
-                      height: BottomNavMetrics.contentInset(context),
+                      onTap: () => _confirmDeletion(context),
                     ),
+                    // Clears the floating nav bar.
+                    SizedBox(height: BottomNavMetrics.contentInset(context)),
                   ],
                 ),
               ),
@@ -104,7 +142,7 @@ class _AccountMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
 
-    const _AccountMenuItem({required this.icon, required this.title});
+  const _AccountMenuItem({required this.icon, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -117,9 +155,19 @@ class _AccountMenuItem extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: iconSize, color: AppColors.info),
-            SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: textSize, fontWeight: FontWeight.w400, color: C.textPrimary(context)))),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: textSize,
+                fontWeight: FontWeight.w400,
+                color: C.textPrimary(context),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -132,7 +180,12 @@ class _AccountActionItem extends StatelessWidget {
   final Color? color;
   final VoidCallback onTap;
 
-    const _AccountActionItem({required this.icon, required this.title, this.color, required this.onTap});
+  const _AccountActionItem({
+    required this.icon,
+    required this.title,
+    this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -144,21 +197,33 @@ class _AccountActionItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        constraints:   BoxConstraints(minHeight: 57),
-        padding:   EdgeInsets.symmetric(vertical: AppSpacing.md),
-        decoration:   BoxDecoration(
-          border: Border(top: BorderSide(color: C.divider(context), width: 1))),
+        constraints: BoxConstraints(minHeight: 57),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: C.divider(context), width: 1)),
+        ),
         child: Row(
           children: [
             Icon(icon, size: iconSize, color: color ?? AppColors.info),
-              SizedBox(width: AppSpacing.sm),
-            Expanded(child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: textSize, fontWeight: FontWeight.w400,
-                color: color ?? C.textPrimary(context)))),
-              SizedBox(width: AppSpacing.sm),
-            Icon(Icons.chevron_right,
+            SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: textSize,
+                  fontWeight: FontWeight.w400,
+                  color: color ?? C.textPrimary(context),
+                ),
+              ),
+            ),
+            SizedBox(width: AppSpacing.sm),
+            Icon(
+              Icons.chevron_right,
               size: (screenWidth * 0.07).clamp(26.0, 30.0),
-              color: color ?? AppColors.info),
+              color: color ?? AppColors.info,
+            ),
           ],
         ),
       ),
@@ -195,6 +260,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: C.surface(context),
       title: Text(
         'Delete account',
         style: TextStyle(
@@ -231,18 +297,15 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
+          variant: AppButtonVariant.text,
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
         ),
-        TextButton(
+        AppButton(
+          label: 'Delete',
+          variant: AppButtonVariant.destructive,
           onPressed: _canDelete ? () => Navigator.pop(context, true) : null,
-          child: Text(
-            'Delete',
-            style: TextStyle(
-              color: _canDelete ? C.errorBright(context) : C.textMuted(context),
-            ),
-          ),
         ),
       ],
     );
