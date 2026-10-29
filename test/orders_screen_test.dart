@@ -30,9 +30,11 @@ class _FakeOrdersRepository implements OrdersRepository {
   }
 }
 
-OrderItem _line(String name, int price, {int qty = 1}) => OrderItem(
+OrderItem _line(String name, int price,
+        {int qty = 1, String vendor = 'Green Farm'}) =>
+    OrderItem(
       name: name,
-      vendorName: 'Green Farm',
+      vendorName: vendor,
       category: 'GRAINS',
       image: 'assets/images/rice.jpg',
       price: price,
@@ -44,7 +46,6 @@ Order _order({
   required OrderStatus status,
   String vendor = 'Green Farm',
   List<OrderItem>? items,
-  int deliveryFee = 500,
   Duration age = const Duration(hours: 1),
   Map<OrderStatus, DateTime> timestamps = const {},
 }) =>
@@ -55,7 +56,6 @@ Order _order({
       createdAt: DateTime(2026, 10, 24, 12).subtract(age),
       items: items ?? [_line('Rice', 2550, qty: 2)],
       deliveryAddress: 'Gwarinpa, Abuja',
-      deliveryFee: deliveryFee,
       timestamps: timestamps,
     );
 
@@ -304,8 +304,15 @@ void main() {
   });
 
   testWidgets('free delivery reads as Free in the summary', (tester) async {
+    // Yummy Bunch charges no delivery fee in the vendor model, which is where
+    // the summary now reads the fee from.
     await tester.pumpWidget(detailsHarness(
-      _order(id: 'GBX-15', status: OrderStatus.delivered, deliveryFee: 0),
+      _order(
+        id: 'GBX-15',
+        status: OrderStatus.delivered,
+        vendor: 'Yummy Bunch',
+        items: [_line('Tomatoes', 500, vendor: 'Yummy Bunch')],
+      ),
     ));
     await tester.pumpAndSettle();
 

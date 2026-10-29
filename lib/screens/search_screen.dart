@@ -7,6 +7,7 @@ import '../widgets/bottom_nav.dart';
 import '../widgets/micro_interactions.dart';
 import '../data/mock_data.dart';
 import 'vendor_screen.dart';
+import '../widgets/vendor_rating.dart';
 import '../widgets/voice_search_overlay.dart';
 
 /// In-memory recent search history (resets on app restart).
@@ -360,8 +361,9 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildVendorCard(Map<String, dynamic> vendor, double screenWidth) {
     final String name = vendor['name'] as String;
     final String image = vendor['image'] as String? ?? '';
-    final String percentage = vendor['percentage'] as String? ?? '';
-    final String reviews = vendor['reviews'] as String? ?? '';
+    // Same format as every other vendor surface: thumbs-up, "84%", "(21)".
+    final double rating = vendor['rating'] as double? ?? 0;
+    final int? reviewCount = reviewCountFromLabel(vendor['reviews'] as String?);
     final List<String> categories = List<String>.from(vendor['categories'] ?? []);
     final List<VendorProduct> products = List<VendorProduct>.from(vendor['products'] ?? []);
     final int productCount = products.length;
@@ -418,18 +420,12 @@ class _SearchScreenState extends State<SearchScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (percentage.isNotEmpty)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star, size: 14, color: AppColors.gold),
-                      const SizedBox(width: 2),
-                      Text(percentage,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
-                      if (reviews.isNotEmpty)
-                        Text(reviews,
-                          style: TextStyle(fontSize: 11, color: C.textMuted(context))),
-                    ],
+                if (rating > 0)
+                  VendorRating(
+                    percentage: rating,
+                    reviewCount: reviewCount,
+                    iconSize: 14,
+                    fontSize: 13,
                   ),
                 const SizedBox(height: 2),
                 Text('$productCount product${productCount == 1 ? '' : 's'}',

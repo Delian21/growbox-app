@@ -569,11 +569,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           _buildSummaryRow(
             context,
             'Delivery fee',
-            order.deliveryFee == 0
+            order.totals.deliveryFee == 0
                 ? 'Free'
-                : '₦${formatPrice(order.deliveryFee)}',
+                : '₦${formatPrice(order.totals.deliveryFee)}',
             valueColor:
-                order.deliveryFee == 0 ? C.primary(context) : null,
+                order.totals.deliveryFee == 0 ? C.primary(context) : null,
           ),
           const SizedBox(height: AppSpacing.md),
           Divider(height: 1, color: C.divider(context)),

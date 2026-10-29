@@ -9,8 +9,9 @@ import 'mock_data.dart';
 
 /// What a box costs: goods plus one delivery charge per distinct vendor.
 ///
-/// Single source of truth for the amounts shown on the cart and the checkout
-/// screen, so the two can never disagree about the payable total.
+/// Single source of truth for the amounts shown on the cart, the checkout and
+/// every read-only view of a placed order, so no two screens can disagree
+/// about the payable total.
 class CartTotals {
   /// Sum of one price per cart entry (each entry is one unit).
   final int subtotal;
@@ -22,16 +23,19 @@ class CartTotals {
 
   int get total => subtotal + deliveryFee;
 
-  /// Computes the amounts for [items] using [MockVendors] fees.
+  /// Computes the amounts for [lines], each carrying the vendor that fulfils
+  /// it and the money that line contributes (unit price × quantity).
   ///
   /// Each vendor delivers their own produce, so a box spanning three vendors
   /// pays all three fees; a single-vendor box pays exactly that vendor's fee.
-  factory CartTotals.forItems(List<VendorProduct> items) {
+  factory CartTotals.forLines(
+    Iterable<({String vendorName, int amount})> lines,
+  ) {
     var subtotal = 0;
     final vendors = <String>{};
-    for (final item in items) {
-      subtotal += item.price;
-      vendors.add(item.vendorName);
+    for (final line in lines) {
+      subtotal += line.amount;
+      if (line.vendorName.isNotEmpty) vendors.add(line.vendorName);
     }
     var deliveryFee = 0;
     for (final vendor in vendors) {
@@ -39,6 +43,12 @@ class CartTotals {
     }
     return CartTotals(subtotal: subtotal, deliveryFee: deliveryFee);
   }
+
+  /// The cart's variant: one entry per unit, so each entry contributes its
+  /// unit price.
+  factory CartTotals.forItems(List<VendorProduct> items) => CartTotals.forLines(
+        items.map((item) => (vendorName: item.vendorName, amount: item.price)),
+      );
 }
 
 class CartNotifier extends ChangeNotifier {
@@ -691,7 +701,7 @@ class StockTracker {
     // Yummy Bunch
     _stock['Yummy Bunch:Tomatoes'] = 18;
     // Fresh off Flesh
-    _stock['Fresh off Flesh:Fresh Produce'] = 7;
+    _stock['Fresh off Flesh:Beef'] = 7;
     // Heart of Red
     _stock['Heart of Red:Fresh Apples'] = 22;
     // Real Green

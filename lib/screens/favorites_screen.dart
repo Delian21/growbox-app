@@ -5,6 +5,7 @@ import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/mock_data.dart';
+import '../widgets/vendor_rating.dart';
 import 'vendor_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -130,8 +131,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       {required int index, required Map<String, String> favorite}) {
     final String name = favorite['name'] ?? 'Vendor';
     final String image = favorite['image'] ?? '';
-    final String rating = favorite['rating'] ?? '';
-    final String reviews = favorite['reviews'] ?? '';
+    // Favourites store the vendor's own labels; parse them into the shared
+    // rating format instead of printing the raw string (which used to render
+    // the placeholder "0.0" saved by the vendor page).
+    final double rating = ratingPercentageFromLabel(favorite['rating']);
+    final int? reviewCount = reviewCountFromLabel(favorite['reviews']);
 
     return Padding(
       padding:   EdgeInsets.only(bottom: AppSpacing.md),
@@ -242,33 +246,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         color: C.textPrimary(context),
                       ),
                     ),
-                    if (rating.isNotEmpty || reviews.isNotEmpty) ...[
+                    if (rating > 0) ...[
                         SizedBox(height: 6),
-                      Row(
-                        children: [
-                            Icon(Icons.star,
-                              size: 14, color: AppColors.gold),
-                            SizedBox(width: 4),
-                          if (rating.isNotEmpty)
-                            Text(
-                              rating,
-                              style:   TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.gold,
-                              ),
-                            ),
-                          if (reviews.isNotEmpty) ...[
-                              SizedBox(width: 4),
-                            Text(
-                              reviews,
-                              style:   TextStyle(
-                                fontSize: 12,
-                                color: C.textMuted(context),
-                              ),
-                            ),
-                          ],
-                        ],
+                      VendorRating(
+                        percentage: rating,
+                        reviewCount: reviewCount,
+                        iconSize: 14,
+                        fontSize: 13,
                       ),
                     ],
                   ],

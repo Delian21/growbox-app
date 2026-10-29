@@ -347,16 +347,19 @@ class MockVendors {
       'rating': 92.0,
       'deliveryFee': 300,
       'deliveryTime': '20-30 min',
-      'searchProducts': ['Fresh Produce', 'Fruits', 'Meat', 'Vegetables'],
-      'categories': ['Fruits', 'Vegetables', 'Meat'],
+      // A butcher: its products are meat, poultry and fish, so it belongs in
+      // Proteins only. It used to list Fruits because one product was filed
+      // under FRUITS, which put a raw-meat photo under the Fruits browse.
+      'searchProducts': ['Beef', 'Chicken', 'Fish', 'Meat', 'Proteins'],
+      'categories': ['Meat', 'Proteins'],
       'products': [
         VendorProduct(
-          image: PlaceholderImages.freshProtein,
-          name: 'Fresh Produce',
+          image: PlaceholderImages.beef,
+          name: 'Beef',
           unit: 'basket',
-          description: 'Fresh quality produce',
+          description: 'Fresh beef cuts',
           price: 3000,
-          category: 'FRUITS',
+          category: 'MEAT',
           vendorName: 'Fresh off Flesh',
           pricingType: PricingType.byWeight,
         ),

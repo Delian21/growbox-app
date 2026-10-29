@@ -6,6 +6,7 @@ import '../data/app_state.dart';
 import '../data/categories.dart';
 import '../data/mock_data.dart';
 import '../widgets/vendor_card.dart';
+import '../widgets/vendor_rating.dart';
 import '../widgets/voice_search_overlay.dart';
 import 'category_vendors_screen.dart';
 import 'vendor_screen.dart';
@@ -279,6 +280,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                         vendor['deliveryTime'] as String,
                                     ratingPercentage:
                                         vendor['rating'] as double,
+                                    reviewCount: reviewCountFromLabel(
+                                        vendor['reviews'] as String?),
                                     deliveryFee: vendor['deliveryFee'] as int,
                                     isFavorite: favoriteVendors
                                         .any((f) => f['name'] == name),

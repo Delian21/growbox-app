@@ -607,11 +607,14 @@ class _OrderProgress extends StatelessWidget {
 
   const _OrderProgress({required this.status});
 
-  static const int _steps = 4;
+  static const int _steps = OrderStatusX.progressSegmentsTotal;
 
   @override
   Widget build(BuildContext context) {
-    final reached = status.stepIndex;
+    // Filled bars come from the status itself, not from its position on the
+    // five-step track: "on the way" is the third of four bars (it used to
+    // fill all four because its index is 3).
+    final reached = status.progressSegments;
     return Semantics(
       label: 'Order progress: ${status.label}',
       child: Row(
@@ -623,7 +626,7 @@ class _OrderProgress extends StatelessWidget {
               child: Container(
                 height: 4,
                 decoration: BoxDecoration(
-                  color: step <= reached
+                  color: step < reached
                       ? C.primary(context)
                       : C.divider(context),
                   borderRadius: BorderRadius.circular(2),

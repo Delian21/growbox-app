@@ -79,6 +79,7 @@ class PlaceholderImages {
   // PRODUCT IMAGES - PROTEINS
   // ============================================================
   static String get freshProtein => _asset('meat'); // raw meat
+  static String get beef => _asset('beef'); // beef cuts
   static String get chicken => _asset('chicken'); // chicken
   static String get fish => _asset('fish'); // fish on ice
 

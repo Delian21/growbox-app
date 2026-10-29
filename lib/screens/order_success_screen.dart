@@ -316,9 +316,9 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
           _moneyRow(
             context,
             'Delivery',
-            order.deliveryFee == 0
+            order.totals.deliveryFee == 0
                 ? 'Free'
-                : '₦${formatPrice(order.deliveryFee)}',
+                : '₦${formatPrice(order.totals.deliveryFee)}',
           ),
           const SizedBox(height: AppSpacing.md),
           Divider(height: 1, color: C.divider(context)),

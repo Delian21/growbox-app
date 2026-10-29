@@ -143,7 +143,8 @@ void main() {
       recordOrder(
         orderNumber: 'GBX-900',
         cartItems: [rice],
-        deliveryFee: 1500,
+        // Green Farm's fee in the vendor model, which is what the screen reads.
+        deliveryFee: 500,
         deliveryAddress: 'Gwarinpa, Abuja',
       );
 
@@ -156,8 +157,9 @@ void main() {
       // tab, under the vendor it was bought from.
       expect(find.text('Confirmed'), findsOneWidget);
       expect(find.text('Green Farm'), findsWidgets);
-      // Rice (₦2,550) + ₦1,500 delivery — unique to this order.
-      expect(find.text('₦4,050'), findsOneWidget);
+      // Rice (₦2,550) + Green Farm's ₦500 delivery — unique to this order.
+      // Delivery is priced from the vendor model, not from the stored fee.
+      expect(find.text('₦3,050'), findsOneWidget);
     });
   });
 }

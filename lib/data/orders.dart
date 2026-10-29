@@ -46,6 +46,23 @@ extension OrderStatusX on OrderStatus {
         OrderStatus.cancelled => -1,
       };
 
+  /// The progress bars in the orders list, out of [progressSegmentsTotal].
+  ///
+  /// The list draws four bars for "confirmed → packing → on the way →
+  /// delivered", while the delivery itself has five steps: picked up sits
+  /// between packing and on the way, so it still belongs to the packing bar.
+  int get progressSegments => switch (this) {
+        OrderStatus.confirmed => 1,
+        OrderStatus.packing => 2,
+        OrderStatus.pickedUp => 2,
+        OrderStatus.onTheWay => 3,
+        OrderStatus.delivered => 4,
+        OrderStatus.cancelled => 0,
+      };
+
+  /// How many bars the orders list draws.
+  static const int progressSegmentsTotal = 4;
+
   /// The next state the demo "advance" action moves to, if any.
   OrderStatus? get nextActive => switch (this) {
         OrderStatus.confirmed => OrderStatus.packing,
@@ -73,7 +90,6 @@ class Order {
   final DateTime createdAt;
   final List<OrderItem> items;
   final String deliveryAddress;
-  final int deliveryFee;
 
   /// When each lifecycle step was reached, keyed by status.
   ///
@@ -95,14 +111,25 @@ class Order {
     required this.createdAt,
     required this.items,
     this.deliveryAddress = '',
-    this.deliveryFee = 0,
     this.timestamps = const {},
     this.estimatedArrival,
   });
 
   int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
-  int get subtotal => items.fold(0, (sum, i) => sum + i.lineTotal);
-  int get total => subtotal + deliveryFee;
+
+  /// Goods, delivery and total for this order, priced by the same calculator
+  /// the cart and checkout use.
+  ///
+  /// Delivery is not stored on the order: it is the sum of each vendor's fee
+  /// in the vendor model, so an order's receipt and the cart it came from can
+  /// never quote different delivery charges.
+  CartTotals get totals => CartTotals.forLines(
+        items.map((item) =>
+            (vendorName: item.vendorName, amount: item.lineTotal)),
+      );
+
+  int get subtotal => totals.subtotal;
+  int get total => totals.total;
 
   /// Expected arrival: what the source said, or 30 minutes after placement.
   DateTime get eta =>
@@ -125,7 +152,6 @@ class Order {
         createdAt: createdAt,
         items: items,
         deliveryAddress: deliveryAddress,
-        deliveryFee: deliveryFee,
         timestamps: timestamps ?? this.timestamps,
         estimatedArrival: estimatedArrival,
       );
@@ -232,7 +258,8 @@ Order orderFromStored(StoredOrder o, {DateTime? now}) {
     createdAt: o.placedAt,
     items: o.items,
     deliveryAddress: o.deliveryAddress,
-    deliveryFee: o.deliveryFee,
+    // The stored fee is legacy data: [Order.totals] prices delivery from the
+    // vendor model, which is what every screen shows.
     timestamps: _timelineFor(status, o.placedAt, at),
     // The checkout promise: a 30 minute delivery. A backend with a real ETA
     // fills this in from its own estimate.
@@ -386,7 +413,6 @@ class MockOrdersRepository implements OrdersRepository {
       required String id,
       required String vendorName,
       required Duration age,
-      required int deliveryFee,
       required List<OrderItem> items,
     }) {
       final placedAt = now.subtract(age);
@@ -396,7 +422,6 @@ class MockOrdersRepository implements OrdersRepository {
         status: _stageReached(placedAt),
         createdAt: placedAt,
         deliveryAddress: _demoAddress,
-        deliveryFee: deliveryFee,
         // Filled in by [_aged] from the status above.
         timestamps: const {},
         items: items,
@@ -409,7 +434,6 @@ class MockOrdersRepository implements OrdersRepository {
         id: 'GBX-10536',
         vendorName: 'Green Farm',
         age: const Duration(minutes: 18),
-        deliveryFee: 500,
         items: [
           _demoItem('Rice', 'Green Farm'),
           _demoItem('Beans', 'Green Farm'),
@@ -419,14 +443,12 @@ class MockOrdersRepository implements OrdersRepository {
         id: 'GBX-10528',
         vendorName: 'Real Green',
         age: const Duration(minutes: 11),
-        deliveryFee: 800,
         items: [_demoItem('Fresh Vegetables', 'Real Green')],
       ),
       demo(
         id: 'GBX-10521',
         vendorName: 'Yummy Bunch',
         age: const Duration(minutes: 7),
-        deliveryFee: 500,
         items: [_demoItem('Tomatoes', 'Yummy Bunch', qty: 2)],
       ),
     ];

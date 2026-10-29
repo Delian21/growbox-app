@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/vendor_rating.dart';
 
 class VendorScreen extends StatefulWidget {
   final String vendorName;
@@ -36,6 +37,15 @@ class _VendorScreenState extends State<VendorScreen> {
 
   bool get isFavorite => favoriteVendors.any((v) => v['name'] == widget.vendorName);
 
+  /// The vendor's rating from the catalog, in the shared 84% / (21) format.
+  double get _vendorRating => ratingPercentageFromLabel(
+        MockVendors.find(widget.vendorName)?['percentage'] as String?,
+      );
+
+  int? get _vendorReviews => reviewCountFromLabel(
+        MockVendors.find(widget.vendorName)?['reviews'] as String?,
+      );
+
   @override
   void initState() {
     super.initState();
@@ -48,12 +58,17 @@ class _VendorScreenState extends State<VendorScreen> {
       if (wasFavorite) {
         favoriteVendors.removeWhere((v) => v['name'] == widget.vendorName);
       } else {
+        // Save the real rating: the favourites card used to render the
+        // placeholder "0.0" saved here instead of the vendor's 84% / (21).
         favoriteVendors.add({
           'name': widget.vendorName,
           'image': widget.vendorCoverImage,
           'logo': widget.vendorLogoImage,
-          'rating': '0.0',
-          'reviews': 'No reviews',
+          'rating':
+              (MockVendors.find(widget.vendorName)?['percentage'] as String?) ??
+                  '',
+          'reviews':
+              (MockVendors.find(widget.vendorName)?['reviews'] as String?) ?? '',
         });
       }
       persistFavorites();
@@ -269,26 +284,15 @@ class _VendorScreenState extends State<VendorScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Rating
-                        if (widget.products.isNotEmpty) ...[
-                          const Icon(Icons.star,
-                              size: 14, color: AppColors.gold),
-                          const SizedBox(width: 4),
-                          Text(
-                            '4.8',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: C.textPrimary(context),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '(21)',
-                            style: TextStyle(
-                            fontSize: 12,
-                            color: C.textMuted(context),
-                            ),
+                        // Rating: thumbs-up + percentage + review count, the
+                        // same widget the cards use.
+                        if (_vendorRating > 0) ...[
+                          const SizedBox(width: 8),
+                          VendorRating(
+                            percentage: _vendorRating,
+                            reviewCount: _vendorReviews,
+                            iconSize: 14,
+                            fontSize: 13,
                           ),
                         ],
                       ],

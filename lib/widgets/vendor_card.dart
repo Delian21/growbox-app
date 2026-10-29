@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import 'skeleton_loader.dart';
+import 'vendor_rating.dart';
 
 /// Vendor tile used by the home feed.
 ///
@@ -17,6 +18,9 @@ class VendorCard extends StatelessWidget {
   /// Percentage of customers who liked the vendor (0–100). Zero means the
   /// vendor has no rating yet.
   final double ratingPercentage;
+
+  /// Reviews behind [ratingPercentage]; null hides the count.
+  final int? reviewCount;
 
   /// Delivery fee in naira. Zero renders as "Free delivery".
   final int deliveryFee;
@@ -39,6 +43,7 @@ class VendorCard extends StatelessWidget {
     required this.ratingPercentage,
     required this.deliveryFee,
     required this.onTap,
+    this.reviewCount,
     this.isFavorite = false,
     this.onFavoriteToggle,
   });
@@ -251,21 +256,11 @@ class VendorCard extends StatelessWidget {
         color: C.primaryTint(context),
         borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star_rounded,
-              size: 13, color: C.primary(context)),
-          const SizedBox(width: 3),
-          Text(
-            '${ratingPercentage.round()}%',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: C.primary(context),
-            ),
-          ),
-        ],
+      // Same thumbs-up + percentage + count as the vendor page, the search
+      // results and the favourites list.
+      child: VendorRating(
+        percentage: ratingPercentage,
+        reviewCount: reviewCount,
       ),
     );
   }

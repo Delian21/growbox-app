@@ -62,7 +62,6 @@ Order _order({
         ),
       ],
       deliveryAddress: address,
-      deliveryFee: 500,
     );
 
 Widget harness(Order order, {bool disableAnimations = false}) => MaterialApp(
