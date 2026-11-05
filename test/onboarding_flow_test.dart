@@ -39,7 +39,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Fast & Reliable\nDelivery'), findsOneWidget);
-    expect(find.text('Get Started'), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
 
     // Delivery slide copy no longer promises live tracking.
     expect(
@@ -66,10 +66,11 @@ void main() {
     await tester.pump();
 
     // On dark the deep brand green would vanish, so the CTA flips to the
-    // lifted green with dark text.
+    // lifted green with dark text: the theme's onPrimary there is the
+    // background, 10.2:1 against the lifted green (deep green is only 5.75:1).
     final cta = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
     expect(cta.style?.backgroundColor?.resolve({}), AppDarkColors.primary);
-    expect(cta.style?.foregroundColor?.resolve({}), AppColors.primary);
+    expect(cta.style?.foregroundColor?.resolve({}), AppDarkColors.background);
 
     // The active indicator uses the same lifted green, not the deep one.
     final activeDot =

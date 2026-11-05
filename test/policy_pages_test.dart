@@ -103,7 +103,7 @@ void main() {
 
     expect(find.text('Cookies Policy'), findsOneWidget);
     expect(find.text('Last updated 25 October 2026'), findsOneWidget);
-    expect(find.text('What GROWBOX stores'), findsOneWidget);
+    expect(find.text('What Growbox stores'), findsOneWidget);
     expect(find.text('What we do not use'), findsOneWidget);
     expect(find.text('Managing cookies'), findsOneWidget);
     expect(find.textContaining('No advertising cookies'), findsOneWidget);
