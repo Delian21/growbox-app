@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:growbox/data/orders.dart';
+import 'package:growbox/screens/faq_screen.dart';
 import 'package:growbox/screens/delivery_tracking_screen.dart';
 import 'package:growbox/theme.dart';
 
@@ -12,12 +13,14 @@ final _timePattern = RegExp(r'^\d{1,2}:\d{2} (AM|PM)$');
 Order orderWith(
   OrderStatus status, {
   Map<OrderStatus, DateTime>? timestamps,
+  DateTime? estimatedArrival,
 }) =>
     Order(
       id: 'GBX-10536',
       vendorName: 'Green Farm',
       status: status,
       createdAt: DateTime(2026, 10, 25, 10, 12),
+      estimatedArrival: estimatedArrival,
       items: const [],
       timestamps: timestamps ??
           {
@@ -135,18 +138,14 @@ void main() {
     expect(find.byIcon(Icons.two_wheeler), findsNWidgets(2));
 
     // The current step's title is the bold one.
-    expect(tester.widget<Text>(find.text('On the Way')).style!.fontWeight,
+    expect(tester.widget<Text>(find.text('On the way')).style!.fontWeight,
         FontWeight.w700);
-    expect(tester.widget<Text>(find.text('Picked Up')).style!.fontWeight,
+    expect(tester.widget<Text>(find.text('Picked up')).style!.fontWeight,
         FontWeight.w600);
 
     // Pending steps are readable, not near-invisible grey.
     final pending = tester.widget<Text>(find.text('Delivered'));
     expect(pending.style!.color, C.textMuted(context));
-    expect(
-      tester.widget<Text>(find.text('Order delivered to your address')).style!.color,
-      C.textMuted(context),
-    );
   });
 
   testWidgets('completed steps show a time; pending ones show none',
@@ -198,7 +197,7 @@ void main() {
       await pumpScreen(tester, order: orderWith(OrderStatus.onTheWay));
 
       // "On the way" is the step in progress, with a vehicle not a check.
-      expect(tester.widget<Text>(find.text('On the Way')).style!.fontWeight,
+      expect(tester.widget<Text>(find.text('On the way')).style!.fontWeight,
           FontWeight.w700);
       expect(find.byIcon(Icons.two_wheeler), findsNWidgets(2));
 
@@ -222,7 +221,7 @@ void main() {
       await pumpScreen(tester, order: orderWith(OrderStatus.packing));
 
       expect(find.text('#GBX-10536'), findsOneWidget);
-      expect(tester.widget<Text>(find.text('Rider Assigned')).style!.fontWeight,
+      expect(tester.widget<Text>(find.text('Packing')).style!.fontWeight,
           FontWeight.w700);
       // Only "order placed" is behind the rider.
       expect(find.byIcon(Icons.check), findsOneWidget);
@@ -234,10 +233,10 @@ void main() {
       await pumpScreen(tester, order: orderWith(OrderStatus.confirmed));
       await tester.pump(const Duration(seconds: 20));
 
-      expect(tester.widget<Text>(find.text('Order Placed')).style!.fontWeight,
+      expect(tester.widget<Text>(find.text('Confirmed')).style!.fontWeight,
           FontWeight.w700);
-      expect(tester.widget<Text>(find.text('Picked Up')).style!.fontWeight,
-          FontWeight.w500);
+      expect(tester.widget<Text>(find.text('Picked up')).style!.fontWeight,
+          FontWeight.w600);
       expect(find.byIcon(Icons.check), findsNothing);
     });
 
@@ -253,7 +252,8 @@ void main() {
       expect(find.text('10:48 AM'), findsOneWidget);
     });
 
-    testWidgets('a missing timestamp simply omits the time', (tester) async {
+    testWidgets('a missing timestamp falls back to the delivery ladder',
+        (tester) async {
       await pumpScreen(
         tester,
         order: orderWith(
@@ -262,13 +262,16 @@ void main() {
         ),
       );
 
+      // Every completed step still carries a time, derived from placement —
+      // a bare "Done" tells nobody anything.
       expect(
         tester.widgetList<Text>(find.byType(Text)).where(
             (t) => _timePattern.hasMatch(t.data ?? '')).length,
-        0,
+        3,
       );
+      expect(find.text('Done'), findsNothing);
       // The stages still read from the status.
-      expect(tester.widget<Text>(find.text('On the Way')).style!.fontWeight,
+      expect(tester.widget<Text>(find.text('On the way')).style!.fontWeight,
           FontWeight.w700);
     });
   });
@@ -279,9 +282,10 @@ void main() {
       await pumpScreen(tester, brightness: brightness);
 
       final card = tester.widget<Container>(
-        find.ancestor(of: find.text('Arriving in'), matching: find.byType(Container)).first,
+        find.ancestor(of: find.textContaining('Arriving by'),
+            matching: find.byType(Container)).first,
       );
-      final context = tester.element(find.text('Arriving in'));
+      final context = tester.element(find.textContaining('Arriving by'));
 
       expect(
         (card.decoration as BoxDecoration).color,
@@ -296,6 +300,84 @@ void main() {
 
   testWidgets('lays out at a narrow width without overflowing', (tester) async {
     await pumpScreen(tester, size: const Size(320, 700));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the arrival card counts whole minutes, rounded up',
+      (tester) async {
+    await pumpScreen(
+      tester,
+      order: orderWith(
+        OrderStatus.onTheWay,
+        estimatedArrival: DateTime.now().add(const Duration(minutes: 11)),
+      ),
+    );
+
+    // One figure instead of the old HH:MM:SS tiles.
+    expect(find.text('11 min'), findsOneWidget);
+    expect(find.textContaining('Arriving by'), findsOneWidget);
+    expect(find.text('Running late'), findsNothing);
+  });
+
+  testWidgets('the last minute reads Arriving now, never zero', (tester) async {
+    await pumpScreen(
+      tester,
+      order: orderWith(
+        OrderStatus.onTheWay,
+        estimatedArrival: DateTime.now().add(const Duration(seconds: 30)),
+      ),
+    );
+
+    expect(find.text('Arriving now'), findsOneWidget);
+    expect(find.text('0 min'), findsNothing);
+  });
+
+  testWidgets('a passed estimate reads Running late and offers help',
+      (tester) async {
+    await pumpScreen(
+      tester,
+      order: orderWith(
+        OrderStatus.onTheWay,
+        estimatedArrival: DateTime.now().subtract(const Duration(minutes: 4)),
+      ),
+    );
+
+    expect(find.text('Running late'), findsOneWidget);
+    expect(find.text('Arriving now'), findsNothing);
+
+    await tester.tap(find.text('Need help?'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FAQScreen), findsOneWidget);
+  });
+
+  testWidgets('sections run arrival, map, rider, timeline, details',
+      (tester) async {
+    await pumpScreen(tester, size: const Size(360, 1600));
+
+    double top(Finder finder) => tester.getTopLeft(finder).dy;
+
+    final arrival = top(find.textContaining('Arriving by'));
+    final map = top(find.byIcon(Icons.store));
+    final rider = top(find.text('Ibrahim K.'));
+    final timeline = top(find.text('Delivery Status'));
+    final details = top(find.text('Delivery Details'));
+
+    expect(arrival, lessThan(map));
+    expect(map, lessThan(rider));
+    expect(rider, lessThan(timeline));
+    expect(timeline, lessThan(details));
+
+    // The arrival is stated once, in the card at the top.
+    expect(find.text('Est. Delivery'), findsNothing);
+  });
+
+  testWidgets('the arrival clock stops with the screen', (tester) async {
+    await pumpScreen(tester);
+
+    // Replace the screen: the periodic timer must be cancelled in dispose, or
+    // the test framework reports a pending timer.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(minutes: 3));
     expect(tester.takeException(), isNull);
   });
 }

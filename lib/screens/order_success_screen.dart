@@ -5,8 +5,8 @@ import '../data/orders.dart';
 import '../routes.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
-import '../widgets/app_button.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/order_outcome.dart';
 import '../widgets/pinned_bottom_bar.dart';
 import 'delivery_tracking_screen.dart';
 
@@ -138,11 +138,19 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xxl),
-                        _buildOrderNumberCard(context),
+                        // The cards, the badge and the bar are shared with the
+                        // pending and failed outcomes; see order_outcome.dart.
+                        OrderNumberCard(
+                          orderNumber: widget.order.id,
+                          onTap: _copyOrderNumber,
+                        ),
                         const SizedBox(height: AppSpacing.md),
-                        _buildDeliveryCard(context),
+                        OrderAddressCard(
+                          address: widget.order.deliveryAddress,
+                          eta: widget.order.eta,
+                        ),
                         const SizedBox(height: AppSpacing.md),
-                        _buildSummaryCard(context),
+                        OrderSummaryCard(order: widget.order),
                       ],
                     ),
                   ),
@@ -172,243 +180,26 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
     return ScaleTransition(
       key: const ValueKey('successBadge'),
       scale: _scale,
-      child: Container(
-        width: size,
-        height: size,
-        // The app's existing success token rather than the primary green, so
-        // the badge reads as an outcome and not as the brand's action colour.
-        decoration: BoxDecoration(
-          color: C.success(context),
-          shape: BoxShape.circle,
-        ),
-        // There is no onSuccess token; onPrimary is the app's "ink on a strong
-        // fill" colour and clears 3:1 on this green in both themes.
-        child: Icon(
-          Icons.check_rounded,
-          size: size * 0.52,
-          color: C.onPrimary(context),
-        ),
+      // The app's existing success token rather than the primary green, so the
+      // badge reads as an outcome and not as the brand's action colour. There
+      // is no onSuccess token; onPrimary is the app's "ink on a strong fill"
+      // colour and clears 3:1 on this green in both themes.
+      child: OutcomeBadge(
+        icon: Icons.check_rounded,
+        fill: C.success(context),
+        iconColor: C.onPrimary(context),
+        size: size,
       ),
     );
-  }
-
-  Widget _buildOrderNumberCard(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Copy order number',
-      child: GestureDetector(
-        onTap: _copyOrderNumber,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: C.surface(context),
-            borderRadius: BorderRadius.circular(AppRadii.md),
-            border: Border.all(color: C.divider(context)),
-          ),
-          // Flexible on both texts, so a long number or a large text scale
-          // shrinks the label instead of overflowing the row.
-          child: Row(
-            children: [
-              Flexible(
-                child: Text(
-                  'Order number',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: C.textMuted(context),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Flexible(
-                child: Text(
-                  orderNumberLabel(widget.order.id),
-                  maxLines: 1,
-                  textAlign: TextAlign.end,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.labelMedium.copyWith(
-                    color: C.textPrimary(context),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Icon(
-                Icons.copy_rounded,
-                size: 16,
-                color: C.textMuted(context),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeliveryCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: C.divider(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _label(context, 'Delivering to'),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            _shortAddress(widget.order.deliveryAddress),
-            style: AppTypography.bodyMedium.copyWith(
-              height: 1.4,
-              color: C.textPrimary(context),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _label(context, 'Estimated delivery'),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            formatArrival(widget.order.eta),
-            style: AppTypography.bodySmall.copyWith(
-              color: C.textPrimary(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(BuildContext context) {
-    final order = widget.order;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: C.divider(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _label(context, 'Order summary'),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            order.vendorName,
-            style: AppTypography.labelMedium.copyWith(
-              color: C.textPrimary(context),
-            ),
-          ),
-          Text(
-            '${order.itemCount} item${order.itemCount == 1 ? '' : 's'}',
-            style: AppTypography.bodySmall.copyWith(
-              color: C.textMuted(context),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _moneyRow(context, 'Subtotal', '₦${formatPrice(order.subtotal)}'),
-          const SizedBox(height: AppSpacing.sm),
-          _moneyRow(
-            context,
-            'Delivery',
-            order.totals.deliveryFee == 0
-                ? 'Free'
-                : '₦${formatPrice(order.totals.deliveryFee)}',
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Divider(height: 1, color: C.divider(context)),
-          const SizedBox(height: AppSpacing.md),
-          // Bold total: the one number the payer needs to recognise.
-          Row(
-            children: [
-              Text(
-                'Total',
-                style: AppTypography.labelLarge.copyWith(
-                  color: C.textPrimary(context),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '₦${formatPrice(order.total)}',
-                style: AppTypography.labelLarge.copyWith(
-                  color: C.textPrimary(context),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _moneyRow(BuildContext context, String label, String value) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: AppTypography.bodySmall.copyWith(color: C.textMuted(context)),
-        ),
-        const Spacer(),
-        Text(
-          value,
-          style: AppTypography.bodySmall.copyWith(
-            color: C.textPrimary(context),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _label(BuildContext context, String text) {
-    return Text(
-      text,
-      style: AppTypography.labelSmall.copyWith(color: C.textMuted(context)),
-    );
-  }
-
-  /// Drops a trailing country from a stored address ("…, Abuja, Nigeria").
-  static String _shortAddress(String address) {
-    final trimmed = address.replaceFirst(RegExp(r',\s*Nigeria\s*$'), '');
-    return trimmed.isEmpty ? address : trimmed;
   }
 
   Widget _buildBar(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: AppButton(
-            label: 'Track delivery',
-            onPressed: _trackDelivery,
-            icon: Icons.local_shipping_outlined,
-            expand: true,
-            height: 52,
-            radius: AppRadii.pill,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: AppButton(
-            label: 'Continue shopping',
-            onPressed: _continueShopping,
-            variant: AppButtonVariant.secondary,
-            expand: true,
-            height: 52,
-            radius: AppRadii.pill,
-          ),
-        ),
-      ],
+    return OrderActionBar(
+      primaryLabel: 'Track delivery',
+      onPrimary: _trackDelivery,
+      primaryIcon: Icons.local_shipping_outlined,
+      secondaryLabel: 'Continue shopping',
+      onSecondary: _continueShopping,
     );
   }
 }

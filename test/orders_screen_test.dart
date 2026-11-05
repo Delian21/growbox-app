@@ -48,6 +48,7 @@ Order _order({
   List<OrderItem>? items,
   Duration age = const Duration(hours: 1),
   Map<OrderStatus, DateTime> timestamps = const {},
+  String? riderNote,
 }) =>
     Order(
       id: id,
@@ -57,6 +58,7 @@ Order _order({
       items: items ?? [_line('Rice', 2550, qty: 2)],
       deliveryAddress: 'Gwarinpa, Abuja',
       timestamps: timestamps,
+      riderNote: riderNote,
     );
 
 void main() {
@@ -251,7 +253,11 @@ void main() {
     // untouched one stays pending.
     expect(find.text('11:00 AM'), findsOneWidget);
     expect(find.text('11:05 AM'), findsOneWidget);
-    expect(find.text('In progress · 11:12 AM'), findsOneWidget);
+    expect(find.text('In progress'), findsOneWidget);
+    // The current step's own time stays hidden.
+    expect(find.text('11:12 AM'), findsNothing);
+    // Only the final step is still pending: a pickup behind "On the way" is
+    // completed, not waiting.
     expect(find.text('Pending'), findsOneWidget);
 
     // Totals are derived: 2 × 2,550 subtotal (+ 500 delivery).
@@ -300,7 +306,44 @@ void main() {
     expect(find.text('Pending'), findsNWidgets(4)); // steps never reached
     expect(find.text('Reorder All Items'), findsOneWidget);
     expect(find.text('Track Delivery'), findsNothing);
-    expect(find.text('Payment refunded'), findsOneWidget);
+
+    // Pay on delivery moves no money, so a cancellation never says "refunded".
+    expect(find.text('Order cancelled'), findsOneWidget);
+    expect(find.text('Nothing charged'), findsOneWidget);
+    expect(find.textContaining('efund'), findsNothing);
+  });
+
+  testWidgets('an active pay-on-delivery order is not called paid',
+      (tester) async {
+    await tester.pumpWidget(detailsHarness(
+      _order(
+        id: 'GBX-16',
+        status: OrderStatus.onTheWay,
+        riderNote: 'Ring the bell twice',
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // Headline status and the Method row, both from the payment method.
+    expect(find.text('Pay on delivery'), findsNWidgets(2));
+    expect(find.text('Method'), findsOneWidget);
+    expect(find.text('Paid'), findsNothing);
+
+    // The note the rider needs is shown, in full.
+    expect(find.text('Note for rider'), findsOneWidget);
+    expect(find.text('Ring the bell twice'), findsOneWidget);
+  });
+
+  testWidgets('a delivered order reads Paid and drops the rider note',
+      (tester) async {
+    await tester.pumpWidget(detailsHarness(
+      _order(id: 'GBX-18', status: OrderStatus.delivered),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Payment successful'), findsOneWidget);
+    expect(find.text('Paid'), findsOneWidget);
+    expect(find.text('Note for rider'), findsNothing);
   });
 
   testWidgets('free delivery reads as Free in the summary', (tester) async {

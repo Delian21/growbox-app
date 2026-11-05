@@ -216,10 +216,16 @@ void main() {
       find.descendant(of: tracking, matching: find.text('#GBX-10482')),
       findsWidgets,
     );
-    // The tracking screen quotes the ETA twice (countdown card + details row).
+    // The arrival promise is stated once, as the wait plus the clock time under
+    // it, rather than as the old countdown tiles and a duplicate details row.
     expect(
-      find.descendant(of: tracking, matching: find.text(formatArrival(order.eta))),
-      findsWidgets,
+      find.descendant(of: tracking, matching: find.textContaining(' min')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+          of: tracking, matching: find.textContaining('Arriving by')),
+      findsOneWidget,
     );
   });
 

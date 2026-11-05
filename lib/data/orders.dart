@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'app_state.dart';
 import 'mock_data.dart';
+import 'payment_method.dart';
 
 // ---------------------------------------------------------------------------
 // Status
@@ -94,8 +95,9 @@ class Order {
   /// When each lifecycle step was reached, keyed by status.
   ///
   /// Only steps that have actually happened are present, and a missing time is
-  /// not an error: the details screen falls back to a plain "Done"/"Pending"
-  /// label. A backend with an event log simply fills more entries.
+  /// not an error: the shared timeline falls back to [deliveryStepMinutes] plus
+  /// the placement time, so a completed step still shows when it happened. A
+  /// backend with an event log simply fills more entries.
   final Map<OrderStatus, DateTime> timestamps;
 
   /// When the delivery is expected, as promised at checkout.
@@ -103,6 +105,15 @@ class Order {
   /// Null means the source never said; [eta] then falls back to the app's
   /// standard 30 minute delivery rather than the screens inventing a time.
   final DateTime? estimatedArrival;
+
+  /// How the buyer chose to pay at checkout.
+  ///
+  /// Records that predate the choice default to "pay on delivery", which is
+  /// the only method the app has ever been able to honour.
+  final PaymentMethod paymentMethod;
+
+  /// Free-text note the buyer left for the rider, or null when they skipped it.
+  final String? riderNote;
 
   const Order({
     required this.id,
@@ -113,6 +124,8 @@ class Order {
     this.deliveryAddress = '',
     this.timestamps = const {},
     this.estimatedArrival,
+    this.paymentMethod = PaymentMethod.payOnDelivery,
+    this.riderNote,
   });
 
   int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
@@ -154,6 +167,8 @@ class Order {
         deliveryAddress: deliveryAddress,
         timestamps: timestamps ?? this.timestamps,
         estimatedArrival: estimatedArrival,
+        paymentMethod: paymentMethod,
+        riderNote: riderNote,
       );
 }
 
@@ -218,7 +233,11 @@ abstract class OrdersRepository {
 // ---------------------------------------------------------------------------
 
 /// Minutes after placement at which a delivery reaches each step.
-const Map<OrderStatus, int> _stepMinutes = {
+///
+/// The mock event log uses it to stamp reached steps, and the shared timeline
+/// falls back to it when a record predates its event log — so a completed step
+/// always has a time to show instead of a bare "Done".
+const Map<OrderStatus, int> deliveryStepMinutes = {
   OrderStatus.confirmed: 0,
   OrderStatus.packing: 5,
   OrderStatus.pickedUp: 9,
@@ -227,7 +246,11 @@ const Map<OrderStatus, int> _stepMinutes = {
   OrderStatus.cancelled: 2,
 };
 
-const List<OrderStatus> _track = [
+/// The delivery's five steps, in order: the track every timeline draws.
+///
+/// Public because the shared timeline widget walks it too; there is exactly one
+/// definition of what "a delivery" means.
+const List<OrderStatus> orderTrack = [
   OrderStatus.confirmed,
   OrderStatus.packing,
   OrderStatus.pickedUp,
@@ -253,7 +276,7 @@ Order orderFromStored(StoredOrder o, {DateTime? now}) {
   final status = _statusForStored(o, at);
   return Order(
     id: o.orderNumber,
-    vendorName: _vendorLabel(o.items),
+    vendorName: vendorNameForItems(o.items),
     status: status,
     createdAt: o.placedAt,
     items: o.items,
@@ -264,8 +287,33 @@ Order orderFromStored(StoredOrder o, {DateTime? now}) {
     // The checkout promise: a 30 minute delivery. A backend with a real ETA
     // fills this in from its own estimate.
     estimatedArrival: o.placedAt.add(const Duration(minutes: 30)),
+    paymentMethod: o.paymentMethod,
+    riderNote: o.riderNote,
   );
 }
+
+/// An order-shaped snapshot of a checkout attempt that was never recorded.
+///
+/// The failure screen has to show what the attempt contained — vendor, items,
+/// totals, address — but there is no stored order to read, because the write is
+/// exactly what failed. This builds the same shape from the checkout draft, so
+/// the screen prices it with [Order.totals] like every other order.
+Order attemptedOrder({
+  required String orderNumber,
+  required List<OrderItem> items,
+  required String deliveryAddress,
+  PaymentMethod paymentMethod = PaymentMethod.payOnDelivery,
+  DateTime? placedAt,
+}) =>
+    Order(
+      id: orderNumber,
+      vendorName: vendorNameForItems(items),
+      status: OrderStatus.confirmed,
+      createdAt: placedAt ?? DateTime.now(),
+      items: items,
+      deliveryAddress: deliveryAddress,
+      paymentMethod: paymentMethod,
+    );
 
 /// Status of a legacy record, with stale in-flight records retired.
 ///
@@ -290,7 +338,7 @@ OrderStatus _legacyStatus(String status) => switch (status) {
     };
 
 /// One vendor name, or "First +N" when a box spans several vendors.
-String _vendorLabel(List<OrderItem> items) {
+String vendorNameForItems(List<OrderItem> items) {
   final names = <String>{
     for (final item in items)
       if (item.vendorName.isNotEmpty) item.vendorName,
@@ -309,7 +357,7 @@ Map<OrderStatus, DateTime> _timelineFor(
   DateTime now,
 ) {
   DateTime stamp(OrderStatus step) {
-    final at = placedAt.add(Duration(minutes: _stepMinutes[step] ?? 0));
+    final at = placedAt.add(Duration(minutes: deliveryStepMinutes[step] ?? 0));
     return at.isAfter(now) ? now : at;
   }
 
@@ -323,7 +371,7 @@ Map<OrderStatus, DateTime> _timelineFor(
   // Delivered is the last step on the track, so `<=` covers everything reached
   // on the way to it.
   return {
-    for (final step in _track)
+    for (final step in orderTrack)
       if (step.stepIndex <= status.stepIndex) step: stamp(step),
   };
 }
@@ -402,7 +450,7 @@ class MockOrdersRepository implements OrdersRepository {
   /// Three deliveries so "packing", "picked up" and "on the way" are each
   /// visible without the debug button or a real checkout.
   ///
-  /// Ages are 7 < 11 < 18 minutes, one step of [_stepMinutes] apart, so each
+  /// Ages are 7 < 11 < 18 minutes, one step of [deliveryStepMinutes] apart, so each
   /// has reached its status but not the next one. The status is not authored
   /// here: [_aged] derives it from the age, so the ladder is a consequence of
   /// the placement times instead of a second copy of them.
@@ -471,8 +519,8 @@ class MockOrdersRepository implements OrdersRepository {
   /// Furthest step a delivery placed at [placedAt] has reached by now.
   OrderStatus _stageReached(DateTime placedAt) {
     final minutes = _now().difference(placedAt).inMinutes;
-    return _track.lastWhere(
-      (step) => minutes >= (_stepMinutes[step] ?? 0),
+    return orderTrack.lastWhere(
+      (step) => minutes >= (deliveryStepMinutes[step] ?? 0),
       orElse: () => OrderStatus.confirmed,
     );
   }

@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import '../data/orders.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/app_button.dart';
 import '../widgets/app_header.dart';
+import '../widgets/order_timeline.dart';
+import 'faq_screen.dart';
 
 /// Delivery tracking status stages.
 enum DeliveryStage {
@@ -52,24 +55,6 @@ OrderStatus statusForDeliveryStage(DeliveryStage stage) => switch (stage) {
       DeliveryStage.onTheWay => OrderStatus.onTheWay,
       DeliveryStage.delivered => OrderStatus.delivered,
     };
-
-/// A single stage in the delivery timeline.
-class DeliveryStep {
-  final DeliveryStage stage;
-  final String title;
-  final String subtitle;
-
-  /// When the step was reached. Null for steps that have not happened, and the
-  /// UI then simply omits the time line.
-  final DateTime? completedAt;
-
-  DeliveryStep({
-    required this.stage,
-    required this.title,
-    required this.subtitle,
-    this.completedAt,
-  });
-}
 
 /// Mock rider data for the delivery.
 class DeliveryRider {
@@ -119,25 +104,13 @@ class DeliveryTrackingScreen extends StatefulWidget {
 
 class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
     with SingleTickerProviderStateMixin {
-  /// Demo timeline: minutes after placement at which each stage is reached.
-  /// Only used when no [Order] was supplied; a real order overrides it with its
-  /// own timestamps. A step with no time simply renders without one.
-  static const Map<DeliveryStage, int> _stepMinutes = {
-    DeliveryStage.orderPlaced: 0,
-    DeliveryStage.riderAssigned: 4,
-    DeliveryStage.pickedUp: 9,
-    DeliveryStage.onTheWay: 14,
-    DeliveryStage.delivered: 45,
-  };
-
   late DeliveryStage _currentStage;
-  late DateTime _countdownTarget;
+
+  /// The promised arrival: the order's own ETA, or the demo's 28 minutes.
+  late DateTime _eta;
   late DateTime _placedAt;
   late String _orderNumber;
-  Duration _remaining = Duration.zero;
 
-  /// The arrival promise, written the one way the app writes arrivals.
-  String get _etaLabel => formatArrival(_countdownTarget);
   Timer? _countdownTimer;
   Timer? _stageTimer;
 
@@ -170,9 +143,8 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
 
     // A real order carries its promised arrival; the demo counts down 28
     // minutes from opening.
-    _countdownTarget =
-        order?.eta ?? DateTime.now().add(const Duration(minutes: 28));
-    _startCountdown();
+    _eta = order?.eta ?? DateTime.now().add(const Duration(minutes: 28));
+    _startArrivalClock();
 
     _riderPulseController = AnimationController(
       vsync: this,
@@ -184,20 +156,17 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
     if (_isDemo) _startStageSimulation();
   }
 
-  void _startCountdown() {
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  /// Ticks once a minute: the arrival card counts whole minutes, so a
+  /// per-second timer would repaint sixty times to say nothing new.
+  void _startArrivalClock() {
+    _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (!mounted) return;
-      final now = DateTime.now();
-      final diff = _countdownTarget.difference(now);
-      setState(() {
-        _remaining = diff.isNegative ? Duration.zero : diff;
-      });
-      if (diff.isNegative) {
-        timer.cancel();
-        // Never overwrite a real order's status with a clock running out.
-        if (_isDemo) {
-          setState(() => _currentStage = DeliveryStage.delivered);
-        }
+      // A demo delivery completes when its window closes. A real order only
+      // moves when the order itself does, so it just re-reads the clock.
+      if (_isDemo && DateTime.now().isAfter(_eta)) {
+        setState(() => _currentStage = DeliveryStage.delivered);
+      } else {
+        setState(() {});
       }
     });
   }
@@ -241,13 +210,18 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildCountdownCard(),
+                    // Arrival, then where the box is, then who is carrying it,
+                    // then how far it has come, then the reference details.
+                    _buildArrivalCard(),
                     const SizedBox(height: AppSpacing.xxl),
+                    // A static illustration of the route, not live GPS: the
+                    // marker is placed from the order's status and nothing is
+                    // read from the device's location.
                     _buildAnimatedMap(screenWidth),
                     const SizedBox(height: AppSpacing.xxl),
-                    _buildTimeline(),
-                    const SizedBox(height: AppSpacing.xxl),
                     _buildRiderCard(),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildTimeline(),
                     const SizedBox(height: AppSpacing.xxl),
                     _buildDeliveryDetails(),
                   ],
@@ -271,14 +245,48 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // COUNTDOWN CARD
+  // ARRIVAL CARD
   // ═══════════════════════════════════════════════════════════════════════
 
-  Widget _buildCountdownCard() {
+  /// Minutes left, rounded up: "11 min" instead of a seconds clock nobody can
+  /// read and that would repaint every tick.
+  int get _minutesLeft =>
+      (_eta.difference(DateTime.now()).inSeconds / 60).ceil();
+
+  /// Past the promise and still not delivered.
+  bool get _isLate =>
+      _currentStage != DeliveryStage.delivered &&
+      DateTime.now().isAfter(_eta);
+
+  /// The headline: the wait, the arrival, lateness or completion.
+  ///
+  /// Never zero and never negative — the last minute reads "Arriving now"
+  /// rather than counting down to a number the delivery cannot honour.
+  String get _arrivalHeadline {
+    if (_currentStage == DeliveryStage.delivered) return 'Delivered!';
+    if (_isLate) return 'Running late';
+    if (_eta.difference(DateTime.now()).inSeconds < 60) return 'Arriving now';
+    return '$_minutesLeft min';
+  }
+
+  /// The line under the headline: when the box is due, written the one way the
+  /// app writes a time.
+  String get _arrivalDetail {
+    if (_currentStage == DeliveryStage.delivered) {
+      return 'Your order has been delivered successfully';
+    }
+    final by = formatOrderTime(_eta);
+    return _isLate ? 'It was due by $by' : 'Arriving by $by';
+  }
+
+  void _openHelp() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FAQScreen()),
+      );
+
+  Widget _buildArrivalCard() {
     final isDelivered = _currentStage == DeliveryStage.delivered;
-    final hours = _remaining.inHours;
-    final minutes = _remaining.inMinutes.remainder(60);
-    final seconds = _remaining.inSeconds.remainder(60);
+    final late = !isDelivered && _isLate;
 
     return Container(
       width: double.infinity,
@@ -292,78 +300,47 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
       child: Column(
         children: [
           Icon(
-            isDelivered ? Icons.check_circle : Icons.local_shipping_outlined,
-            size: 48,
-            color: isDelivered ? C.success(context) : C.primary(context),
+            isDelivered
+                ? Icons.check_circle
+                : late
+                    ? Icons.schedule
+                    : Icons.local_shipping_outlined,
+            size: 40,
+            color: late
+                ? C.errorBright(context)
+                : isDelivered
+                    ? C.success(context)
+                    : C.primary(context),
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            isDelivered ? 'Delivered!' : 'Arriving in',
-            // Primary green clears 4.5:1 on the soft panel in both themes.
+            _arrivalHeadline,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: C.primary(context),
+              fontSize: 32,
+              height: 1.1,
+              fontWeight: FontWeight.w700,
+              // Primary green clears 4.5:1 on the soft panel in both themes;
+              // the lateness colour is the app's readable destructive red.
+              color: late ? C.errorBright(context) : C.primary(context),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          if (!isDelivered)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _countdownDigit(hours.toString().padLeft(2, '0')),
-                Text(':',
-                    style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: C.textPrimary(context))),
-                _countdownDigit(minutes.toString().padLeft(2, '0')),
-                Text(':',
-                    style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: C.textPrimary(context))),
-                _countdownDigit(seconds.toString().padLeft(2, '0')),
-              ],
-            ),
-          if (!isDelivered) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              _etaLabel,
-              style: TextStyle(fontSize: 13, color: C.textSecondary(context)),
-            ),
-          ],
-          if (isDelivered) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Your order has been delivered successfully',
-              style: TextStyle(fontSize: 13, color: C.textSecondary(context)),
+          Text(
+            _arrivalDetail,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: C.textSecondary(context)),
+          ),
+          if (late) ...[
+            const SizedBox(height: AppSpacing.md),
+            AppButton(
+              label: 'Need help?',
+              onPressed: _openHelp,
+              variant: AppButtonVariant.text,
+              height: 44,
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _countdownDigit(String value) {
-    return Container(
-      width: 52,
-      height: 52,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: C.surface(context),
-        borderRadius: BorderRadius.circular(AppRadii.sm),
-        border: Border.all(color: C.divider(context)),
-      ),
-      child: Center(
-        child: Text(
-          value,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: C.textPrimary(context),
-          ),
-        ),
       ),
     );
   }
@@ -572,53 +549,6 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
   // ═══════════════════════════════════════════════════════════════════════
 
   Widget _buildTimeline() {
-    final current = _currentStage;
-
-    /// A step is done when it sits before the current one — or when it *is* the
-    /// final step and the order has arrived. The current step is in progress,
-    /// not done.
-    bool isReached(DeliveryStage stage) =>
-        stage.index < current.index ||
-        (stage == DeliveryStage.delivered &&
-            current == DeliveryStage.delivered);
-
-    /// When [stage] happened: the order's own event time when there is an
-    /// order, otherwise the demo clock. Pending steps carry no time either way,
-    /// and a step whose event the order never recorded stays blank.
-    DateTime? timeFor(DeliveryStage stage) {
-      if (!isReached(stage)) return null;
-      final order = widget.order;
-      if (order == null) {
-        return _placedAt.add(Duration(minutes: _stepMinutes[stage] ?? 0));
-      }
-      return order.timestampOf(statusForDeliveryStage(stage));
-    }
-
-    DeliveryStep step(
-      DeliveryStage stage,
-      String title,
-      String subtitle,
-    ) =>
-        DeliveryStep(
-          stage: stage,
-          title: title,
-          subtitle: subtitle,
-          completedAt: timeFor(stage),
-        );
-
-    final steps = [
-      step(DeliveryStage.orderPlaced, 'Order Placed',
-          'Your order has been confirmed'),
-      step(DeliveryStage.riderAssigned, 'Rider Assigned',
-          '${_rider.name} is heading to pick up your order'),
-      step(DeliveryStage.pickedUp, 'Picked Up',
-          'Order picked up from Green Farm'),
-      step(DeliveryStage.onTheWay, 'On the Way',
-          'Rider is on the way to your location'),
-      step(DeliveryStage.delivered, 'Delivered',
-          'Order delivered to your address'),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -631,164 +561,15 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        ...List.generate(steps.length, (index) {
-          final step = steps[index];
-          final reached = isReached(step.stage);
-          final isCurrent = !reached && step.stage == current;
-          final isLast = index == steps.length - 1;
-          // The segment below a dot belongs to the step it leads to.
-          final leadsToReached = !isLast && isReached(steps[index + 1].stage);
-
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Timeline rail: dot, then the connector that fills the row.
-                SizedBox(
-                  width: 32,
-                  child: Column(
-                    children: [
-                      _timelineDot(
-                        number: index + 1,
-                        reached: reached,
-                        isCurrent: isCurrent,
-                      ),
-                      if (!isLast)
-                        Expanded(
-                          child: Container(
-                            width: 2,
-                            color: leadsToReached
-                                ? C.primary(context)
-                                : C.textMuted(context).withValues(alpha: 0.4),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                // Content
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      top: isCurrent ? 1 : 2,
-                      bottom: isLast ? 0 : AppSpacing.xl,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          step.title,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: isCurrent
-                                ? FontWeight.w700
-                                : reached
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                            // Pending steps stay readable (~4.7:1 on light,
-                            // ~6.4:1 on dark) instead of near-invisible grey.
-                            color: reached
-                                ? C.textPrimary(context)
-                                : C.textMuted(context),
-                          ),
-                        ),
-                        if (reached && step.completedAt != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              formatOrderTime(step.completedAt!),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: C.textMuted(context),
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 2),
-                        Text(
-                          step.subtitle,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: reached
-                                ? C.textSecondary(context)
-                                : C.textMuted(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
+        // The same widget Order Details renders. A real order brings its own
+        // event log; the demo only has a placement time, so the shared timeline
+        // dates the steps from the delivery's ladder.
+        OrderTimeline(
+          status: statusForDeliveryStage(_currentStage),
+          timestamps: widget.order?.timestamps ?? const {},
+          placedAt: _placedAt,
+        ),
       ],
-    );
-  }
-
-  Widget _timelineDot({
-    required int number,
-    required bool reached,
-    required bool isCurrent,
-  }) {
-    if (reached) {
-      return Center(
-        child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: C.primary(context),
-          ),
-          child: Center(
-            child: Icon(Icons.check, size: 15, color: C.onPrimary(context)),
-          ),
-        ),
-      );
-    }
-
-    if (isCurrent) {
-      // The step in progress carries a vehicle, not a check: it is happening,
-      // not done. It is also slightly larger than the dots around it.
-      return Center(
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: C.primary(context),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.two_wheeler,
-              size: 18,
-              color: C.onPrimary(context),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Pending: outlined circle with the step number centred in both axes.
-    return Center(
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: C.textMuted(context), width: 1.5),
-        ),
-        child: Center(
-          child: Text(
-            '$number',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: C.textMuted(context),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -941,8 +722,6 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
               (widget.order?.deliveryAddress.trim().isNotEmpty ?? false)
                   ? widget.order!.deliveryAddress
                   : 'Not provided'),
-          const SizedBox(height: AppSpacing.sm),
-          _detailRow(Icons.access_time, 'Est. Delivery', _etaLabel),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'mock_data.dart';
+import 'payment_method.dart';
 
 // ---------------------------------------------------------------------------
 // Cart – ChangeNotifier for Provider, persisted with shared_preferences
@@ -251,6 +252,13 @@ class StoredOrder {
   final int deliveryFee;
   final List<OrderItem> items;
 
+  /// Free-text note the buyer left for the rider, or null when they skipped it.
+  final String? riderNote;
+
+  /// How the order is paid for. Records written before checkout offered a
+  /// choice read as [PaymentMethod.payOnDelivery], which is what they were.
+  final PaymentMethod paymentMethod;
+
   const StoredOrder({
     required this.orderNumber,
     required this.placedAt,
@@ -258,6 +266,8 @@ class StoredOrder {
     required this.deliveryAddress,
     required this.deliveryFee,
     required this.items,
+    this.riderNote,
+    this.paymentMethod = PaymentMethod.payOnDelivery,
   });
 
   int get subtotal => items.fold(0, (s, i) => s + i.lineTotal);
@@ -279,6 +289,10 @@ class StoredOrder {
         'deliveryAddress': deliveryAddress,
         'deliveryFee': deliveryFee,
         'items': items.map((i) => i.toJson()).toList(),
+        // Both are optional, so history written before they existed still
+        // decodes: a null note and the fallback method.
+        if (riderNote != null) 'riderNote': riderNote,
+        'paymentMethod': paymentMethod.id,
       };
 
   factory StoredOrder.fromJson(Map<String, dynamic> json) => StoredOrder(
@@ -291,6 +305,9 @@ class StoredOrder {
         items: (json['items'] as List<dynamic>)
             .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
             .toList(),
+        riderNote: json['riderNote'] as String?,
+        paymentMethod:
+            PaymentMethod.fromId(json['paymentMethod'] as String?),
       );
 }
 
@@ -415,20 +432,18 @@ StoredOrder? orderByNumber(String orderNumber) {
 
 /// Records a completed order from the current cart line items, snapshotting
 /// each product's price and image at checkout time, then persists history.
-StoredOrder recordOrder({
-  required String orderNumber,
-  required List<VendorProduct> cartItems,
-  int deliveryFee = 0,
-  String deliveryAddress = '',
-  String status = 'Order placed',
-}) {
-  // Group duplicate cart entries (each entry is one unit) into one line item
-  // per product while freezing the price/image seen at checkout.
+/// Groups the cart (one entry per unit) into one [OrderItem] per product,
+/// freezing the price and image seen at checkout.
+///
+/// Shared with the failure screen, which has to price an attempt that was never
+/// recorded: both read the same snapshot, so a failed attempt and a successful
+/// one cannot quote different numbers.
+List<OrderItem> orderItemsFromCart(List<VendorProduct> cartItems) {
   final grouped = <String, List<VendorProduct>>{};
   for (final p in cartItems) {
     grouped.putIfAbsent('${p.vendorName}\u0000${p.name}', () => []).add(p);
   }
-  final items = grouped.values.map((list) {
+  return grouped.values.map((list) {
     final p = list.first;
     return OrderItem(
       name: p.name,
@@ -439,6 +454,18 @@ StoredOrder recordOrder({
       quantity: list.length,
     );
   }).toList();
+}
+
+StoredOrder recordOrder({
+  required String orderNumber,
+  required List<VendorProduct> cartItems,
+  int deliveryFee = 0,
+  String deliveryAddress = '',
+  String status = 'Order placed',
+  String? riderNote,
+  PaymentMethod paymentMethod = PaymentMethod.payOnDelivery,
+}) {
+  final items = orderItemsFromCart(cartItems);
 
   final order = StoredOrder(
     orderNumber: orderNumber.replaceAll('#', ''),
@@ -447,6 +474,8 @@ StoredOrder recordOrder({
     deliveryAddress: deliveryAddress,
     deliveryFee: deliveryFee,
     items: items,
+    riderNote: riderNote,
+    paymentMethod: paymentMethod,
   );
   storedOrders.insert(0, order); // newest first
   persistOrders();

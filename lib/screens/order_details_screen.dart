@@ -8,6 +8,7 @@ import '../routes.dart';
 import '../theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/order_timeline.dart';
 import '../widgets/skeleton_loader.dart';
 import 'delivery_tracking_screen.dart';
 
@@ -108,10 +109,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         OrderStatus.cancelled => Icons.cancel_outlined,
       };
 
-  /// Mock checkout charges up front, so the only refund case is a cancellation.
-  /// A real backend would send a payment status alongside the order.
-  static String _paymentStatus(Order order) =>
-      order.status == OrderStatus.cancelled ? 'Refunded' : 'Paid';
+  /// How the payment reads for this order.
+  ///
+  /// Pay on delivery collects nothing up front, so an active order says so and
+  /// only a delivered one reads "Paid" — by then the rider has been paid. A
+  /// cancelled order under this method moves no money at all, so it never says
+  /// "Refunded": that wording is reserved for a cancellation after a real
+  /// charge, which no method the app offers can produce yet.
+  static String _paymentStatus(Order order) => switch (order.status) {
+        OrderStatus.cancelled => 'Nothing charged',
+        OrderStatus.delivered => 'Paid',
+        _ => order.paymentMethod.label, // "Pay on delivery"
+      };
+
+  static String _paymentHeadline(Order order) => switch (order.status) {
+        OrderStatus.cancelled => 'Order cancelled',
+        OrderStatus.delivered => 'Payment successful',
+        _ => 'Payment on delivery',
+      };
 
   // ── Reorder ─────────────────────────────────────────────────────────────
 
@@ -189,7 +204,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     // ── Status timeline ──────────────────────────
                     _buildSectionTitle(context, 'Status'),
                     const SizedBox(height: AppSpacing.md),
-                    _OrderTimeline(order: order),
+                    // The same widget Track Delivery draws: one definition of
+                    // the steps, their names and their times.
+                    OrderTimeline(
+                      status: order.status,
+                      timestamps: order.timestamps,
+                      placedAt: order.createdAt,
+                    ),
 
                     const SizedBox(height: AppSpacing.xxl),
 
@@ -474,7 +495,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   Widget _buildPaymentCard(BuildContext context, Order order) {
     final paymentStatus = _paymentStatus(order);
-    final isPaid = paymentStatus == 'Paid';
+    final settled = paymentStatus == 'Paid';
+    final cancelled = order.status == OrderStatus.cancelled;
+    final note = order.riderNote?.trim() ?? '';
+
+    // A check only once money has actually moved; a live pay-on-delivery order
+    // carries the payment glyph instead, and a cancelled one neither.
+    final icon = settled
+        ? Icons.check_circle_outline
+        : cancelled
+            ? Icons.cancel_outlined
+            : Icons.payments_outlined;
 
     return Container(
       width: double.infinity,
@@ -483,40 +514,86 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         radius: AppRadii.md,
         context: context,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isPaid ? C.primaryTint(context) : C.surfaceLight(context),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isPaid ? Icons.check_circle_outline : Icons.replay_outlined,
-              size: 20,
-              color: isPaid ? C.primary(context) : C.textMuted(context),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              isPaid ? 'Payment successful' : 'Payment refunded',
-              style: AppTypography.bodyMedium.copyWith(
-                fontWeight: FontWeight.w500,
-                color: C.textPrimary(context),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: C.primaryTint(context),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 20, color: C.primary(context)),
               ),
-            ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  _paymentHeadline(order),
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: C.textPrimary(context),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  paymentStatus,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: AppTypography.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color:
+                        settled ? C.success(context) : C.textMuted(context),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            paymentStatus,
-            style: AppTypography.bodySmall.copyWith(
-              fontWeight: FontWeight.w600,
-              color: isPaid ? C.success(context) : C.textMuted(context),
-            ),
+          const SizedBox(height: AppSpacing.md),
+          Divider(height: 1, color: C.divider(context)),
+          const SizedBox(height: AppSpacing.md),
+          // How it will be paid, and the note the rider needs to find the door.
+          _buildSummaryRow(
+            context,
+            'Method',
+            order.paymentMethod.label,
           ),
+          if (note.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _buildNoteRow(context, note),
+          ],
         ],
       ),
+    );
+  }
+
+  /// The rider note, wrapping instead of ellipsising: a gate code that ends in
+  /// "…" is worse than useless.
+  Widget _buildNoteRow(BuildContext context, String note) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Note for rider',
+          style: AppTypography.bodySmall.copyWith(
+            color: C.textMuted(context),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          note,
+          style: AppTypography.bodySmall.copyWith(
+            height: 1.4,
+            fontWeight: FontWeight.w500,
+            color: C.textPrimary(context),
+          ),
+        ),
+      ],
     );
   }
 
@@ -653,215 +730,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// STATUS TIMELINE
-// ═══════════════════════════════════════════════════════════════════════
-
-enum _StepState { done, current, upcoming, cancelled }
-
-/// The five lifecycle steps with the time each was reached.
-///
-/// A cancelled order stops at "Confirmed" and gains a final cancelled row, so
-/// the track never pretends the delivery progressed further than it did.
-class _OrderTimeline extends StatelessWidget {
-  final Order order;
-
-  const _OrderTimeline({required this.order});
-
-  static const List<OrderStatus> _track = [
-    OrderStatus.confirmed,
-    OrderStatus.packing,
-    OrderStatus.pickedUp,
-    OrderStatus.onTheWay,
-    OrderStatus.delivered,
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final cancelled = order.status == OrderStatus.cancelled;
-    final currentIndex = cancelled ? -1 : order.status.stepIndex;
-
-    final steps = <(OrderStatus, _StepState)>[];
-    for (var i = 0; i < _track.length; i++) {
-      final status = _track[i];
-      final state = cancelled
-          ? (i == 0 ? _StepState.done : _StepState.upcoming)
-          : i < currentIndex
-              ? _StepState.done
-              : i == currentIndex
-                  ? _StepState.current
-                  : _StepState.upcoming;
-      steps.add((status, state));
-    }
-    if (cancelled) {
-      steps.add((OrderStatus.cancelled, _StepState.cancelled));
-    }
-
-    return Container(
-      key: const ValueKey('orderTimeline'),
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 8),
-      decoration: AppNeumorphic.cardDecoration(
-        radius: AppRadii.md,
-        context: context,
-      ),
-      child: Column(
-        children: [
-          for (var i = 0; i < steps.length; i++)
-            _TimelineRow(
-              status: steps[i].$1,
-              state: steps[i].$2,
-              at: order.timestampOf(steps[i].$1),
-              isLast: i == steps.length - 1,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TimelineRow extends StatelessWidget {
-  final OrderStatus status;
-  final _StepState state;
-  final DateTime? at;
-  final bool isLast;
-
-  const _TimelineRow({
-    required this.status,
-    required this.state,
-    required this.at,
-    required this.isLast,
-  });
-
-  static String _trailingLabel(_StepState state, DateTime? at) {
-    switch (state) {
-      case _StepState.done:
-        return at == null ? 'Done' : formatOrderTime(at);
-      case _StepState.current:
-        return at == null ? 'In progress' : 'In progress · ${formatOrderTime(at)}';
-      case _StepState.cancelled:
-        // The row is already labelled "Cancelled"; only the time adds anything.
-        return at == null ? '' : formatOrderTime(at);
-      case _StepState.upcoming:
-        return 'Pending';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final done = state == _StepState.done;
-    final current = state == _StepState.current;
-    final isCancelled = state == _StepState.cancelled;
-
-    final markerColor = isCancelled
-        ? C.errorBright(context)
-        : done
-            ? C.primary(context)
-            : current
-                ? C.accentOrange(context)
-                : C.divider(context);
-
-    final labelColor = state == _StepState.upcoming
-        ? C.textSecondary(context)
-        : C.textPrimary(context);
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Marker and connector ─────────────────────────────
-          SizedBox(
-            width: 26,
-            child: Column(
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: done || isCancelled
-                        ? markerColor
-                        : AppColors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: markerColor,
-                      width: current ? 2 : 1.5,
-                    ),
-                  ),
-                  child: done
-                      ? Icon(
-                          Icons.check,
-                          size: 12,
-                          color: C.background(context),
-                        )
-                      : isCancelled
-                          ? Icon(
-                              Icons.close,
-                              size: 12,
-                              color: C.background(context),
-                            )
-                          : current
-                              ? Center(
-                                  child: Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: markerColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                )
-                              : null,
-                ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      color: done
-                          ? C.primary(context)
-                          : C.divider(context),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          // ── Label and time ───────────────────────────────────
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 8 : AppSpacing.lg),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      status.label,
-                      style: AppTypography.labelSmall.copyWith(
-                        fontSize: 13,
-                        fontWeight:
-                            current ? FontWeight.w700 : FontWeight.w600,
-                        color: labelColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    _trailingLabel(state, at),
-                    style: AppTypography.bodySmall.copyWith(
-                      fontSize: 12,
-                      color: C.textMuted(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
