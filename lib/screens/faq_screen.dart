@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_header.dart';
 
 class FAQScreen extends StatefulWidget {
   const FAQScreen({super.key});
@@ -77,37 +78,8 @@ class _FAQScreenState extends State<FAQScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Icon(
-                      Icons.arrow_back,
-                      size: 24,
-                      color: C.textPrimary(context),
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'FAQ',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: C.textPrimary(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: AppSpacing.lg),
+            const AppHeader(title: 'FAQ'),
+            const SizedBox(height: AppSpacing.md),
 
             // ── Content ─────────────────────────────────────────
             Expanded(
@@ -117,16 +89,8 @@ class _FAQScreenState extends State<FAQScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Title ────────────────────────────────────
-                    Text(
-                      'Frequently Asked Questions',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: C.textPrimary(context),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    // The header says "FAQ"; the body starts with the
+                    // sentence that explains the page.
                     Text(
                       'Find answers to some of the most common questions about using Growbox.',
                       style: TextStyle(

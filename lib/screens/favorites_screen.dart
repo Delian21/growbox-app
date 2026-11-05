@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
-import '../widgets/scaffold_with_nav.dart';
-import '../widgets/bottom_nav.dart';
+import '../widgets/app_header.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/mock_data.dart';
 import '../widgets/vendor_rating.dart';
@@ -27,39 +26,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     final hp = AppSizing.horizontalPadding(context);
 
-    return ScaffoldWithNav(
-      activeIndex: 3,
-      child: SafeArea(
+    // Pushed from Home/Profile: no bottom nav here.
+    return Scaffold(
+      backgroundColor: C.background(context),
+      body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Icon(Icons.arrow_back,
-                        size: 24, color: C.textPrimary(context)),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Favorites',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: C.textPrimary(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 24),
-                ],
-              ),
-            ),
-            SizedBox(height: AppSpacing.lg),
+            const AppHeader(title: 'Favorites'),
             // ── Favorites List ──────────────────────────────────
             Expanded(
               child: favorites.isEmpty
@@ -68,9 +42,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       physics: BouncingScrollPhysics(),
                       padding: EdgeInsets.fromLTRB(
                         hp,
-                        0,
+                        AppSpacing.md,
                         hp,
-                        BottomNavMetrics.contentInset(context),
+                        AppSpacing.xxl,
                       ),
                       itemCount: favorites.length,
                       itemBuilder: (context, index) {

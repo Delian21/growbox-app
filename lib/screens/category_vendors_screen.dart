@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/mock_data.dart';
+import '../widgets/app_header.dart';
 import '../widgets/micro_interactions.dart';
 import '../widgets/skeleton_loader.dart';
 import 'vendor_screen.dart';
@@ -26,41 +27,9 @@ class CategoryVendorsScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            // ── Custom header ──────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.xl - 2, AppSpacing.lg, 0,
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.pop(context),
-                    child: SizedBox(
-                      width: 40, height: 40,
-                      child: Center(
-                        child: Icon(Icons.chevron_left, size: 30,
-                          color: C.textPrimary(context)),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      category.replaceAll('\n', ' '),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: C.textPrimary(context),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: AppSpacing.lg),
+            // The same header every other pushed screen uses.
+            AppHeader(title: category.replaceAll('\n', ' ')),
+            const SizedBox(height: AppSpacing.md),
 
             // ── Vendor list ────────────────────────────────────────
             Expanded(

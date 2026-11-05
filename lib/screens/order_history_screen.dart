@@ -7,6 +7,7 @@ import '../data/mock_data.dart';
 import '../data/orders.dart';
 import '../routes.dart';
 import '../theme.dart';
+import '../widgets/app_header.dart';
 import '../widgets/animated_entrance.dart';
 import '../widgets/app_snack_bar.dart';
 import 'order_details_screen.dart';
@@ -137,39 +138,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.pop(context),
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Center(
-                        child: Icon(
-                          Icons.arrow_back,
-                          size: 24,
-                          color: C.textPrimary(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Your Orders',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.title
-                          .copyWith(color: C.textPrimary(context)),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
+            const AppHeader(title: 'Your Orders'),
+            const SizedBox(height: AppSpacing.md),
             // ── Active / Past tabs ──────────────────────────────
             Padding(
               padding: EdgeInsets.symmetric(horizontal: hp),

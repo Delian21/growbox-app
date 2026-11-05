@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/app_button.dart';
-import '../widgets/scaffold_with_nav.dart';
-import '../widgets/bottom_nav.dart';
+import '../widgets/app_header.dart';
 import '../data/mock_data.dart';
 import 'change_email_screen.dart';
 import 'change_phone_screen.dart';
@@ -29,52 +28,16 @@ class AccountScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final screenHeight = MediaQuery.sizeOf(context).height;
     final horizontalPadding = (screenWidth * 0.055).clamp(16.0, 24.0);
-    final topPadding = (screenHeight * 0.055).clamp(24.0, 50.0);
-    final headerFontSize = (screenWidth * 0.043).clamp(15.0, 18.0);
 
-    return ScaffoldWithNav(
-      activeIndex: 3,
-      child: SafeArea(
+    // Pushed from Profile: no bottom navigation here, so the header owns the
+    // top of the page and the list runs to the safe area.
+    return Scaffold(
+      backgroundColor: C.background(context),
+      body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                topPadding,
-                horizontalPadding,
-                AppSpacing.xxl,
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.pop(context),
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Center(
-                        child: Icon(
-                          Icons.arrow_back,
-                          size: (screenWidth * 0.06).clamp(22.0, 26.0),
-                          color: AppColors.info,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'Account',
-                    style: TextStyle(
-                      fontSize: headerFontSize,
-                      fontWeight: FontWeight.w600,
-                      color: C.textPrimary(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const AppHeader(title: 'Account'),
             Expanded(
               child: SingleChildScrollView(
                 physics: BouncingScrollPhysics(),
@@ -125,8 +88,7 @@ class AccountScreen extends StatelessWidget {
                       color: C.errorBright(context),
                       onTap: () => _confirmDeletion(context),
                     ),
-                    // Clears the floating nav bar.
-                    SizedBox(height: BottomNavMetrics.contentInset(context)),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),

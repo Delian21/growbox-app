@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/app_button.dart';
 import '../data/addresses.dart';
-import '../widgets/scaffold_with_nav.dart';
+import '../widgets/app_header.dart';
 import '../widgets/pinned_bottom_bar.dart';
 import '../widgets/micro_interactions.dart';
 
@@ -65,17 +65,18 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
       builder: (context, _) {
         final content = _buildContent(context);
 
-        return ScaffoldWithNav(
-          activeIndex: 3,
-          // The pinned bar covers the strip above the pill.
-          fadeContent: false,
-          child: SafeArea(
+        // Pushed from Profile: no bottom nav, so the pinned bar sits on the
+        // screen's own safe area instead of floating above the pill.
+        return Scaffold(
+          backgroundColor: C.background(context),
+          body: SafeArea(
             bottom: false,
-            // The add button is pinned above the nav, so the list just takes
-            // the space that is left. The empty state has no bar of its own.
+            // The bar is pinned, so the list just takes the space that is
+            // left. The empty state has no bar of its own.
             child: _store.addresses.isEmpty
                 ? content
                 : ScreenWithPinnedBar(
+                    respectNav: false,
                     body: content,
                     bar: _buildAddButton(context),
                   ),
@@ -88,61 +89,32 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   Widget _buildContent(BuildContext context) {
     return Column(
       children: [
-        // ── Header ──────────────────────────────────────────────
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.xl - 2,
-            AppSpacing.lg,
-            0,
-          ),
-          child: Row(
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => Navigator.pop(context),
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Center(
-                    child: Icon(
-                      Icons.chevron_left,
-                      size: 30,
-                      color: C.textPrimary(context),
+        AppHeader(
+          title: 'My Addresses',
+          actions: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _showAddEditSheet(context),
+              child: SizedBox(
+                width: AppHeader.actionWidth,
+                height: AppHeader.actionWidth,
+                child: Center(
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: C.primaryTint(context),
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
                     ),
+                    child: Icon(Icons.add, size: 20, color: C.primary(context)),
                   ),
                 ),
               ),
-              Expanded(
-                child: Text(
-                  'My Addresses',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: C.textPrimary(context),
-                  ),
-                ),
-              ),
-              // Add button
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _showAddEditSheet(context),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: C.primaryTint(context),
-                    borderRadius: BorderRadius.circular(AppRadii.sm),
-                  ),
-                  child: Icon(Icons.add, size: 22, color: C.primary(context)),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
 
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: AppSpacing.md),
 
         // ── Address list ────────────────────────────────────────
         Expanded(

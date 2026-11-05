@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-import '../widgets/scaffold_with_nav.dart';
-import '../widgets/bottom_nav.dart';
+import '../widgets/app_header.dart';
 import '../widgets/animated_entrance.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -51,48 +50,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final hp = AppSizing.horizontalPadding(context);
 
-    return ScaffoldWithNav(
-      activeIndex: 3,
-      child: SafeArea(
+    // Pushed from Home/Profile: no bottom nav, and the shared header owns the
+    // back target and title.
+    return Scaffold(
+      backgroundColor: C.background(context),
+      body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Icon(Icons.arrow_back,
-                        size: 24, color: C.textPrimary(context)),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Notifications',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: C.textPrimary(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 24),
-                ],
-              ),
-            ),
-            SizedBox(height: AppSpacing.lg),
+            const AppHeader(title: 'Notifications'),
             // ── Content ─────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 physics: BouncingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(
                   hp,
-                  0,
+                  AppSpacing.sm,
                   hp,
-                  BottomNavMetrics.contentInset(context),
+                  AppSpacing.xxl,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'app_header.dart';
 
 /// One titled block of a policy document.
 class PolicySection {
@@ -39,44 +40,9 @@ class PolicyPage extends StatelessWidget {
         child: Column(
           children: [
             // ── Header ────────────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(hp, AppSpacing.md, hp, 0),
-              child: Row(
-                children: [
-                  Semantics(
-                    button: true,
-                    label: 'Back',
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => Navigator.pop(context),
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Icon(Icons.arrow_back,
-                            size: 24, color: C.textPrimary(context)),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.title.copyWith(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w600,
-                        color: C.textPrimary(context),
-                      ),
-                    ),
-                  ),
-                  // Balances the back button so the title is centred.
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Container(height: 1, color: C.divider(context)),
+            // These pages are long and always scroll under the header, so the
+            // hairline is permanent rather than scroll-driven.
+            AppHeader(title: title, showDivider: true),
 
             // ── Document ──────────────────────────────────────────────
             Expanded(

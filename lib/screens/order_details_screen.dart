@@ -6,6 +6,7 @@ import '../data/mock_data.dart';
 import '../data/orders.dart';
 import '../routes.dart';
 import '../theme.dart';
+import '../widgets/app_header.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/skeleton_loader.dart';
 import 'delivery_tracking_screen.dart';
@@ -170,39 +171,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.pop(context),
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Center(
-                        child: Icon(
-                          Icons.arrow_back,
-                          size: 24,
-                          color: C.textPrimary(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Order Details',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.title
-                          .copyWith(color: C.textPrimary(context)),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
+            const AppHeader(title: 'Order Details'),
+            const SizedBox(height: AppSpacing.md),
             // ── Content ─────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(

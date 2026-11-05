@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/app_button.dart';
+import '../widgets/app_header.dart';
 import '../data/mock_data.dart';
 import '../widgets/app_snack_bar.dart';
 
@@ -57,33 +58,19 @@ class _ChangePhoneNumberScreenState extends State<ChangePhoneNumberScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: C.background(context),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding:   EdgeInsets.fromLTRB(21, 50, 21, 25),
-              child: Row(
-                children: [
-                  GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Icon(Icons.arrow_back, size: 24, color: C.textPrimary(context)),
-                ),
-                    SizedBox(width: AppSpacing.sm + 2),
-                    Text('Change phone number',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
-                ],
-              ),
-            ),
+            const AppHeader(title: 'Change phone number'),
             Expanded(
               child: Padding(
                 padding:   EdgeInsets.symmetric(horizontal: 21),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                      SizedBox(height: AppSpacing.xxl),
-                      Text('Change your phone number',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
-                      SizedBox(height: AppSpacing.sm + 2),
+                      // Header names the page; keep only the explanatory line.
+                      const SizedBox(height: AppSpacing.lg),
                       Text('Enter the phone number you want to use for your Growbox account.',
                       style: TextStyle(fontSize: 16, height: 1.5, color: C.textPrimary(context))),
                       SizedBox(height: 35),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/orders.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/app_header.dart';
 
 /// Delivery tracking status stages.
 enum DeliveryStage {
@@ -231,7 +232,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
         child: Column(
           children: [
             // ── Header ──────────────────────────────────────────────
-            _buildHeader(hp),
+            _buildHeader(),
             // ── Scrollable content ──────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
@@ -263,56 +264,10 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
   // HEADER
   // ═══════════════════════════════════════════════════════════════════════
 
-  Widget _buildHeader(double hp) {
-    return Container(
-      // Solid page colour plus a hairline: scrolled cards slide under the
-      // header instead of showing through it.
-      decoration: BoxDecoration(
-        color: C.background(context),
-        border: Border(bottom: BorderSide(color: C.divider(context))),
-      ),
-      // The 48 px back box starts one glyph-width left of the content gutter,
-      // so its chevron lines up with the cards below.
-      padding: EdgeInsets.fromLTRB(hp - 12, AppSpacing.sm, hp - 12, AppSpacing.sm),
-      child: Row(
-        children: [
-          Semantics(
-            button: true,
-            label: 'Back',
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.pop(context),
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: Center(
-                  child: Icon(
-                    Icons.chevron_left,
-                    size: 28,
-                    color: C.textPrimary(context),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Track Delivery',
-              textAlign: TextAlign.center,
-              // Standard app bar title: page titles elsewhere are 20 px bold;
-              // this sits a touch larger and lighter at w600.
-              style: AppTypography.title.copyWith(
-                fontSize: 21,
-                fontWeight: FontWeight.w600,
-                color: C.textPrimary(context),
-              ),
-            ),
-          ),
-          // Balances the back button so the title stays optically centred.
-          const SizedBox(width: 48),
-        ],
-      ),
-    );
+  Widget _buildHeader() {
+    // Solid background and a permanent hairline: the map and cards scroll
+    // under this header, so it needs the divider at all times.
+    return const AppHeader(title: 'Track Delivery', showDivider: true);
   }
 
   // ═══════════════════════════════════════════════════════════════════════

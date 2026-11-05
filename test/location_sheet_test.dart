@@ -47,12 +47,12 @@ void main() {
     // sheet's backdrop shows.
     expect(find.textContaining('Sorry'), findsNothing);
 
-    // The sheet is a root-navigator modal: it starts above the bottom nav and
-    // so covers it.
+    // The map is a pushed screen with no bottom nav, so the sheet is a
+    // root-navigator modal that runs to the bottom edge of the screen.
     final sheetRect = tester.getRect(find.byType(FractionallySizedBox));
-    final navRect = tester.getRect(find.byType(BottomNav));
-    expect(sheetRect.top, lessThan(navRect.top),
-        reason: 'sheet must cover the bottom nav');
+    expect(find.byType(BottomNav), findsNothing);
+    expect(sheetRect.bottom, closeTo(1000, 0.01),
+        reason: 'the sheet owns the bottom edge, with no nav strip beneath it');
 
     // The map pin sits inside the uncovered part of the map, clear of the
     // sheet's first row.

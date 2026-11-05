@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_header.dart';
 
 class ManagePrivacyScreen extends StatefulWidget {
   const ManagePrivacyScreen({super.key});
@@ -16,31 +17,20 @@ class _ManagePrivacyScreenState extends State<ManagePrivacyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: C.background(context),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(21, 50, 21, 25),
-              child: Row(
-                children: [
-                  GestureDetector(onTap: () => Navigator.of(context).pop(),
-                    child: Icon(Icons.arrow_back, size: 24, color: AppColors.info)),
-                  SizedBox(width: AppSpacing.sm + 2),
-                  Text('Manage Privacy',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
-                ],
-              ),
-            ),
+            const AppHeader(title: 'Manage Privacy'),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 21),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: AppSpacing.xxl),
-                    Text('Manage your privacy',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
-                    SizedBox(height: AppSpacing.sm + 2),
+                    // The header carries the page name; the body starts with
+                    // the explanation.
+                    SizedBox(height: AppSpacing.lg),
                     Text('Choose how Growbox can use your information and communicate with you.',
                       style: TextStyle(fontSize: 16, height: 1.5, color: C.textPrimary(context))),
                     SizedBox(height: 30),

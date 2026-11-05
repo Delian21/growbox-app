@@ -78,9 +78,9 @@ void main() {
     expect(title.style!.fontWeight, FontWeight.w600);
     expect(title.style!.color, C.textPrimary(context));
 
-    // The tap target, not just the glyph.
+    // The shared header's tap target, not just the glyph.
     final back = tester.getSize(find
-        .ancestor(of: find.byIcon(Icons.chevron_left), matching: find.byType(SizedBox))
+        .ancestor(of: find.byIcon(Icons.arrow_back), matching: find.byType(SizedBox))
         .first);
     expect(back.width, greaterThanOrEqualTo(48));
     expect(back.height, greaterThanOrEqualTo(48));
@@ -246,7 +246,7 @@ void main() {
 
       expect(find.text('Delivered!'), findsOneWidget);
       expect(find.bySemanticsLabel('Rider Ibrahim K.'), findsNothing);
-      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
       // Four timeline checks behind the final step, plus the pin.
       expect(find.byIcon(Icons.check), findsNWidgets(6));
       expect(find.text('10:22 AM'), findsOneWidget);

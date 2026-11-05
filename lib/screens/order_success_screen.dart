@@ -102,6 +102,8 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
             // not reserve space for one.
             isVisible: false,
             child: ScreenWithPinnedBar(
+              // Pushed after checkout: there is no bottom nav to clear.
+              respectNav: false,
               body: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(

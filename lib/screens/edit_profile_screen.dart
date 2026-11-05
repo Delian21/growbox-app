@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/mock_data.dart';
 import '../theme.dart';
+import '../widgets/app_header.dart';
 
 /// Edits the customer's display name and email address.
 ///
@@ -56,38 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.pop(context),
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Center(
-                        child: Icon(
-                          Icons.arrow_back,
-                          size: 24,
-                          color: C.textPrimary(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Edit profile',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.title
-                          .copyWith(color: C.textPrimary(context)),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                ],
-              ),
-            ),
+            const AppHeader(title: 'Edit profile'),
             // ── Fields ──────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(

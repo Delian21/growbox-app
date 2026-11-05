@@ -169,7 +169,7 @@ void main() {
     expect(button.bottom, lessThanOrEqualTo(bar.bottom));
   });
 
-  testWidgets('the address list pins its add button above the nav',
+  testWidgets('the address list pins its add button to the screen bottom',
       (tester) async {
     _configureSurface(tester);
 
@@ -189,9 +189,11 @@ void main() {
     await tester.pump();
 
     final bar = tester.getRect(find.byKey(PinnedBottomBar.surfaceKey));
-    final nav = tester.getRect(find.byType(BottomNav));
 
-    expect(bar.bottom, closeTo(nav.top, 0.01));
+    // Pushed from Profile, so there is no nav to clear: the bar sits on the
+    // screen's own safe area instead of leaving an empty nav-sized strip.
+    expect(find.byType(BottomNav), findsNothing);
+    expect(bar.bottom, closeTo(_surface.height, 0.01));
     expect(find.text('+ Add New Address'), findsOneWidget);
   });
 }

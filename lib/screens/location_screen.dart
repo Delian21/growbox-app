@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../theme.dart';
 import '../data/addresses.dart';
-import '../widgets/scaffold_with_nav.dart';
-import '../widgets/bottom_nav.dart';
 import '../widgets/saved_address_picker.dart';
 import '../widgets/app_button.dart';
 import 'address_management_screen.dart';
@@ -439,9 +437,10 @@ class _LocationScreenState extends State<LocationScreen> {
   Widget build(BuildContext context) {
     final horizontalPadding = AppSizing.horizontalPadding(context);
 
-    return ScaffoldWithNav(
-      activeIndex: 0,
-      child: LayoutBuilder(
+    // Opened from Home's location chip, not a tab: no bottom nav here.
+    return Scaffold(
+      backgroundColor: C.background(context),
+      body: LayoutBuilder(
         builder: (context, constraints) {
           final double mapHeight = constraints.maxHeight;
           // Centre the pin in the part of the map the sheet does not cover,
@@ -582,8 +581,8 @@ class _LocationScreenState extends State<LocationScreen> {
                 Positioned(
                   left: horizontalPadding,
                   right: horizontalPadding,
-                  // Sits above the floating nav instead of under it.
-                  bottom: BottomNavMetrics.contentInset(context),
+                  // Sits clear of the home indicator.
+                  bottom: AppSpacing.xxl,
                   child: GestureDetector(
                     onTap: _openAddressSheet,
                     child: Container(
