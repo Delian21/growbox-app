@@ -132,23 +132,23 @@ void main() {
     await tester.tap(row);
     await tester.pumpAndSettle();
 
-    final deleteButton = find.widgetWithText(TextButton, 'Delete');
-    expect(tester.widget<TextButton>(deleteButton).onPressed, isNull);
+    final deleteButton = find.widgetWithText(ElevatedButton, 'Delete');
+    expect(tester.widget<ElevatedButton>(deleteButton).onPressed, isNull);
 
     // Wrong case does not unlock it.
     await tester.enterText(find.byType(TextField), 'delete');
     await tester.pump();
-    expect(tester.widget<TextButton>(deleteButton).onPressed, isNull);
+    expect(tester.widget<ElevatedButton>(deleteButton).onPressed, isNull);
 
     await tester.enterText(find.byType(TextField), 'DELETE');
     await tester.pump();
-    expect(tester.widget<TextButton>(deleteButton).onPressed, isNotNull);
+    expect(tester.widget<ElevatedButton>(deleteButton).onPressed, isNotNull);
 
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
 
-    // The existing deletion flow opens; nothing about it changed.
-    expect(find.text('Right of Cancellation'), findsOneWidget);
+    // The deletion-request flow opens, titled for what the screen does.
+    expect(find.text('Delete account'), findsOneWidget);
   });
 
   // ── Section spacing ─────────────────────────────────────────────────────

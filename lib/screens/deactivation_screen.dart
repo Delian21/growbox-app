@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
-import '../widgets/scaffold_with_nav.dart';
+import '../widgets/app_header.dart';
 import '../widgets/app_button.dart';
-import '../widgets/bottom_nav.dart';
 
 class DeactivationScreen extends StatefulWidget {
   const DeactivationScreen({super.key});
@@ -39,14 +38,14 @@ class _DeactivationScreenState extends State<DeactivationScreen> {
         return AlertDialog(
           backgroundColor: C.surface(context),
           title: Text(
-            'Delete Account',
+            'Delete account',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w700,
               color: C.textPrimary(context),
             ),
           ),
           content: Text(
-            'Are you sure you want to delete your account?',
+            'Send a deletion request for this account?',
             style: GoogleFonts.inter(color: C.textSecondary(context)),
           ),
           actions: [
@@ -56,7 +55,7 @@ class _DeactivationScreenState extends State<DeactivationScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             AppButton(
-              label: 'Delete',
+              label: 'Request deletion',
               variant: AppButtonVariant.destructive,
               onPressed: () {
                 Navigator.pop(context);
@@ -71,50 +70,28 @@ class _DeactivationScreenState extends State<DeactivationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldWithNav(
-      activeIndex: 3,
-      child: SafeArea(
+    // Pushed from Account: no bottom nav. The title names the action the
+    // screen actually performs.
+    return Scaffold(
+      backgroundColor: C.background(context),
+      body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(24, 22, 24, 0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Icon(
-                      Icons.arrow_back,
-                      size: 22,
-                      color: C.textPrimary(context),
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.md + 2),
-                  Text(
-                    'Right of Cancellation',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: C.textPrimary(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const AppHeader(title: 'Delete account'),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     26,
-                    40,
+                    24,
                     26,
-                    // Clears the floating nav bar.
-                    BottomNavMetrics.contentInset(context),
+                    AppSpacing.xxl,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Why do you want to delete?',
+                        'Why do you want to delete your account?',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -158,7 +135,7 @@ class _DeactivationScreenState extends State<DeactivationScreen> {
                         width: double.infinity,
                         height: 44,
                         child: AppButton(
-                          label: 'Delete',
+                          label: 'Request deletion',
                           onPressed: _hasReason ? _deleteAccount : null,
                           variant: AppButtonVariant.destructive,
                           expand: true,
