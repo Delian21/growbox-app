@@ -11,6 +11,7 @@ import '../data/mock_data.dart';
 import '../data/placeholder_images.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
+import '../widgets/social_auth_buttons.dart';
 
 // ---------------------------------------------------------------------------
 // Single multi-step registration wizard (replaces 5 separate screens)
@@ -420,7 +421,6 @@ class _WelcomeStep extends StatelessWidget {
     // Skip shortcut sit above the fold at 360×640 instead of below it.
     final sectionSpacing =
         AppSizing.welcomeFontSize(context) * (compact ? 0.45 : 0.9);
-    final socialHeight = compact ? 48.0 : AppSizing.buttonHeight(context);
 
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -486,78 +486,8 @@ class _WelcomeStep extends StatelessWidget {
             ],
           ),
           SizedBox(height: compact ? 12 : AppSpacing.md + 4),
-          // Google button
-          SizedBox(
-            width: double.infinity,
-            height: socialHeight,
-            child: AppButton(
-              label: 'Continue with Google',
-              foregroundColorOverride: AppColors.black,
-              backgroundColorOverride: AppColors.white,
-              onPressed: () {},
-              variant: AppButtonVariant.secondary,
-              expand: true,
-              height: socialHeight,
-              radius: AppRadii.md,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Official Google 'G' logo (bundled asset)
-                  Image.asset(
-                    PlaceholderImages.googleLogo,
-                    width: 24,
-                    height: 24,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const Icon(
-                      Icons.g_mobiledata,
-                      size: 24,
-                      color: AppColors.grey800,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Continue with Google',
-                    style: const TextStyle(
-                      color: AppColors.black,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: compact ? 8 : AppSpacing.md - 2),
-          // Apple button
-          SizedBox(
-            width: double.infinity,
-            height: socialHeight,
-            child: AppButton(
-              label: 'Continue with Apple',
-              foregroundColorOverride: AppColors.white,
-              backgroundColorOverride: AppColors.black,
-              onPressed: () {},
-              variant: AppButtonVariant.secondary,
-              expand: true,
-              height: socialHeight,
-              radius: AppRadii.md,
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.apple, size: 24, color: AppColors.white),
-                  SizedBox(width: 12),
-                  Text(
-                    'Continue with Apple',
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // The same stacked Google/Apple pair the login screen shows.
+          SocialAuthButtons(compact: compact),
           SizedBox(height: compact ? 12 : AppSpacing.lg),
           _LegalNotice(compact: compact),
           SizedBox(height: compact ? 8 : AppSpacing.md),

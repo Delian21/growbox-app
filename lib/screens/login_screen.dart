@@ -3,6 +3,7 @@ import '../theme.dart';
 import '../data/placeholder_images.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
+import '../widgets/social_auth_buttons.dart';
 import 'home_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -261,27 +262,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // ── Social Login ──────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSocialButton(
-                      icon: Icons.g_mobiledata,
-                      label: 'Google',
-                      isGoogle: true,
-                      onTap: () {},
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildSocialButton(
-                      icon: Icons.apple,
-                      label: 'Apple',
-                      onTap: () {},
-                    ),
-                  ),
-                ],
-              ),
+              // ── Social login ──────────────────────────────
+              // The same stacked Google/Apple pair the sign-up screen shows.
+              SocialAuthButtons(onGoogle: () {}, onApple: () {}),
               const SizedBox(height: 32),
 
               // ── Sign up link ──────────────────────────────
@@ -324,51 +307,6 @@ class _LoginScreenState extends State<LoginScreen> {
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: C.textPrimary(context),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool isGoogle = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: C.surface(context),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: C.divider(context), width: 1),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isGoogle)
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: Image.asset(
-                  PlaceholderImages.googleLogo,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => Icon(icon, size: 20, color: C.textPrimary(context)),
-                ),
-              )
-            else
-              Icon(icon, size: 24, color: C.textPrimary(context)),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: C.textPrimary(context),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
