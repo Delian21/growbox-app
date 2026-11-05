@@ -5,6 +5,7 @@ import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/pinned_bottom_bar.dart';
+import '../widgets/quantity_stepper.dart';
 import '../widgets/app_button.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
@@ -307,33 +308,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  /// One 44×44 stepper key: neutral surface and a text-coloured glyph, so "−"
-  /// and "+" read as the same control.
-  Widget _stepperButton({
-    required IconData icon,
-    required VoidCallback? onTap,
-    bool enabled = true,
-  }) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: enabled ? C.surfaceLight(context) : C.surfaceLighter(context),
-          borderRadius: BorderRadius.circular(AppRadii.sm),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: enabled ? C.textPrimary(context) : C.textMuted(context),
-        ),
-      ),
-    );
-  }
-
   Widget _buildCartItem(VendorProduct product, int quantity) {
     final stockStatus = StockTracker.statusFor(product.vendorName, product.name);
     final isOutOfStock = stockStatus == StockStatus.outOfStock;
@@ -451,42 +425,20 @@ class _CartScreenState extends State<CartScreen> {
             ),
             // Quantity controls. At one unit the minus slot becomes the
             // delete control, so there is no separate X to hunt for.
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _stepperButton(
-                  icon: quantity > 1 ? Icons.remove : Icons.delete_outline,
-                  onTap: quantity > 1
-                      ? () => setState(() {
-                            context.read<CartNotifier>().removeOne(product);
-                          })
-                      : () => _removeItem(product, quantity),
-                ),
-                SizedBox(
-                  width: 32,
-                  child: Text(
-                    '$quantity',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: C.textPrimary(context),
-                    ),
-                  ),
-                ),
-                _stepperButton(
-                  icon: Icons.add,
-                  enabled: !isOutOfStock,
-                  onTap: isOutOfStock
-                      ? null
-                      : () => setState(() {
-                            if (StockTracker.decrement(
-                                product.vendorName, product.name)) {
-                              context.read<CartNotifier>().add(product);
-                            }
-                          }),
-                ),
-              ],
+            QuantityStepper(
+              quantity: quantity,
+              onDelete: () => _removeItem(product, quantity),
+              onDecrement: () => setState(() {
+                context.read<CartNotifier>().removeOne(product);
+              }),
+              onIncrement: isOutOfStock
+                  ? null
+                  : () => setState(() {
+                        if (StockTracker.decrement(
+                            product.vendorName, product.name)) {
+                          context.read<CartNotifier>().add(product);
+                        }
+                      }),
             ),
           ],
         ),

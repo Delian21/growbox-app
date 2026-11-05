@@ -92,7 +92,7 @@ class CategoryVendorsScreen extends StatelessWidget {
           builder: (_) => VendorScreen(
             vendorName: name,
             vendorCoverImage: image,
-            vendorLogoImage: image,
+            vendorLogoImage: MockVendors.logoFor(name),
             initialOpen: true,
             categories: tabCategories,
             products: products,

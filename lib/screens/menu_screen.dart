@@ -294,8 +294,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                           vendorName: name,
                                           vendorCoverImage:
                                               vendor['image'] as String,
-                                          vendorLogoImage:
-                                              vendor['image'] as String,
+                                          vendorLogoImage: MockVendors.logoFor(
+                                              vendor['name'] as String),
                                           initialOpen: vendorsOpen,
                                           categories: List<String>.from(
                                               vendor['categories'] as List),

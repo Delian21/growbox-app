@@ -7,6 +7,8 @@ import '../routes.dart';
 import '../widgets/animated_entrance.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
+import '../widgets/pinned_bottom_bar.dart';
+import '../widgets/quantity_stepper.dart';
 import '../widgets/skeleton_loader.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -18,28 +20,9 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int quantity = 1;
-  bool sizeExpanded = false;
-  bool weightExpanded = false;
-  String selectedSize = 'Select size';
-  String selectedWeight = 'Select weight';
   int _selectedBundleIndex = 0;
 
-  // Size multipliers: Small is a smaller portion, Large is a bigger portion
-  static const Map<String, double> _sizeMultipliers = {
-    'Small': 0.8,
-    'Medium': 1.0,
-    'Large': 1.3,
-  };
-
-  // Weight multipliers: relative to a ~1kg base unit
-  static const Map<String, double> _weightMultipliers = {
-    '1 kg': 1.0,
-    '2 kg': 1.8,
-    '5 kg': 4.0,
-    '10 kg': 7.5,
-  };
-
-  /// Whether this product is sold by weight (Size/Weight options) or by unit.
+  /// Whether this product is sold by weight or by unit.
   bool get _isByWeight => widget.product.pricingType == PricingType.byWeight;
 
   /// Whether this product is sold in fixed-price bundles.
@@ -54,17 +37,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   /// The base price (now stored as int directly).
   int get _basePrice => widget.product.price;
 
-  /// Combined multiplier from selected size + weight (only for by-weight products).
-  double get _sizeWeightMultiplier {
-    final double sizeMul = _sizeMultipliers[selectedSize] ?? 1.0;
-    final double weightMul = _weightMultipliers[selectedWeight] ?? 1.0;
-    final bool hasSize = selectedSize != 'Select size';
-    final bool hasWeight = selectedWeight != 'Select weight';
-    if (hasSize && hasWeight) return sizeMul * weightMul;
-    if (hasSize) return sizeMul;
-    if (hasWeight) return weightMul;
-    return 1.0;
-  }
+  /// " / kg" when the product says what one price buys, '' when it does not.
+  String get _unitSuffix => widget.product.unit == null
+      ? ''
+      : ' / ${widget.product.unit}';
 
   /// Bulk discount multiplier for by-unit items based on quantity selected.
   double get _bulkMultiplier {
@@ -80,10 +56,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return bestMul;
   }
 
-  /// Combined multiplier: size+weight for by-weight, bulk discount for by-unit.
-  /// For bundles, this returns 1.0 since bundles have fixed pricing.
+  /// Bulk discount for by-unit items; 1.0 for bundles, which price themselves.
   double get _priceMultiplier {
-    if (_isByWeight) return _sizeWeightMultiplier;
     if (_isByBundle) return 1.0; // bundles use fixed pricing
     return _bulkMultiplier;
   }
@@ -108,17 +82,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
 
 
-  /// Build a suffix like '(Large, 5 kg)', '(Crate)', or '(×5)' for the product variant.
+  /// Build a suffix like '(Crate)' for the chosen bundle.
   String get _variantSuffix {
-    final parts = <String>[];
-    if (_isByWeight) {
-      if (selectedSize != 'Select size') parts.add(selectedSize);
-      if (selectedWeight != 'Select weight') parts.add(selectedWeight);
-    } else if (_isByBundle && _selectedBundle != null) {
-      parts.add(_selectedBundle!.name);
+    if (_isByBundle && _selectedBundle != null) {
+      return ' (${_selectedBundle!.name})';
     }
-    if (parts.isEmpty) return '';
-    return ' (${parts.join(', ')})';
+    return '';
   }
 
   /// Get the best bulk discount info to display.
@@ -132,11 +101,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
     return null;
   }
-
-  // Chevron icon slot: an SVG from the design tool was here before the app
-  // went fully offline/bundled. Kept empty so the selector rows render the
-  // Material chevron icon directly (see usage below).
-  static const String arrowDownIcon = '';
 
   /// Display bundle options for byBundle products.
   Widget _bundleSection() {
@@ -264,84 +228,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _optionSection({
-    required String title, required String selectedValue, required bool expanded,
-    required VoidCallback onTap, required List<String> options, required ValueChanged<String> onSelected,
-  }) {
-    final bool hasSelection = selectedValue != 'Select ${title.toLowerCase()}';
-    return Column(children: [
-      GestureDetector(
-        behavior: HitTestBehavior.opaque, onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 70),
-          child: Row(children: [
-            Expanded(child: Text(title,
-              style: TextStyle(fontSize: 16, height: 24/16, fontWeight: FontWeight.bold, color: C.textPrimary(context)))),
-            if (hasSelection) Flexible(child: Text(selectedValue, textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 14, color: C.textPrimary(context)))),
-            const SizedBox(width: AppSpacing.sm),
-            arrowDownIcon.isNotEmpty
-                ? Image.asset(arrowDownIcon, width: 24, height: 24,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 24, color: C.textPrimary(context)))
-                : Icon(
-                    expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 24, color: C.textPrimary(context)),
-          ]))),
-      if (expanded)
-        Container(
-          width: double.infinity, padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: Wrap(spacing: AppSpacing.sm + 2, runSpacing: AppSpacing.sm,
-            children: options.map((option) {
-              final bool selected = selectedValue == option;
-              // Show the multiplier badge for size/weight options
-              final multipliers = title == 'Size' ? _sizeMultipliers : _weightMultipliers;
-              final mul = multipliers[option] ?? 1.0;
-              final bool isBase = mul == 1.0;
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onSelected(option),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: selected ? C.primaryTint(context) : C.surfaceLight(context),
-                    borderRadius: BorderRadius.circular(18)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(option, style: TextStyle(fontSize: 13, color: C.textPrimary(context))),
-                      if (!isBase) ...[
-                        const SizedBox(width: 4),
-                        Text('${mul > 1 ? '+' : ''}${((mul - 1) * 100).round()}%',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: mul > 1 ? AppColors.accentOrangeDeep : C.success(context))),
-                      ],
-                    ])));
-            }).toList())),
-    ]);
-  }
-
+  /// The same stepper the cart uses, so changing quantity here and in the box
+  /// feels identical. It never drops below one: there is nothing to remove
+  /// until the item has actually been added.
   Widget _quantitySelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () { if (quantity > 1) setState(() => quantity--); },
-          child: SizedBox(width: 40, height: 40, child: Center(
-            child: Icon(Icons.remove, size: 24, color: C.textPrimary(context))))),
-        const SizedBox(width: AppSpacing.sm - 2),
-        SizedBox(width: 35, child: Text('$quantity', textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, height: 24/16, fontWeight: FontWeight.bold, color: C.textPrimary(context)))),
-        const SizedBox(width: AppSpacing.sm - 2),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => setState(() => quantity++),
-          child: SizedBox(width: 40, height: 40, child: Center(
-            child: Icon(Icons.add, size: 24, color: C.textPrimary(context))))),
-      ]);
+    return QuantityStepper(
+      quantity: quantity,
+      onDecrement: () => setState(() => quantity--),
+      onIncrement: () => setState(() => quantity++),
+    );
   }
 
   void _addToBox() {
@@ -393,142 +288,220 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double imageHeight = (screenWidth * 0.68).clamp(240.0, 340.0);
-    final double horizontalPadding = screenWidth < 360 ? 14 : screenWidth > 600 ? 24 : AppSpacing.lg;
+    final double horizontalPadding =
+        screenWidth < 360 ? 14 : screenWidth > 600 ? 24 : AppSpacing.lg;
 
     return Scaffold(
+      backgroundColor: C.background(context),
+      // No bottom nav on this route, so the bar rests on its own SafeArea
+      // inset instead of leaving a nav-sized strip under it.
       body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: double.infinity, height: imageHeight,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(child: _productImage()),
-                          Positioned(
-                            left: horizontalPadding, top: 18,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => Navigator.pop(context),
-                              child: SizedBox(
-                                width: 44, height: 44,
-                                child: Center(
-                                  child: Icon(Icons.close, size: 24, color: C.textPrimary(context)))),
+        child: ScreenWithPinnedBar(
+          respectNav: false,
+          body: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: imageHeight,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: _productImage()),
+                      Positioned(
+                        left: horizontalPadding,
+                        top: 18,
+                        child: _closeButton(context),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: AppSpacing.xl - 2),
+                      AnimatedEntrance(
+                        index: 0,
+                        child: Text(
+                          widget.product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 24,
+                            height: 24 / 24,
+                            fontWeight: FontWeight.bold,
+                            color: C.textPrimary(context),
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm + 2),
+                      // The unit travels with the price: "N2,550 / kg" already
+                      // says what one price buys, so a by-weight product needs
+                      // no separate Size/Weight picker.
+                      if ((!_isByWeight && quantity > 1) ||
+                          (_isByBundle && quantity > 1)) ...[
+                        Text(
+                          '₦${formatPrice(_totalPrice)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            height: 24 / 16,
+                            fontWeight: FontWeight.bold,
+                            color: C.textPrimary(context),
                           ),
-                        ])),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: AppSpacing.xl - 2),
-                          AnimatedEntrance(
-                            index: 0,
-                            child: Text(widget.product.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 24, height: 24/24, fontWeight: FontWeight.bold, color: C.textPrimary(context))),
-                          ),
-                          const SizedBox(height: AppSpacing.sm + 2),
-                          // For by-unit or by-bundle with quantity > 1, show total price prominently
-                          if ((!_isByWeight && quantity > 1) || (_isByBundle && quantity > 1)) ...[
-                            Text('₦${formatPrice(_totalPrice)}',
-                              style: TextStyle(fontSize: 18, height: 24/16, fontWeight: FontWeight.bold, color: C.textPrimary(context))),
-                            const SizedBox(height: 2),
-                            if (_isByBundle && _selectedBundle != null) ...[
-                              Text('${_selectedBundle!.name} × $quantity',
-                                style: TextStyle(fontSize: 13, color: C.textPrimary(context).withValues(alpha: 0.5))),
-                            ] else ...[
-                              Text('₦${formatPrice(_effectivePrice)} × $quantity',
-                                style: TextStyle(fontSize: 13, color: C.textPrimary(context).withValues(alpha: 0.5))),
-                            ],
-                          ] else ...[
-                            Text('₦${formatPrice(_effectivePrice)}',
-                              style: TextStyle(fontSize: 16, height: 24/16, fontWeight: FontWeight.bold, color: C.textPrimary(context))),
-                          ],
-                          if (_priceMultiplier != 1.0) ...[
-                            const SizedBox(height: 2),
-                            Text('Base price: ₦${widget.product.price}',
-                              style: TextStyle(fontSize: 13, color: C.textPrimary(context).withValues(alpha: 0.5), decoration: TextDecoration.lineThrough)),
-                          ],
-                          // Show bulk discount hint for by-unit items (not bundles)
-                          if (!_isByWeight && !_isByBundle && widget.product.bulkMultipliers != null) ...[
-                            const SizedBox(height: 2),
-                            Builder(builder: (context) {
-                              final nextTier = _bestBulkTier;
-                              if (nextTier != null) {
-                                final pctOff = ((1 - nextTier.value) * 100).round();
-                                return Text(
-                                  'Buy ${nextTier.key}+ for $pctOff% off each',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: C.success(context)));
-                              } else if (_bulkMultiplier < 1.0) {
-                                final pctOff = ((1 - _bulkMultiplier) * 100).round();
-                                return Text(
-                                  'Bulk discount applied: $pctOff% off',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: C.success(context)));
-                              }
-                              return const SizedBox.shrink();
-                            }),
-                          ],
-                          const SizedBox(height: AppSpacing.sm),
-                          _buildStockBadge(),
-                          const SizedBox(height: AppSpacing.sm + 2),
-                          AnimatedEntrance(
-                            index: 3,
-                            child: Text(widget.product.description,
-                            style: TextStyle(fontSize: 16, height: 24/16, fontWeight: FontWeight.normal, color: C.textPrimary(context))),
-                          ),
-                          const SizedBox(height: 30),
-                          // Only show Size/Weight for by-weight products
-                          if (_isByWeight) ...[
-                            _optionSection(title: 'Size', selectedValue: selectedSize, expanded: sizeExpanded,
-                              onTap: () => setState(() { sizeExpanded = !sizeExpanded; weightExpanded = false; }),
-                              options: const ['Small', 'Medium', 'Large'],
-                              onSelected: (v) => setState(() { selectedSize = v; sizeExpanded = false; })),
-                            _optionSection(title: 'Weight', selectedValue: selectedWeight, expanded: weightExpanded,
-                              onTap: () => setState(() { weightExpanded = !weightExpanded; sizeExpanded = false; }),
-                              options: const ['1 kg', '2 kg', '5 kg', '10 kg'],
-                              onSelected: (v) => setState(() { selectedWeight = v; weightExpanded = false; })),
-                          ],
-                          // Show bundle options for by-bundle products
-                          if (_isByBundle && widget.product.bundles != null && widget.product.bundles!.isNotEmpty) ...[
-                            _bundleSection(),
-                          ],
-                          // Show bulk quantity tiers for by-unit products
-                          if (!_isByWeight && !_isByBundle && widget.product.bulkMultipliers != null && widget.product.bulkMultipliers!.isNotEmpty) ...[
-                            _bulkQuantitySection(),
-                          ],
-                          SizedBox(height: screenWidth < 360 ? 60 : 85),
-                          _quantitySelector(),
-                          const SizedBox(height: AppSpacing.lg),
-                          // Modern CTA button with price
-                          AnimatedEntrance(
-                            index: 5,
-                            child: TapScale(
-                              onTap: _addToBox,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                                child: AppButton(
-                                  label: 'Add to box · ₦${formatPrice(_totalPrice)}',
-                                  onPressed: _addToBox,
-                                  icon: Icons.shopping_bag_outlined,
-                                  expand: true,
-                                  height: 52,
-                                  radius: 14,
-                                ),
-                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        if (_isByBundle && _selectedBundle != null) ...[
+                          Text(
+                            '${_selectedBundle!.name} × $quantity',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color:
+                                  C.textPrimary(context).withValues(alpha: 0.5),
                             ),
                           ),
-                          const SizedBox(height: 35),
-                        ])),
-                  ])),
+                        ] else ...[
+                          Text(
+                            '₦${formatPrice(_effectivePrice)}$_unitSuffix × $quantity',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color:
+                                  C.textPrimary(context).withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ] else ...[
+                        Text(
+                          '₦${formatPrice(_effectivePrice)}$_unitSuffix',
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 24 / 16,
+                            fontWeight: FontWeight.bold,
+                            color: C.textPrimary(context),
+                          ),
+                        ),
+                      ],
+                      if (_priceMultiplier != 1.0) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Base price: ₦${widget.product.price}$_unitSuffix',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                C.textPrimary(context).withValues(alpha: 0.5),
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      ],
+                      // Show bulk discount hint for by-unit items (not bundles)
+                      if (!_isByWeight &&
+                          !_isByBundle &&
+                          widget.product.bulkMultipliers != null) ...[
+                        const SizedBox(height: 2),
+                        Builder(builder: (context) {
+                          final nextTier = _bestBulkTier;
+                          if (nextTier != null) {
+                            final pctOff =
+                                ((1 - nextTier.value) * 100).round();
+                            return Text(
+                              'Buy ${nextTier.key}+ for $pctOff% off each',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: C.success(context),
+                              ),
+                            );
+                          } else if (_bulkMultiplier < 1.0) {
+                            final pctOff =
+                                ((1 - _bulkMultiplier) * 100).round();
+                            return Text(
+                              'Bulk discount applied: $pctOff% off',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: C.success(context),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        }),
+                      ],
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildStockBadge(),
+                      const SizedBox(height: AppSpacing.sm + 2),
+                      AnimatedEntrance(
+                        index: 3,
+                        child: Text(
+                          widget.product.description,
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 24 / 16,
+                            fontWeight: FontWeight.normal,
+                            color: C.textPrimary(context),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      // Bundles are the only options the model actually
+                      // carries, so they are the only picker left.
+                      if (_isByBundle &&
+                          widget.product.bundles != null &&
+                          widget.product.bundles!.isNotEmpty) ...[
+                        _bundleSection(),
+                      ],
+                      // Show bulk quantity tiers for by-unit products
+                      if (!_isByWeight &&
+                          !_isByBundle &&
+                          widget.product.bulkMultipliers != null &&
+                          widget.product.bulkMultipliers!.isNotEmpty) ...[
+                        _bulkQuantitySection(),
+                      ],
+                      const SizedBox(height: AppSpacing.lg),
+                      _quantitySelector(),
+                      const SizedBox(height: AppSpacing.xl),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ])),
+          // The screen's only primary action, so it gets a full-width pinned
+          // bar instead of scrolling away with the content.
+          bar: AppButton(
+            label: 'Add to box · ₦${formatPrice(_totalPrice)}',
+            onPressed: _addToBox,
+            icon: Icons.shopping_bag_outlined,
+            expand: true,
+            height: 52,
+            radius: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// A dark translucent disc behind the close glyph, so the icon stays readable
+  /// over any product photo. 44x44 keeps it tappable without covering much.
+  Widget _closeButton(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Close',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: C.surfaceDark(context).withValues(alpha: 0.7),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.close, size: 22, color: AppColors.white),
+        ),
+      ),
     );
   }
 }

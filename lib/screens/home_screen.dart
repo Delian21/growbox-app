@@ -528,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (_) => VendorScreen(
                     vendorName: name,
                     vendorCoverImage: image,
-                    vendorLogoImage: image,
+                    vendorLogoImage: MockVendors.logoFor(name),
                     categories: categories,
                     initialOpen: true,
                     products: products,

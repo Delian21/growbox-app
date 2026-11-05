@@ -216,6 +216,11 @@ class MockVendors {
   static String deliveryTimeFor(String name) =>
       (find(name)?['deliveryTime'] as String?) ?? '';
 
+  /// The vendor's logo ('' when the model has none), so screens can show a
+  /// monogram instead of reusing the cover photo as an avatar.
+  static String logoFor(String name) =>
+      (find(name)?['logo'] as String?) ?? '';
+
   static List<Map<String, dynamic>> get vendors => [
     {
       'name': 'Green Farm',

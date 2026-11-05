@@ -126,7 +126,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 builder: (_) => VendorScreen(
                   vendorName: vendor['name'] as String,
                   vendorCoverImage: vendor['image'] as String,
-                  vendorLogoImage: vendor['image'] as String,
+                  // Saved favourites carry the logo; older entries without one
+                  // fall back to the monogram.
+                  vendorLogoImage: (vendor['logo'] as String?) ?? '',
                   categories:
                       List<String>.from(vendor['categories'] as List),
                   products:

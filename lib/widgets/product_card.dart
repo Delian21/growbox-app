@@ -6,6 +6,7 @@ import '../data/mock_data.dart';
 import '../routes.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/micro_interactions.dart';
+import '../widgets/quantity_stepper.dart';
 import '../widgets/skeleton_loader.dart';
 import '../screens/product_details_screen.dart';
 
@@ -37,6 +38,10 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAvailable = StockTracker.isAvailable(product.vendorName, product.name);
     final stockStatus = StockTracker.statusFor(product.vendorName, product.name);
+    // How many of this product are in the box: the card's "+" becomes a
+    // stepper once that is above zero, so the card always agrees with the cart.
+    final cart = context.watch<CartNotifier>();
+    final int inBox = cart.countOf(product);
 
     return TapFeedback(
       onTap: () => Navigator.push(
@@ -90,15 +95,41 @@ class ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: C.textPrimary(context),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: C.textPrimary(context),
+                          ),
+                        ),
+                      ),
+                      if (showStockBadge &&
+                          stockStatus == StockStatus.lowStock) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: C.warningSoft(context),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Low stock',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: C.onWarningSoft(context),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   if (showVendorName) ...[
                     const SizedBox(height: 2),
@@ -117,69 +148,78 @@ class ProductCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 4),
+                  // Price and the add control share one row, so the stepper
+                  // takes the "+" slot without eating the name's width.
                   Row(
                     children: [
-                      Text(
-                        '₦${formatPrice(product.price)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: C.accentOrange(context),
+                      Expanded(
+                        child: Text(
+                          product.unit == null
+                              ? '₦${formatPrice(product.price)}'
+                              : '₦${formatPrice(product.price)} / ${product.unit}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: C.accentOrange(context),
+                          ),
                         ),
                       ),
-                      if (showStockBadge && stockStatus == StockStatus.lowStock) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: C.warningSoft(context),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Low stock',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: C.onWarningSoft(context),
+                      if (inBox == 0)
+                        GestureDetector(
+                          onTap: isAvailable
+                              ? () {
+                                  if (StockTracker.decrement(
+                                      product.vendorName, product.name)) {
+                                    cart.add(product);
+                                    showAppSnackBar(
+                                      context,
+                                      '${product.name} added to box',
+                                      actionLabel: 'View box',
+                                      onAction: () => AppRoutes.pushReplaceAll(
+                                          context, AppRoutes.cart),
+                                    );
+                                  }
+                                }
+                              : null,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: isAvailable
+                                  ? C.primaryTint(context)
+                                  : C.surfaceLighter(context),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              isAvailable
+                                  ? Icons.add
+                                  : Icons.remove_shopping_cart,
+                              size: 20,
+                              color: isAvailable
+                                  ? C.primary(context)
+                                  : C.textMuted(context),
                             ),
                           ),
+                        )
+                      else
+                        QuantityStepper(
+                          quantity: inBox,
+                          onDecrement: () => cart.removeOne(product),
+                          onDelete: () => cart.removeOne(product),
+                          onIncrement: !isAvailable
+                              ? null
+                              : () {
+                                  if (StockTracker.decrement(
+                                      product.vendorName, product.name)) {
+                                    cart.add(product);
+                                  }
+                                },
                         ),
-                      ],
                     ],
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Add to cart button
-            GestureDetector(
-              onTap: isAvailable
-                  ? () {
-                      if (StockTracker.decrement(product.vendorName, product.name)) {
-                        context.read<CartNotifier>().add(product);
-                        showAppSnackBar(
-                          context,
-                          '${product.name} added to box',
-                          actionLabel: 'View box',
-                          onAction: () =>
-                              AppRoutes.pushReplaceAll(context, AppRoutes.cart),
-                        );
-                      }
-                    }
-                  : null,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isAvailable ? C.primaryTint(context) : C.surfaceLighter(context),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  isAvailable ? Icons.add : Icons.remove_shopping_cart,
-                  size: 20,
-                  color: isAvailable
-                      ? C.primary(context)
-                      : C.textMuted(context),
-                ),
               ),
             ),
           ],
