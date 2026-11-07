@@ -16,6 +16,15 @@ class _EmptyRepository implements OrdersRepository {
 
   @override
   Future<void> advanceStatus(String orderId) async {}
+
+  @override
+  Future<void> rateOrder(String orderId, OrderRating rating) async {}
+
+  @override
+  Future<void> cancelOrder(String orderId, {String? reason}) async {}
+
+  @override
+  Future<void> makeLate(String orderId) async {}
 }
 
 void main() {
@@ -161,7 +170,10 @@ void main() {
       (tester) async {
     var now = DateTime(2026, 10, 25, 12);
     final repo = MockOrdersRepository(clock: () => now);
-    await repo.getOrders(); // place the demo deliveries
+    // Place the demo deliveries at the first clock. Real async, because the
+    // repository waits out the simulated latency and a fake-clock await would
+    // never resume.
+    await tester.runAsync(repo.getOrders);
 
     // Come back 45 minutes later, when everything has been delivered.
     now = now.add(const Duration(minutes: 45));
@@ -203,13 +215,16 @@ void main() {
     expect(find.text('Home stub'), findsOneWidget);
   });
 
-  testWidgets('no deliveries: Past explains itself without an action button',
+  testWidgets('no deliveries: Past explains itself and offers the shop',
       (tester) async {
     await tester.pumpWidget(
       ChangeNotifierProvider(
         create: (_) => CartNotifier(),
         child: MaterialApp(
           home: OrderHistoryScreen(store: OrdersStore(_EmptyRepository())),
+          routes: {
+            AppRoutes.home: (_) => const Scaffold(body: Text('Home stub')),
+          },
         ),
       ),
     );
@@ -218,12 +233,14 @@ void main() {
     await tester.tap(find.text('Past'));
     await tester.pumpAndSettle();
 
-    expect(find.text('No past orders'), findsOneWidget);
-    expect(find.text('Delivered and cancelled orders live here.'),
+    expect(find.text('No past orders yet'), findsOneWidget);
+    expect(find.text('Your finished orders will show up here.'),
         findsOneWidget);
     expect(find.byIcon(Icons.history_rounded), findsOneWidget);
-    // Shopping from an empty history is what the Active tab is for.
-    expect(find.text('Start shopping'), findsNothing);
+    // Both tabs now end in the same place, so an empty "Past" is no dead end.
+    await tester.tap(find.text('Start shopping'));
+    await tester.pumpAndSettle();
+    expect(find.text('Home stub'), findsOneWidget);
   });
 
   test('a fresh install lists the demo deliveries and aged-out history',

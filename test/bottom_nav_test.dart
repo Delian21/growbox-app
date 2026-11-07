@@ -256,8 +256,8 @@ void main() {
         child: const MaterialApp(home: HomeScreen()),
       ),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    // Waits for the feed to load, so the real ListView is on screen.
+    await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(ScaffoldWithNav));
     final inset = BottomNavMetrics.contentInset(context);

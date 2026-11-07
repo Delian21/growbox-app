@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/app_state.dart';
+import '../data/mock_backend.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
 import '../routes.dart';
@@ -10,6 +10,10 @@ import '../theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/animated_entrance.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/order_rating_sheet.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/status_view.dart';
 import 'order_details_screen.dart';
 
 /// Which half of the orders list is showing.
@@ -127,6 +131,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     AppRoutes.pushReplaceAll(context, AppRoutes.home);
   }
 
+  /// Asks how the delivery went and records the answer on the order.
+  ///
+  /// The sheet always resolves (a swipe-away is a skip), so the prompt cannot
+  /// come back on this order either way.
+  Future<void> _rate(Order order) async {
+    final rating = await showOrderRatingSheet(
+      context,
+      vendorName: order.vendorName,
+    );
+    if (!mounted) return;
+    await _store.rate(order.id, rating);
+  }
+
   // ── Build ───────────────────────────────────────────────────────────────
 
   @override
@@ -168,15 +185,22 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
     // First load only: refetches keep the previous list on screen.
     if (_store.isLoading && !_store.hasLoaded) {
-      return Center(
-        child: CircularProgressIndicator(color: C.primary(context)),
+      return _buildSkeletons(hp, isActiveTab);
+    }
+
+    // The first request failed, so there is no list to keep: the list's slot
+    // becomes the shared error state and its retry refetches.
+    if (_store.error != null && !_store.hasLoaded) {
+      return LoadErrorView(
+        title: "Couldn't load orders",
+        onRetry: () => _store.load(force: true),
       );
     }
 
     if (orders.isEmpty) {
       return _OrdersEmptyState(
         isActiveTab: isActiveTab,
-        onStartShopping: isActiveTab ? _startShopping : null,
+        onStartShopping: _startShopping,
       );
     }
 
@@ -194,12 +218,31 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             statusColor: _statusColor(context, order.status),
             onOpen: () => _openDetails(order),
             onReorder: isActiveTab ? null : () => _reorder(order),
-            onAdvance: isActiveTab
-                ? () => _store.advanceStatus(order.id)
+            onRate: isActiveTab ? null : () => _rate(order),
+            // Demo-only mutations, all of which need a live order to act on.
+            onAdvance:
+                isActiveTab ? () => _store.advanceStatus(order.id) : null,
+            onCancel: isActiveTab
+                ? () => _store.cancel(order.id, reason: 'Cancelled by you')
+                : null,
+            onMakeLate: isActiveTab
+                ? () => _store.makeLate(order.id)
                 : null,
           ),
         );
       },
+    );
+  }
+
+  /// Skeleton orders: one per row, at the card's exact padding and height.
+  Widget _buildSkeletons(double hp, bool isActiveTab) {
+    return Shimmer(
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(hp, 0, hp, AppSpacing.xxxl),
+        itemCount: 4,
+        itemBuilder: (context, index) => _OrderCardSkeleton(active: isActiveTab),
+      ),
     );
   }
 }
@@ -267,79 +310,25 @@ class _OrdersTabBar extends StatelessWidget {
 
 class _OrdersEmptyState extends StatelessWidget {
   final bool isActiveTab;
-  final VoidCallback? onStartShopping;
+  final VoidCallback onStartShopping;
 
   const _OrdersEmptyState({
     required this.isActiveTab,
-    this.onStartShopping,
+    required this.onStartShopping,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: C.primaryTint(context).withValues(alpha: 0.35),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isActiveTab
-                    ? Icons.receipt_long_outlined
-                    : Icons.history_rounded,
-                size: 44,
-                color: C.primary(context),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text(
-              isActiveTab ? 'No active orders' : 'No past orders',
-              style: AppTypography.labelLarge
-                  .copyWith(color: C.textPrimary(context)),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              isActiveTab
-                  ? 'Orders on their way will show up here.'
-                  : 'Delivered and cancelled orders live here.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySmall.copyWith(
-                color: C.textMuted(context),
-              ),
-            ),
-            if (onStartShopping != null) ...[
-              const SizedBox(height: AppSpacing.xxl),
-              GestureDetector(
-                onTap: onStartShopping,
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xxl,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: C.primary(context),
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                  ),
-                  child: Text(
-                    'Start shopping',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: C.onPrimary(context),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+    // Both tabs end in the same place: the shop. The old past tab had no
+    // action at all, so a brand-new customer who opened "Past" was stuck.
+    return StatusView(
+      icon: isActiveTab ? Icons.receipt_long_outlined : Icons.history_rounded,
+      title: isActiveTab ? 'No active orders' : 'No past orders yet',
+      message: isActiveTab
+          ? 'Orders on their way will show up here.'
+          : 'Your finished orders will show up here.',
+      primaryLabel: 'Start shopping',
+      onPrimary: onStartShopping,
     );
   }
 }
@@ -348,13 +337,68 @@ class _OrdersEmptyState extends StatelessWidget {
 // ORDER CARD
 // ═══════════════════════════════════════════════════════════════════════
 
+/// Placeholder for an [_OrderCard]: same margin, padding and row heights, with
+/// the progress strip on Active and the Reorder pill on Past, so the list does
+/// not shift when the orders arrive.
+class _OrderCardSkeleton extends StatelessWidget {
+  final bool active;
+
+  const _OrderCardSkeleton({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: C.surface(context),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vendor name + status chip.
+          const Row(
+            children: [
+              Expanded(child: SkeletonBox(height: 18)),
+              SizedBox(width: AppSpacing.sm),
+              SkeletonBox(width: 64, height: 22, radius: AppRadii.pill),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Items, date, total.
+          const Row(
+            children: [
+              SkeletonBox(width: 56, height: 16),
+              SizedBox(width: 10),
+              SkeletonBox(width: 88, height: 16),
+              Spacer(),
+              SkeletonBox(width: 56, height: 16),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (active)
+            // The four-segment progress strip.
+            const SkeletonBox(height: 4, radius: 2)
+          else
+            // The Reorder pill.
+            const SkeletonBox(width: 84, height: 31, radius: AppRadii.sm),
+        ],
+      ),
+    );
+  }
+}
+
 class _OrderCard extends StatelessWidget {
   final Order order;
   final bool active;
   final Color statusColor;
   final VoidCallback onOpen;
   final VoidCallback? onReorder;
+  final VoidCallback? onRate;
   final VoidCallback? onAdvance;
+  final VoidCallback? onCancel;
+  final VoidCallback? onMakeLate;
 
   const _OrderCard({
     required this.order,
@@ -362,7 +406,10 @@ class _OrderCard extends StatelessWidget {
     required this.statusColor,
     required this.onOpen,
     this.onReorder,
+    this.onRate,
     this.onAdvance,
+    this.onCancel,
+    this.onMakeLate,
   });
 
   @override
@@ -487,39 +534,41 @@ class _OrderCard extends StatelessWidget {
                 ),
               ),
             ],
-            // ── Demo-only status control ─────────────────────────
-            if (kDebugMode && active && onAdvance != null) ...[
+            // ── Rating (past, delivered) ─────────────────────────
+            // Asked until answered; the answer (including a skip) replaces
+            // the button for good.
+            if (!active && order.status == OrderStatus.delivered) ...[
+              const SizedBox(height: AppSpacing.md),
+              if (order.rating == null && onRate != null)
+                _FeedbackAction(label: 'Rate', onTap: onRate!)
+              else if (order.rating != null)
+                OrderRatingResult(rating: order.rating!),
+            ],
+            // ── Demo-only status controls ────────────────────────
+            if (kDemoTools && active && onAdvance != null) ...[
               const SizedBox(height: AppSpacing.sm),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onAdvance,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadii.sm),
-                    border: Border.all(color: C.divider(context), width: 1),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  _DemoAction(
+                    icon: Icons.fast_forward,
+                    label: 'Advance status',
+                    onTap: onAdvance!,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.fast_forward,
-                        size: 13,
-                        color: C.textMuted(context),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Advance status',
-                        style: AppTypography.labelSmall.copyWith(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: C.textMuted(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                  if (onCancel != null)
+                    _DemoAction(
+                      icon: Icons.cancel_outlined,
+                      label: 'Cancel order',
+                      onTap: onCancel!,
+                    ),
+                  if (onMakeLate != null)
+                    _DemoAction(
+                      icon: Icons.schedule,
+                      label: 'Make late',
+                      onTap: onMakeLate!,
+                    ),
+                ],
               ),
             ],
           ],
@@ -532,6 +581,96 @@ class _OrderCard extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════
 // PIECES
 // ═══════════════════════════════════════════════════════════════════════
+
+/// The quiet pill a demo mutation is offered as.
+///
+/// Outlined and muted on purpose: these are not product actions, and a
+/// released build does not compile them in at all ([kDemoTools]).
+class _DemoAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _DemoAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadii.sm),
+          border: Border.all(color: C.divider(context), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: C.textMuted(context)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppTypography.labelSmall.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: C.textMuted(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The "Rate" pill on a delivered order nobody has asked about yet.
+///
+/// Filled rather than outlined: rating is a real action the customer can take,
+/// not a demo affordance.
+class _FeedbackAction extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _FeedbackAction({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: C.primary(context),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.thumb_up_alt_outlined,
+              size: 15,
+              color: C.onPrimary(context),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTypography.labelSmall.copyWith(
+                fontWeight: FontWeight.w700,
+                color: C.onPrimary(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _StatusChip extends StatelessWidget {
   final String label;

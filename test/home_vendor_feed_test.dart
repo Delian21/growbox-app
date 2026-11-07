@@ -18,8 +18,8 @@ void main() {
         child: const MaterialApp(home: HomeScreen()),
       ),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    // Waits out the simulated feed latency and the entrance animations.
+    await tester.pumpAndSettle();
 
     // One card per vendor plus the end-of-list note.
     expect(find.byType(VendorCard), findsNWidgets(7));

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
+import '../data/catalog_repository.dart';
 import '../data/mock_data.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/category_chip.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/product_card.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/status_view.dart';
 import '../widgets/vendor_rating.dart';
 
 class VendorScreen extends StatefulWidget {
@@ -49,6 +53,11 @@ class _VendorScreenState extends State<VendorScreen> {
   /// True once the cover has scrolled far enough that the bar is collapsed.
   bool _collapsed = false;
 
+  /// The menu, fetched through the repository. Null while it is loading, so
+  /// the list can show skeletons at the same height as the real cards.
+  List<VendorProduct>? _products;
+  bool _menuFailed = false;
+
   bool get isFavorite => favoriteVendors.any((v) => v['name'] == widget.vendorName);
 
   /// The vendor's rating from the catalog, in the shared 84% / (21) format.
@@ -81,7 +90,27 @@ class _VendorScreenState extends State<VendorScreen> {
   void initState() {
     super.initState();
     isOpen = widget.initialOpen;
+    _loadMenu(showSkeleton: false);
     _scroll.addListener(_onScroll);
+  }
+
+  /// Fetches this vendor's menu. A failure replaces the list with the shared
+  /// error state; trying again re-runs the call.
+  Future<void> _loadMenu({bool showSkeleton = true}) async {
+    if (showSkeleton) {
+      setState(() {
+        _menuFailed = false;
+        _products = null;
+      });
+    }
+    try {
+      final products = await catalogRepository.getMenu(widget.products);
+      if (!mounted) return;
+      setState(() => _products = products);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _menuFailed = true);
+    }
   }
 
   @override
@@ -418,38 +447,12 @@ class _VendorScreenState extends State<VendorScreen> {
             padding: EdgeInsets.only(
               right: index == entries.length - 1 ? 0 : AppSpacing.sm,
             ),
-            child: GestureDetector(
+            // Shared with the empty-search category rail, so a category looks
+            // the same wherever it is offered.
+            child: CategoryChip(
+              label: label,
+              selected: isSelected,
               onTap: () => setState(() => selectedCategory = category),
-              child: Container(
-                alignment: Alignment.center,
-                constraints: const BoxConstraints(minHeight: 40),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? C.primary(context)
-                      : C.surface(context),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: C.primary(context).withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected
-                        ? C.onPrimary(context)
-                        : C.textPrimary(context),
-                  ),
-                ),
-              ),
             ),
           );
         },
@@ -458,13 +461,64 @@ class _VendorScreenState extends State<VendorScreen> {
   }
 
   Widget _buildProductList(double hp) {
-    final filteredProducts = widget.products.where((product) {
+    // ── Failed: the menu's slot becomes the error state ──────────
+    if (_menuFailed) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 100),
+        child: LoadErrorView(
+          title: "Couldn't load this menu",
+          onRetry: () => _loadMenu(),
+        ),
+      );
+    }
+
+    // ── Loading: same rows as the real list, at the same height ──
+    final products = _products;
+    if (products == null) {
+      return Shimmer(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SkeletonBox(width: 64, height: 13),
+              const SizedBox(height: AppSpacing.md),
+              for (var i = 0; i < 4; i++)
+                const ProductCardSkeleton(imageSize: 80, showDescription: true),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final filteredProducts = products.where((product) {
       if (selectedCategory != null &&
           product.category.toLowerCase() != selectedCategory!.toLowerCase()) {
         return false;
       }
       return true;
     }).toList();
+
+    // A category filter can hide everything the vendor sells, or the vendor
+    // can have no menu at all: both used to render a bare "0 items" line.
+    if (filteredProducts.isEmpty) {
+      final bool filterHidesItems =
+          selectedCategory != null && products.isNotEmpty;
+      return Padding(
+        padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 100),
+        child: StatusView(
+          icon: Icons.inventory_2_outlined,
+          title: 'Nothing here yet',
+          message: filterHidesItems
+              ? 'This vendor has no ${selectedCategory!.toLowerCase()} items right now.'
+              : "This vendor hasn't listed any items yet.",
+          primaryLabel: filterHidesItems ? 'Show all items' : null,
+          onPrimary: filterHidesItems
+              ? () => setState(() => selectedCategory = null)
+              : null,
+        ),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(hp, AppSpacing.lg, hp, 100),

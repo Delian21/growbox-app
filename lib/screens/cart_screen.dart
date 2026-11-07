@@ -6,7 +6,7 @@ import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/pinned_bottom_bar.dart';
 import '../widgets/quantity_stepper.dart';
-import '../widgets/app_button.dart';
+import '../widgets/status_view.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
@@ -82,79 +82,27 @@ class _CartScreenState extends State<CartScreen> {
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         hp,
-        AppSpacing.xxl,
+        AppSpacing.huge,
         hp,
         BottomNavMetrics.contentInset(context),
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 60),
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: C.primaryTint(context).withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.shopping_bag_outlined,
-              size: 56,
-              color: C.primary(context),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(
-            'Your box is empty',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: C.textPrimary(context),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Browse our fresh produce and add items to your box',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: C.textMuted(context),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxxl),
-          // Browse button
-          AppButton(
-            label: 'Browse produce',
-            onPressed: () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => HomeScreen()),
-            ),
-            width: 220,
-            height: 52,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          // Order history link
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => OrderHistoryScreen()),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.history, size: 18, color: C.textMuted(context)),
-                const SizedBox(width: 8),
-                Text(
-                  'View order history',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: C.textMuted(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      // Same disc, type scale and 48dp buttons as every other empty screen.
+      child: StatusView(
+        icon: Icons.shopping_bag_outlined,
+        title: 'Your box is empty',
+        message: 'Browse our fresh produce and add items to your box',
+        primaryLabel: 'Browse produce',
+        onPrimary: () => Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomeScreen()),
+        ),
+        // The order-history link used to be a bare tappable row; as the
+        // secondary action it now has a full 48dp target.
+        secondaryLabel: 'View order history',
+        onSecondary: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => OrderHistoryScreen()),
+        ),
       ),
     );
   }

@@ -1,13 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../data/app_state.dart';
+import '../data/mock_data.dart';
 import '../data/orders.dart';
+import '../routes.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_header.dart';
+import '../widgets/order_rating_sheet.dart';
 import '../widgets/order_timeline.dart';
+import '../widgets/status_view.dart';
 import 'faq_screen.dart';
 
 /// Delivery tracking status stages.
@@ -88,11 +94,17 @@ class DeliveryTrackingScreen extends StatefulWidget {
   /// Demo-only starting stage, used when [order] is null.
   final DeliveryStage? initialStage;
 
+  /// Optional source of newer versions of [order], so the screen follows an
+  /// order that is cancelled or delivered while it is open. Falls back to the
+  /// app-wide store.
+  final OrdersStore? store;
+
   const DeliveryTrackingScreen({
     super.key,
     this.order,
     this.orderNumber,
     this.initialStage,
+    this.store,
   }) : assert(
           order != null || orderNumber != null,
           'DeliveryTrackingScreen needs an order or an order number',
@@ -149,12 +161,60 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
     _riderPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
+    // Runs only when there is a rider to pulse; see [_syncRiderPulse].
+    _syncRiderPulse();
 
     // Only the demo invents progress; a real order only moves when the order
     // itself does.
     if (_isDemo) _startStageSimulation();
+
+    // A real order is live data: subscribe so a cancellation (or the delivery
+    // landing) repaints this screen instead of leaving a stale route on it.
+    if (widget.order != null) _store.addListener(_onStoreChanged);
   }
+
+  OrdersStore get _store => widget.store ?? ordersStore;
+
+  void _onStoreChanged() {
+    if (!mounted) return;
+    setState(_syncRiderPulse);
+  }
+
+  /// The breathing halo only exists while a rider is on the map.
+  ///
+  /// Delivered and cancelled hide the map, so the controller stops too: an
+  /// animation nobody can see would keep the device awake and every
+  /// `pumpAndSettle` waiting forever.
+  void _syncRiderPulse() {
+    final visible = !_isDelivered && !_isCancelled;
+    if (visible && !_riderPulseController.isAnimating) {
+      _riderPulseController.repeat(reverse: true);
+    } else if (!visible && _riderPulseController.isAnimating) {
+      _riderPulseController.stop();
+    }
+  }
+
+  /// The freshest version of the order this screen knows about.
+  Order? get _order {
+    final base = widget.order;
+    if (base == null) return null;
+    for (final order in _store.orders) {
+      if (order.id == base.id) return order;
+    }
+    return base;
+  }
+
+  /// The stage to show: the order's own status wins whenever there is one, and
+  /// the demo timer only drives the case with no order to read.
+  DeliveryStage get _stage {
+    final order = _order;
+    return order == null ? _currentStage : stageForOrderStatus(order.status);
+  }
+
+  bool get _isCancelled => _order?.status == OrderStatus.cancelled;
+
+  bool get _isDelivered => _stage == DeliveryStage.delivered;
 
   /// Ticks once a minute: the arrival card counts whole minutes, so a
   /// per-second timer would repaint sixty times to say nothing new.
@@ -164,7 +224,10 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
       // A demo delivery completes when its window closes. A real order only
       // moves when the order itself does, so it just re-reads the clock.
       if (_isDemo && DateTime.now().isAfter(_eta)) {
-        setState(() => _currentStage = DeliveryStage.delivered);
+        setState(() {
+          _currentStage = DeliveryStage.delivered;
+          _syncRiderPulse();
+        });
       } else {
         setState(() {});
       }
@@ -185,6 +248,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
 
   @override
   void dispose() {
+    if (widget.order != null) _store.removeListener(_onStoreChanged);
     _countdownTimer?.cancel();
     _stageTimer?.cancel();
     _riderPulseController.dispose();
@@ -207,31 +271,192 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(hp, AppSpacing.xl, hp, 30),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Arrival, then where the box is, then who is carrying it,
-                    // then how far it has come, then the reference details.
-                    _buildArrivalCard(),
-                    const SizedBox(height: AppSpacing.xxl),
-                    // A static illustration of the route, not live GPS: the
-                    // marker is placed from the order's status and nothing is
-                    // read from the device's location.
-                    _buildAnimatedMap(screenWidth),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _buildRiderCard(),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _buildTimeline(),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _buildDeliveryDetails(),
-                  ],
-                ),
+                child: _buildBody(screenWidth),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// The scrollable content, which depends on how the order ended.
+  ///
+  /// Cancelled replaces the whole delivery story with the one thing left to
+  /// do (reorder, or talk to someone); delivered keeps the completed timeline
+  /// but drops the live route and rider, because there is nothing left to
+  /// track and nobody left to call.
+  Widget _buildBody(double screenWidth) {
+    if (_isCancelled) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          StatusView(
+            icon: Icons.cancel_outlined,
+            title: 'Order cancelled',
+            // The recorded reason when there is one; otherwise a plain
+            // statement, never an invented excuse.
+            message: (_order?.cancelReason?.trim().isNotEmpty ?? false)
+                ? _order!.cancelReason!.trim()
+                : 'This order was cancelled. Nothing was charged.',
+            primaryLabel: 'Reorder',
+            onPrimary: _reorder,
+            secondaryLabel: 'Contact support',
+            onSecondary: _openHelp,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _buildTimeline(),
+          const SizedBox(height: AppSpacing.xxl),
+          _buildDeliveryDetails(),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Arrival, then where the box is, then who is carrying it, then how
+        // far it has come, then the reference details.
+        _buildArrivalCard(),
+        const SizedBox(height: AppSpacing.xxl),
+        if (_isDelivered)
+          // Delivered: ask how it went instead of drawing a route that has
+          // already been travelled.
+          _buildFeedbackCard()
+        else ...[
+          // A static illustration of the route, not live GPS: the marker is
+          // placed from the order's status and nothing is read from the
+          // device's location.
+          _buildAnimatedMap(screenWidth),
+          const SizedBox(height: AppSpacing.xxl),
+          _buildRiderCard(),
+        ],
+        const SizedBox(height: AppSpacing.xxl),
+        _buildTimeline(),
+        const SizedBox(height: AppSpacing.xxl),
+        _buildDeliveryDetails(),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FEEDBACK
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /// "How was your order?" — the prompt while unrated, the answer afterwards.
+  ///
+  /// The card never disappears once answered, so the customer can see what
+  /// they said; a skipped prompt shows the skip rather than asking again.
+  Widget _buildFeedbackCard() {
+    final rating = _order?.rating;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: C.surface(context),
+        border: Border.all(color: C.divider(context)),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How was your order?',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: C.textPrimary(context),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          if (rating == null)
+            Text(
+              'A thumbs up or down helps other customers choose a vendor.',
+              style: AppTypography.bodySmall.copyWith(
+                color: C.textSecondary(context),
+              ),
+            )
+          else
+            // Saved answer: the same line the past-orders card shows.
+            OrderRatingResult(rating: rating),
+          if (rating == null) ...[
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: AppButton(
+                label: 'Rate your order',
+                onPressed: _rate,
+                variant: AppButtonVariant.secondary,
+                expand: true,
+                height: 48,
+                radius: AppRadii.pill,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Asks, then saves the answer (including a skip) on the order.
+  Future<void> _rate() async {
+    final order = _order;
+    if (order == null) return;
+    final rating = await showOrderRatingSheet(
+      context,
+      vendorName: order.vendorName,
+    );
+    if (!mounted) return;
+    await _store.rate(order.id, rating);
+  }
+
+  /// Puts every line back in the box, respecting live stock.
+  ///
+  /// Same behaviour as the orders list's reorder, because "Reorder" has to
+  /// mean the same thing wherever it is offered.
+  void _reorder() {
+    final order = _order;
+    if (order == null) return;
+    final cart = context.read<CartNotifier>();
+    int added = 0;
+    int skipped = 0;
+
+    for (final line in order.items) {
+      final product = VendorProduct(
+        image: line.image,
+        name: line.name,
+        description: line.name,
+        price: line.price,
+        category: line.category,
+        vendorName: line.vendorName,
+      );
+      for (int unit = 0; unit < line.quantity; unit++) {
+        if (StockTracker.isAvailable(line.vendorName, line.name)) {
+          StockTracker.decrement(line.vendorName, line.name);
+          cart.add(product);
+          added++;
+        } else {
+          skipped++;
+        }
+      }
+    }
+
+    if (!mounted) return;
+    if (skipped == 0) {
+      showAppSnackBar(
+        context,
+        '$added item${added == 1 ? '' : 's'} added to your box',
+        actionLabel: 'View box',
+        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+      );
+    } else if (added == 0) {
+      showAppSnackBar(context, 'All items are out of stock', isError: true);
+    } else {
+      showAppSnackBar(context, '$added added, $skipped out of stock',
+          isError: true);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -255,15 +480,16 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
 
   /// Past the promise and still not delivered.
   bool get _isLate =>
-      _currentStage != DeliveryStage.delivered &&
-      DateTime.now().isAfter(_eta);
+      !_isDelivered && !_isCancelled && DateTime.now().isAfter(_eta);
 
   /// The headline: the wait, the arrival, lateness or completion.
   ///
   /// Never zero and never negative — the last minute reads "Arriving now"
   /// rather than counting down to a number the delivery cannot honour.
   String get _arrivalHeadline {
-    if (_currentStage == DeliveryStage.delivered) return 'Delivered!';
+    // The delivered card states the fact with its time instead of a bare
+    // "Delivered!": the customer wants to know when the box arrived.
+    if (_isDelivered) return 'Delivered at ${formatOrderTime(_deliveredAt)}';
     if (_isLate) return 'Running late';
     if (_eta.difference(DateTime.now()).inSeconds < 60) return 'Arriving now';
     return '$_minutesLeft min';
@@ -271,8 +497,12 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
 
   /// The line under the headline: when the box is due, written the one way the
   /// app writes a time.
+  /// When the box actually arrived: the order's own stamp, or the promised
+  /// arrival for the demo timeline, which has no order behind it.
+  DateTime get _deliveredAt => _order?.deliveredTime ?? _eta;
+
   String get _arrivalDetail {
-    if (_currentStage == DeliveryStage.delivered) {
+    if (_isDelivered) {
       return 'Your order has been delivered successfully';
     }
     final by = formatOrderTime(_eta);
@@ -285,8 +515,8 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
       );
 
   Widget _buildArrivalCard() {
-    final isDelivered = _currentStage == DeliveryStage.delivered;
-    final late = !isDelivered && _isLate;
+    final isDelivered = _isDelivered;
+    final late = !isDelivered && !_isCancelled && _isLate;
 
     return Container(
       width: double.infinity,
@@ -351,7 +581,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
 
   Widget _buildAnimatedMap(double screenWidth) {
     final mapHeight = (screenWidth * 0.55).clamp(200.0, 300.0);
-    final isDelivered = _currentStage == DeliveryStage.delivered;
+    final isDelivered = _isDelivered;
 
     return Container(
       width: double.infinity,
@@ -386,7 +616,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
                   child: TweenAnimationBuilder<double>(
                     tween: Tween<double>(
                       begin: 0,
-                      end: _currentStage.routeProgress,
+                      end: _stage.routeProgress,
                     ),
                     duration: const Duration(milliseconds: 900),
                     curve: Curves.easeOutCubic,
@@ -565,7 +795,9 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
         // event log; the demo only has a placement time, so the shared timeline
         // dates the steps from the delivery's ladder.
         OrderTimeline(
-          status: statusForDeliveryStage(_currentStage),
+          // The order's own status, so a cancellation ends the track with a
+          // "Cancelled" row exactly as Order Details draws it.
+          status: _order?.status ?? statusForDeliveryStage(_stage),
           timestamps: widget.order?.timestamps ?? const {},
           placedAt: _placedAt,
         ),

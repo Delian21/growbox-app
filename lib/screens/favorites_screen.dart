@@ -5,21 +5,30 @@ import '../widgets/app_header.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/mock_data.dart';
 import '../widgets/vendor_rating.dart';
+import '../widgets/status_view.dart';
+import '../routes.dart';
 import 'vendor_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
-    const FavoritesScreen({super.key});
+  /// A favourites list to render instead of the saved one. Only the demo state
+  /// gallery passes it, so an empty state can be shown without clearing (and
+  /// persisting over) the customer's real favourites.
+  final List<Map<String, String>>? favorites;
+
+  const FavoritesScreen({super.key, this.favorites});
 
   @override
   State<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  List<Map<String, String>> get favorites => favoriteVendors;
+  List<Map<String, String>> get favorites =>
+      widget.favorites ?? favoriteVendors;
 
   void _removeFavorite(int index) {
     setState(() => favorites.removeAt(index));
-    persistFavorites();
+    // A gallery list is a copy: removing from it must not rewrite storage.
+    if (widget.favorites == null) persistFavorites();
   }
 
   @override
@@ -61,43 +70,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: C.primaryTint(context).withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child:   Icon(
-              Icons.favorite_border,
-              size: 48,
-              color: C.primary(context),
-            ),
-          ),
-            SizedBox(height: AppSpacing.xxl),
-          Text(
-            'No favorites yet',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: C.textPrimary(context),
-            ),
-          ),
-            SizedBox(height: AppSpacing.sm),
-          Text(
-            'Tap the heart icon on a vendor\nto add them to your favorites',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: C.textMuted(context),
-            ),
-          ),
-        ],
-      ),
+    return StatusView(
+      icon: Icons.favorite_border,
+      title: 'No favorites yet',
+      message: 'Tap the heart on a vendor to save it here.',
+      // Same tab hand-off the bottom nav uses, so Home is the live tab and
+      // not a second Home stacked on this screen.
+      primaryLabel: 'Browse vendors',
+      onPrimary: () => AppRoutes.pushReplaceAll(context, AppRoutes.home),
     );
   }
 

@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/animated_entrance.dart';
+import '../widgets/status_view.dart';
 
 class NotificationsScreen extends StatefulWidget {
-    const NotificationsScreen({super.key});
+  /// Notifications to render instead of the mock feed. Only the demo state
+  /// gallery passes it, to show the empty state with fake data.
+  final List<Map<String, dynamic>>? notifications;
+
+  const NotificationsScreen({super.key, this.notifications});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -13,8 +18,11 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   bool pushNotifications = false;
 
+  List<Map<String, dynamic>> get _notifications =>
+      widget.notifications ?? _defaultNotifications;
+
   // Mock notifications
-  final List<Map<String, dynamic>> _notifications = [
+  static final List<Map<String, dynamic>> _defaultNotifications = [
     {
       'title': 'Order Delivered',
       'message': 'Your order #GBX-10431 has been delivered successfully.',
@@ -74,11 +82,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   children: [
                     _buildSettingsCard(),
                     SizedBox(height: AppSpacing.xxl),
-                    _buildSectionTitle('Recent'),
-                    SizedBox(height: AppSpacing.md),
-                    ..._notifications.asMap().entries.map((entry) {
-                      return AnimatedEntrance(index: entry.key, child: _buildNotificationCard(entry.value));
-                    }),
+                    // No notifications: the settings card still sits on top,
+                    // and the feed slot explains itself instead of leaving an
+                    // empty "Recent" heading behind.
+                    if (_notifications.isEmpty)
+                      StatusView(
+                        icon: Icons.notifications_none_outlined,
+                        title: "You're all caught up",
+                        message: 'Order updates will show up here.',
+                      )
+                    else ...[
+                      _buildSectionTitle('Recent'),
+                      SizedBox(height: AppSpacing.md),
+                      ..._notifications.asMap().entries.map((entry) {
+                        return AnimatedEntrance(index: entry.key, child: _buildNotificationCard(entry.value));
+                      }),
+                    ],
                   ],
                 ),
               ),

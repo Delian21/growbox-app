@@ -1,11 +1,20 @@
+import 'dart:async';
+
 import '../widgets/product_card.dart';
 import 'package:flutter/material.dart';
 import '../widgets/animated_entrance.dart';
 import '../theme.dart';
+import '../data/categories.dart';
+import '../data/catalog_repository.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/micro_interactions.dart';
 import '../data/mock_data.dart';
+import '../widgets/category_chip.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/status_view.dart';
+import 'category_vendors_screen.dart';
 import 'vendor_screen.dart';
 import '../widgets/vendor_rating.dart';
 import '../widgets/voice_search_overlay.dart';
@@ -14,7 +23,12 @@ import '../widgets/voice_search_overlay.dart';
 final List<String> recentSearches = [];
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  /// Pre-fills the field and shows that query's settled result on the first
+  /// frame. Only the demo state gallery passes it; the app never does, and the
+  /// default (null) keeps the interactive behaviour unchanged.
+  final String? initialQuery;
+
+  const SearchScreen({super.key, this.initialQuery});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -24,24 +38,95 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
+  /// Fires once the user stops typing, so a half-typed word is never reported
+  /// as a failed search.
+  Timer? _typingTimer;
+
+  /// True once a search has actually run for the current text: Enter, a
+  /// suggestion, a voice result, or a pause in typing. Only a settled query
+  /// can show the no-results state.
+  bool _querySettled = false;
+
+  static const Duration _typingPause = Duration(milliseconds: 400);
+
+  /// The catalogue behind the results, fetched once so typing filters a list
+  /// in memory instead of re-requesting on every keystroke.
+  List<Map<String, dynamic>> _vendors = const [];
+  bool _catalogLoading = true;
+  bool _catalogFailed = false;
+
   @override
   void initState() {
     super.initState();
+    _loadCatalog(showLoading: false);
+
+    final initial = widget.initialQuery?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      searchController.text = initial;
+      // A pre-filled query has already been submitted, so its result is shown
+      // straight away instead of being held behind the typing pause.
+      _querySettled = true;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focusNode.requestFocus();
+      if (!mounted) return;
+      // Don't pop the keyboard over a state that was opened to be looked at.
+      if (initial == null || initial.isEmpty) _focusNode.requestFocus();
     });
+  }
+
+  /// Fetches the catalogue for search. A failure replaces the results area
+  /// with the shared error state; retrying runs this again.
+  Future<void> _loadCatalog({bool showLoading = true}) async {
+    if (showLoading) {
+      setState(() {
+        _catalogLoading = true;
+        _catalogFailed = false;
+      });
+    }
+    try {
+      final vendors = await catalogRepository.getVendors();
+      if (!mounted) return;
+      setState(() {
+        _vendors = vendors;
+        _catalogLoading = false;
+        _catalogFailed = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _catalogLoading = false;
+        _catalogFailed = true;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
     searchController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
   void clearSearch() {
+    _typingTimer?.cancel();
+    _querySettled = false;
     searchController.clear();
     setState(() {});
+  }
+
+  /// Any keystroke invalidates the previous search: results keep updating
+  /// live, but the "nothing matched" panel waits for [_typingPause] of quiet
+  /// (or an explicit submit) before it may appear.
+  void _onQueryChanged(String value) {
+    _typingTimer?.cancel();
+    setState(() => _querySettled = false);
+    if (value.trim().isEmpty) return;
+    _typingTimer = Timer(_typingPause, () {
+      if (!mounted) return;
+      setState(() => _querySettled = true);
+    });
   }
 
   String get query => searchController.text.trim().toLowerCase();
@@ -49,7 +134,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // ── Search logic ──────────────────────────────────────────────────────
   List<VendorProduct> get _allProducts {
     final List<VendorProduct> products = [];
-    for (final vendor in MockVendors.vendors) {
+    for (final vendor in _vendors) {
       final vendorProducts = vendor['products'] as List<VendorProduct>;
       products.addAll(vendorProducts);
     }
@@ -67,7 +152,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   List<Map<String, dynamic>> get _matchedVendors {
-    return MockVendors.vendors.where((v) {
+    return _vendors.where((v) {
       final name = (v['name'] as String).toLowerCase();
       if (name.contains(query)) return true;
       final searchProducts = List<String>.from(v['searchProducts'] ?? []);
@@ -81,10 +166,11 @@ class _SearchScreenState extends State<SearchScreen> {
   void _submitSearch(String value) {
     final q = value.trim();
     if (q.isEmpty) return;
+    _typingTimer?.cancel();
     recentSearches.remove(q);
     recentSearches.insert(0, q);
     if (recentSearches.length > 10) recentSearches.removeLast();
-    setState(() {});
+    setState(() => _querySettled = true);
   }
 
   void _removeRecentSearch(String item) {
@@ -138,7 +224,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: TextField(
                   controller: searchController,
                   focusNode: _focusNode,
-                  onChanged: (value) => setState(() {}),
+                  onChanged: _onQueryChanged,
                   onSubmitted: _submitSearch,
                   textInputAction: TextInputAction.search,
                   textCapitalization: TextCapitalization.none,
@@ -178,15 +264,45 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: !_hasQuery
-                    ? _buildIdleState(screenWidth, screenHeight)
-                    : !_hasResults
-                        ? _buildNoResults(screenWidth)
-                        : _buildResults(screenWidth),
+                child: _buildBody(screenWidth, screenHeight),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Body: loading, failure, idle, results ────────────────────────────
+  Widget _buildBody(double screenWidth, double screenHeight) {
+    // First request (or a retry) in flight: show the results' shape.
+    if (_catalogLoading) return _buildSkeletons();
+
+    if (_catalogFailed) {
+      return LoadErrorView(
+        title: "Couldn't load results",
+        onRetry: () => _loadCatalog(),
+      );
+    }
+
+    if (!_hasQuery) return _buildIdleState(screenWidth, screenHeight);
+    if (_hasResults) return _buildResults(screenWidth);
+    // Nothing is drawn until the query settles, so no "No results" flash
+    // mid-word.
+    return _querySettled ? _buildNoResults() : const SizedBox.shrink();
+  }
+
+  /// Skeleton results: six rows, each the height of the ProductCard it becomes.
+  Widget _buildSkeletons() {
+    return Shimmer(
+      child: ListView(
+        padding: EdgeInsets.only(
+          top: AppSpacing.lg,
+          bottom: BottomNavMetrics.contentInset(context),
+        ),
+        children: [
+          for (var i = 0; i < 6; i++) const ProductCardSkeleton(),
+        ],
       ),
     );
   }
@@ -306,28 +422,69 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   // ── No results ─────────────────────────────────────────────────────
-  Widget _buildNoResults(double screenWidth) {
+  Widget _buildNoResults() {
+    // Echo what was typed, not the lower-cased query used for matching.
+    final typed = searchController.text.trim();
     return Center(
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 30),
+        padding: EdgeInsets.only(
+          top: 30,
+          bottom: BottomNavMetrics.contentInset(context),
+        ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: screenWidth < 360 ? 50 : 60, color: C.textMuted(context)),
-            const SizedBox(height: AppSpacing.lg),
-            Text('No results found',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: C.textPrimary(context))),
-            const SizedBox(height: AppSpacing.sm),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('No products or vendors match "$query". Try a different search.',
-                textAlign: TextAlign.center, softWrap: true,
-                style: TextStyle(fontSize: 14, height: 1.5, color: C.textMuted(context))),
+            StatusView(
+              icon: Icons.search_off,
+              title: "No results for '$typed'",
+              message: 'Check the spelling or try a broader word.',
+              primaryLabel: 'Clear search',
+              onPrimary: clearSearch,
             ),
+            _buildCategoryRail(),
           ],
         ),
+      ),
+    );
+  }
+
+  /// "Or browse by category": the same chips as the vendor menu filter, from
+  /// the same list Home browses, so a dead end still has a way forward.
+  Widget _buildCategoryRail() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+      child: Column(
+        children: [
+          Text(
+            'Or browse by category',
+            style: AppTypography.labelMedium
+                .copyWith(color: C.textSecondary(context)),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: kCategories.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+              itemBuilder: (context, index) {
+                final category = kCategories[index];
+                return CategoryChip(
+                  label: category.label,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CategoryVendorsScreen(
+                        category: category.label.toUpperCase(),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -388,8 +545,15 @@ class _SearchScreenState extends State<SearchScreen> {
               child: SizedBox(
                 width: 48, height: 48,
                 child: image.isNotEmpty
-                    ? Image.asset(image, fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
+                    // Through the shared image widget so a failed photo keeps
+                    // its 48x48 slot and shows the storefront, not a broken
+                    // icon.
+                    ? SkeletonImage(
+                        imageUrl: image,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorWidget: Container(
                           color: C.primaryTint(context),
                           child: Icon(Icons.storefront_outlined,
                               color: C.primary(context), size: 24)))

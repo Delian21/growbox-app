@@ -259,6 +259,23 @@ class StoredOrder {
   /// choice read as [PaymentMethod.payOnDelivery], which is what they were.
   final PaymentMethod paymentMethod;
 
+  /// When the box arrived, for a record that finished. Null while it hasn't
+  /// (or when a legacy record never recorded it).
+  final DateTime? deliveredAt;
+
+  /// When the order was cancelled, if it was.
+  final DateTime? cancelledAt;
+
+  /// Why it was cancelled; null when the source never said.
+  final String? cancelReason;
+
+  /// The feedback the customer left, as plain storage fields rather than the
+  /// UI's [OrderRating]: this file must not depend on the presentation model.
+  /// `liked` / `notGreat` / `skipped`, matching [OrderFeedback].
+  final String? feedback;
+  final List<String> feedbackReasons;
+  final String? feedbackComment;
+
   const StoredOrder({
     required this.orderNumber,
     required this.placedAt,
@@ -268,6 +285,12 @@ class StoredOrder {
     required this.items,
     this.riderNote,
     this.paymentMethod = PaymentMethod.payOnDelivery,
+    this.deliveredAt,
+    this.cancelledAt,
+    this.cancelReason,
+    this.feedback,
+    this.feedbackReasons = const [],
+    this.feedbackComment,
   });
 
   int get subtotal => items.fold(0, (s, i) => s + i.lineTotal);
@@ -293,6 +316,16 @@ class StoredOrder {
         // decodes: a null note and the fallback method.
         if (riderNote != null) 'riderNote': riderNote,
         'paymentMethod': paymentMethod.id,
+        // Terminals and feedback are optional too, so history written before
+        // they existed still decodes. A null terminal simply means "the
+        // record never said when", and onboarding orderFromStored dates it
+        // from the status instead.
+        if (deliveredAt != null) 'deliveredAt': deliveredAt!.toIso8601String(),
+        if (cancelledAt != null) 'cancelledAt': cancelledAt!.toIso8601String(),
+        if (cancelReason != null) 'cancelReason': cancelReason,
+        if (feedback != null) 'feedback': feedback,
+        if (feedbackReasons.isNotEmpty) 'feedbackReasons': feedbackReasons,
+        if (feedbackComment != null) 'feedbackComment': feedbackComment,
       };
 
   factory StoredOrder.fromJson(Map<String, dynamic> json) => StoredOrder(
@@ -308,7 +341,22 @@ class StoredOrder {
         riderNote: json['riderNote'] as String?,
         paymentMethod:
             PaymentMethod.fromId(json['paymentMethod'] as String?),
+        deliveredAt: _dateOrNull(json['deliveredAt']),
+        cancelledAt: _dateOrNull(json['cancelledAt']),
+        cancelReason: json['cancelReason'] as String?,
+        feedback: json['feedback'] as String?,
+        feedbackReasons: (json['feedbackReasons'] as List<dynamic>? ?? const [])
+            .map((e) => e as String)
+            .toList(),
+        feedbackComment: json['feedbackComment'] as String?,
       );
+
+  /// `null`/missing → null; a malformed stamp → null instead of a crash on
+  /// startup, which would take the whole history with it.
+  static DateTime? _dateOrNull(Object? value) {
+    if (value is! String || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
 }
 
 /// Order history: seeded with mock orders on first launch, then real orders
@@ -365,6 +413,11 @@ void _seedStoredOrders() {
       status: 'Delivered',
       deliveryAddress: address,
       deliveryFee: 1500,
+      // Half an hour after checkout, the delivery promise. Recorded so the
+      // tracking screen can say "Delivered at …" without inventing a time.
+      deliveredAt: now
+          .subtract(const Duration(days: 29))
+          .add(const Duration(minutes: 30)),
       items: [
         item('Fresh Apples', 'Heart of Red'),
         item('Beans', 'Green Farm'),
@@ -376,6 +429,11 @@ void _seedStoredOrders() {
       status: 'Cancelled',
       deliveryAddress: address,
       deliveryFee: 0,
+      cancelledAt:
+          now.subtract(const Duration(days: 31)).add(const Duration(minutes: 4)),
+      // A seeded reason so the cancelled tracking state can show one; orders
+      // cancelled without a reason simply omit the line.
+      cancelReason: 'Ordered by mistake',
       items: [item('Tomatoes', 'Yummy Bunch')],
     ),
     StoredOrder(

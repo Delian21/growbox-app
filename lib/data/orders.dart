@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'app_state.dart';
 import 'mock_data.dart';
+import 'mock_backend.dart';
 import 'payment_method.dart';
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,79 @@ extension OrderStatusX on OrderStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Feedback
+// ---------------------------------------------------------------------------
+
+/// How the customer felt about a delivered order.
+///
+/// Vendors in this app are rated as "% liked", never on a 5-star scale, so the
+/// feedback is a thumbs up / thumbs down. [skipped] is not an opinion: it only
+/// records that the customer was asked and chose not to answer, which is what
+/// keeps the prompt from appearing again.
+enum OrderFeedback { liked, notGreat, skipped }
+
+/// The chips offered when the customer says an order was not great. Optional
+/// detail on top of the thumbs down, never required.
+const List<String> orderFeedbackReasons = [
+  'Late',
+  'Wrong items',
+  'Quality',
+  'Packaging',
+];
+
+/// What the customer said about a delivered order.
+///
+/// Deliberately one value, [Order.rating]: null means "never asked", while
+/// [OrderFeedback.skipped] means "asked and declined". The difference is what
+/// makes the prompt appear exactly once.
+class OrderRating {
+  final OrderFeedback feedback;
+
+  /// Chips the customer picked; only ever populated for [OrderFeedback.notGreat].
+  final List<String> reasons;
+
+  /// Free-text comment, or null when they left the field empty.
+  final String? comment;
+
+  const OrderRating({
+    required this.feedback,
+    this.reasons = const [],
+    this.comment,
+  });
+
+  /// The customer answered the prompt (as opposed to dismissing it).
+  bool get isRated => feedback != OrderFeedback.skipped;
+
+  bool get liked => feedback == OrderFeedback.liked;
+
+  /// `You liked it` / `Not great` — the one way the result is written.
+  String get headline => switch (feedback) {
+        OrderFeedback.liked => 'You liked it',
+        OrderFeedback.notGreat => 'Not great',
+        OrderFeedback.skipped => 'Feedback skipped',
+      };
+
+  Map<String, dynamic> toJson() => {
+        'feedback': feedback.name,
+        if (reasons.isNotEmpty) 'reasons': reasons,
+        if (comment != null && comment!.isNotEmpty) 'comment': comment,
+      };
+
+  /// Unknown or missing feedback decodes as [OrderFeedback.skipped], so a
+  /// record written by a newer build never re-opens the prompt.
+  factory OrderRating.fromJson(Map<String, dynamic> json) => OrderRating(
+        feedback: OrderFeedback.values.firstWhere(
+          (value) => value.name == json['feedback'],
+          orElse: () => OrderFeedback.skipped,
+        ),
+        reasons: (json['reasons'] as List<dynamic>? ?? const [])
+            .map((e) => e as String)
+            .toList(),
+        comment: json['comment'] as String?,
+      );
+}
+
+// ---------------------------------------------------------------------------
 // Model
 // ---------------------------------------------------------------------------
 
@@ -115,6 +189,23 @@ class Order {
   /// Free-text note the buyer left for the rider, or null when they skipped it.
   final String? riderNote;
 
+  /// When the box arrived, or null while it hasn't.
+  ///
+  /// Mirrors [timestamps]`[OrderStatus.delivered]` for orders that carry an
+  /// event log; it exists as its own field because the delivered card and the
+  /// "Delivered at" headline read it without walking the log.
+  final DateTime? deliveredAt;
+
+  /// When the order was cancelled, if it was.
+  final DateTime? cancelledAt;
+
+  /// Why it was cancelled, or null when the source never said.
+  final String? cancelReason;
+
+  /// What the customer said about a delivered order, or null when they have
+  /// not been asked. A [OrderFeedback.skipped] rating means asked-and-declined.
+  final OrderRating? rating;
+
   const Order({
     required this.id,
     required this.vendorName,
@@ -126,6 +217,10 @@ class Order {
     this.estimatedArrival,
     this.paymentMethod = PaymentMethod.payOnDelivery,
     this.riderNote,
+    this.deliveredAt,
+    this.cancelledAt,
+    this.cancelReason,
+    this.rating,
   });
 
   int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
@@ -150,6 +245,17 @@ class Order {
 
   bool get isActive => status.isActive;
 
+  /// Delivered, but the customer has not been asked how it was yet.
+  ///
+  /// A [OrderFeedback.skipped] rating counts as asked-and-answered, so it is
+  /// not "awaiting" anything and must not re-open the prompt.
+  bool get awaitsFeedback =>
+      status == OrderStatus.delivered && rating == null;
+
+  /// When the box arrived, falling back to the event log and then the promise.
+  DateTime? get deliveredTime =>
+      deliveredAt ?? timestamps[OrderStatus.delivered];
+
   /// Time [step] was reached, or null when it hasn't happened (or was never
   /// recorded).
   DateTime? timestampOf(OrderStatus step) => timestamps[step];
@@ -157,6 +263,11 @@ class Order {
   Order copyWith({
     OrderStatus? status,
     Map<OrderStatus, DateTime>? timestamps,
+    DateTime? estimatedArrival,
+    DateTime? deliveredAt,
+    DateTime? cancelledAt,
+    String? cancelReason,
+    OrderRating? rating,
   }) =>
       Order(
         id: id,
@@ -166,9 +277,13 @@ class Order {
         items: items,
         deliveryAddress: deliveryAddress,
         timestamps: timestamps ?? this.timestamps,
-        estimatedArrival: estimatedArrival,
+        estimatedArrival: estimatedArrival ?? this.estimatedArrival,
         paymentMethod: paymentMethod,
         riderNote: riderNote,
+        deliveredAt: deliveredAt ?? this.deliveredAt,
+        cancelledAt: cancelledAt ?? this.cancelledAt,
+        cancelReason: cancelReason ?? this.cancelReason,
+        rating: rating ?? this.rating,
       );
 }
 
@@ -226,6 +341,18 @@ abstract class OrdersRepository {
   /// Moves an order one step along its lifecycle. Demo-only: a real backend
   /// would not expose an arbitrary "advance" mutation to the client.
   Future<void> advanceStatus(String orderId);
+
+  /// Records the customer's thumbs up/down for a delivered order (or that
+  /// they skipped the prompt). Real implementations post it to the backend;
+  /// the vendor's "% liked" is then recomputed server-side.
+  Future<void> rateOrder(String orderId, OrderRating rating);
+
+  /// Cancels an order, optionally with a reason the customer will see.
+  Future<void> cancelOrder(String orderId, {String? reason});
+
+  /// Demo-only: pushes the promised arrival into the past, so "Running late"
+  /// can be demonstrated without waiting.
+  Future<void> makeLate(String orderId);
 }
 
 // ---------------------------------------------------------------------------
@@ -274,6 +401,7 @@ const Duration _staleInFlight = Duration(hours: 24);
 Order orderFromStored(StoredOrder o, {DateTime? now}) {
   final at = now ?? DateTime.now();
   final status = _statusForStored(o, at);
+  final timestamps = _timelineFor(status, o.placedAt, at);
   return Order(
     id: o.orderNumber,
     vendorName: vendorNameForItems(o.items),
@@ -283,12 +411,32 @@ Order orderFromStored(StoredOrder o, {DateTime? now}) {
     deliveryAddress: o.deliveryAddress,
     // The stored fee is legacy data: [Order.totals] prices delivery from the
     // vendor model, which is what every screen shows.
-    timestamps: _timelineFor(status, o.placedAt, at),
+    timestamps: timestamps,
     // The checkout promise: a 30 minute delivery. A backend with a real ETA
     // fills this in from its own estimate.
     estimatedArrival: o.placedAt.add(const Duration(minutes: 30)),
     paymentMethod: o.paymentMethod,
     riderNote: o.riderNote,
+    // The record's own stamp wins; a record written before the field existed
+    // falls back to the event log, so the card always has a time to show.
+    deliveredAt: o.deliveredAt ?? timestamps[OrderStatus.delivered],
+    cancelledAt: o.cancelledAt ?? timestamps[OrderStatus.cancelled],
+    cancelReason: o.cancelReason,
+    rating: _ratingFromStored(o),
+  );
+}
+
+/// The stored feedback, or null when the customer was never asked.
+OrderRating? _ratingFromStored(StoredOrder o) {
+  final feedback = o.feedback;
+  if (feedback == null) return null;
+  return OrderRating(
+    feedback: OrderFeedback.values.firstWhere(
+      (value) => value.name == feedback,
+      orElse: () => OrderFeedback.skipped,
+    ),
+    reasons: o.feedbackReasons,
+    comment: o.feedbackComment,
   );
 }
 
@@ -398,22 +546,35 @@ class MockOrdersRepository implements OrdersRepository {
   /// When the overridden status was reached, keyed by order id.
   final Map<String, Map<OrderStatus, DateTime>> _timeOverrides = {};
 
+  /// Feedback left this session, keyed by order id. A [OrderFeedback.skipped]
+  /// entry is what stops the prompt coming back.
+  final Map<String, OrderRating> _ratings = {};
+
+  /// Cancellation reasons supplied by the demo action, keyed by order id.
+  final Map<String, String> _cancelReasons = {};
+
+  /// Arrivals pushed into the past by [makeLate], keyed by order id.
+  final Map<String, DateTime> _lateEtas = {};
+
   static const String _demoAddress =
       'No. 12 Gwarinpa Estate, Gwarinpa, Abuja, Nigeria';
 
   @override
-  Future<List<Order>> getOrders() async {
-    // A real implementation would await the network here; the mock resolves on
-    // the next microtask, so the loading state is still exercised.
-    final orders = <Order>[
-      ...storedOrders.map((o) => orderFromStored(o, now: _now())),
-      ...(_demoOrders ??= _buildDemoOrders()).map(_aged),
-    ];
+  Future<List<Order>> getOrders() {
+    // A real implementation would await the network here. The mock goes
+    // through [MockBackend] instead: ~600ms of latency so the skeleton is
+    // visible, a one-shot failure from the demo tools, and a 10s deadline.
+    return MockBackend.run(() {
+      final orders = <Order>[
+        ...storedOrders.map((o) => orderFromStored(o, now: _now())),
+        ...(_demoOrders ??= _buildDemoOrders()).map(_aged),
+      ];
 
-    final resolved = orders.map(_applyOverrides).toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final resolved = orders.map(_applyOverrides).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    return List<Order>.unmodifiable(resolved);
+      return List<Order>.unmodifiable(resolved);
+    });
   }
 
   @override
@@ -428,14 +589,46 @@ class MockOrdersRepository implements OrdersRepository {
     (_timeOverrides[orderId] ??= {})[next] = _now();
   }
 
-  /// Replays session-only status changes over a stored order.
+  @override
+  Future<void> rateOrder(String orderId, OrderRating rating) async {
+    _ratings[orderId] = rating;
+  }
+
+  /// Cancels and stamps the moment, so the tracking timeline and the
+  /// "Cancelled" chip agree about when it happened.
+  @override
+  Future<void> cancelOrder(String orderId, {String? reason}) async {
+    _statusOverrides[orderId] = OrderStatus.cancelled;
+    (_timeOverrides[orderId] ??= {})[OrderStatus.cancelled] = _now();
+    if (reason != null && reason.trim().isNotEmpty) {
+      _cancelReasons[orderId] = reason.trim();
+    }
+  }
+
+  /// Five minutes past the promise: late enough that every screen agrees it
+  /// is late, close enough that "Running late" still reads as a wait.
+  @override
+  Future<void> makeLate(String orderId) async {
+    _lateEtas[orderId] = _now().subtract(const Duration(minutes: 5));
+  }
+
+  /// Replays session-only changes over an order: the status ladder, feedback,
+  /// the cancel reason and any pushed-back arrival.
   Order _applyOverrides(Order order) {
     final status = _statusOverrides[order.id];
     final times = _timeOverrides[order.id];
-    if (status == null && times == null) return order;
+    final timestamps = times == null ? order.timestamps : {...order.timestamps, ...times};
+
     return order.copyWith(
       status: status,
-      timestamps: {...order.timestamps, ...?times},
+      timestamps: timestamps,
+      // The terminal stamps mirror the log, so every screen reads the same
+      // moment whether it looks at the map or the field.
+      deliveredAt: timestamps[OrderStatus.delivered],
+      cancelledAt: timestamps[OrderStatus.cancelled],
+      cancelReason: _cancelReasons[order.id],
+      rating: _ratings[order.id],
+      estimatedArrival: _lateEtas[order.id],
     );
   }
 
@@ -510,9 +703,11 @@ class MockOrdersRepository implements OrdersRepository {
   /// genuinely empty.
   Order _aged(Order order) {
     final status = _stageReached(order.createdAt);
+    final timestamps = _timelineFor(status, order.createdAt, _now());
     return order.copyWith(
       status: status,
-      timestamps: _timelineFor(status, order.createdAt, _now()),
+      timestamps: timestamps,
+      deliveredAt: timestamps[OrderStatus.delivered],
     );
   }
 
@@ -555,10 +750,15 @@ class OrdersStore extends ChangeNotifier {
   List<Order> _orders = const [];
   bool _isLoading = false;
   bool _hasLoaded = false;
+  Object? _error;
 
   List<Order> get orders => _orders;
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
+
+  /// The last failure, cleared by the next successful load. Screens show it
+  /// only while there is no earlier list to keep on screen.
+  Object? get error => _error;
 
   /// Orders that have not been delivered or cancelled, newest first.
   List<Order> get activeOrders =>
@@ -574,16 +774,34 @@ class OrdersStore extends ChangeNotifier {
     return active.isEmpty ? null : active.first;
   }
 
+  /// Newest delivered order the customer has not answered about yet.
+  ///
+  /// Only orders with no rating at all qualify: a skipped one has an answer
+  /// ("they declined") and must never be asked about again.
+  Order? get latestAwaitingFeedback {
+    for (final order in _orders) {
+      if (order.status == OrderStatus.delivered && order.rating == null) {
+        return order;
+      }
+    }
+    return null;
+  }
+
   /// Loads orders once; [force] refetches (used when opening the orders screen).
   Future<void> load({bool force = false}) async {
     if (_isLoading) return;
     if (_hasLoaded && !force) return;
 
     _isLoading = true;
+    _error = null;
     notifyListeners();
     try {
       _orders = await _repository.getOrders();
       _hasLoaded = true;
+    } catch (error) {
+      // Recorded, not rethrown: the screen renders the failure, and a failed
+      // refetch keeps the list it was already showing.
+      _error = error;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -591,9 +809,32 @@ class OrdersStore extends ChangeNotifier {
   }
 
   /// Advances an order for the demo and republishes the list from the source.
-  Future<void> advanceStatus(String orderId) async {
-    await _repository.advanceStatus(orderId);
-    _orders = await _repository.getOrders();
+  Future<void> advanceStatus(String orderId) =>
+      _mutate(() => _repository.advanceStatus(orderId));
+
+  /// Records the customer's feedback for a delivered order.
+  Future<void> rate(String orderId, OrderRating rating) =>
+      _mutate(() => _repository.rateOrder(orderId, rating));
+
+  /// Cancels an order and refreshes, so it moves from Active to Past.
+  Future<void> cancel(String orderId, {String? reason}) =>
+      _mutate(() => _repository.cancelOrder(orderId, reason: reason));
+
+  /// Demo-only: makes the order late, then republishes it.
+  Future<void> makeLate(String orderId) =>
+      _mutate(() => _repository.makeLate(orderId));
+
+  /// Runs a write then republishes the list, keeping the previous list if
+  /// either step fails (the screens show the error only when there is no
+  /// earlier list to keep).
+  Future<void> _mutate(Future<void> Function() change) async {
+    try {
+      await change();
+      _orders = await _repository.getOrders();
+      _error = null;
+    } catch (error) {
+      _error = error;
+    }
     notifyListeners();
   }
 }

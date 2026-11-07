@@ -4,6 +4,7 @@ import '../data/mock_data.dart';
 import '../widgets/app_header.dart';
 import '../widgets/micro_interactions.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/status_view.dart';
 import 'vendor_screen.dart';
 
 class CategoryVendorsScreen extends StatelessWidget {
@@ -34,18 +35,11 @@ class CategoryVendorsScreen extends StatelessWidget {
             // ── Vendor list ────────────────────────────────────────
             Expanded(
               child: matchingVendors.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Text(
-                          'No vendors found for this category.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: AppColors.grey600,
-                          ),
-                        ),
-                      ),
+                  ? StatusView(
+                      icon: Icons.storefront_outlined,
+                      title: 'No vendors found',
+                      message:
+                          'Nothing is listed under $selectedCategory yet.',
                     )
                   : ListView.separated(
                       physics: const BouncingScrollPhysics(),

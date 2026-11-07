@@ -180,15 +180,18 @@ void main() {
     await pumpScreen(tester, stage: DeliveryStage.delivered);
 
     expect(find.bySemanticsLabel('Rider Ibrahim K.'), findsNothing);
-    expect(find.text('Delivered!'), findsOneWidget);
+    // Delivered states when, not just what.
+    expect(find.textContaining('Delivered at '), findsOneWidget);
 
-    // The destination pin's label flips to "Delivered" (the timeline step has
-    // the same word, so match the pin's label size).
+    // The map is gone too: there is no route left to draw.
+    expect(find.bySemanticsLabel('Your Address'), findsNothing);
     expect(
       find.byWidgetPredicate((w) =>
-          w is Text && w.data == 'Delivered' && w.style?.fontSize == 9),
-      findsOneWidget,
+          w is Text && w.data == 'Your Address' && w.style?.fontSize == 9),
+      findsNothing,
     );
+    // And the screen asks how the order went instead.
+    expect(find.text('How was your order?'), findsOneWidget);
   });
 
   group('driven by a real order', () {
@@ -243,11 +246,13 @@ void main() {
     testWidgets('a delivered order completes every step', (tester) async {
       await pumpScreen(tester, order: orderWith(OrderStatus.delivered));
 
-      expect(find.text('Delivered!'), findsOneWidget);
+      // The arrival card states the time the order landed.
+      expect(find.textContaining('Delivered at '), findsOneWidget);
       expect(find.bySemanticsLabel('Rider Ibrahim K.'), findsNothing);
       expect(find.byIcon(Icons.arrow_back), findsOneWidget);
-      // Four timeline checks behind the final step, plus the pin.
-      expect(find.byIcon(Icons.check), findsNWidgets(6));
+      // Every timeline step is checked and the map (with its pin check) is
+      // gone, so the five timeline markers are the only checks left.
+      expect(find.byIcon(Icons.check), findsNWidgets(5));
       expect(find.text('10:22 AM'), findsOneWidget);
       expect(find.text('10:48 AM'), findsOneWidget);
     });

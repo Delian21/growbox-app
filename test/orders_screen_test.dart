@@ -28,6 +28,30 @@ class _FakeOrdersRepository implements OrdersRepository {
     if (next == null) return;
     _orders[index] = _orders[index].copyWith(status: next);
   }
+
+  @override
+  Future<void> rateOrder(String orderId, OrderRating rating) async {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index < 0) return;
+    _orders[index] = _orders[index].copyWith(rating: rating);
+  }
+
+  @override
+  Future<void> cancelOrder(String orderId, {String? reason}) async {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index < 0) return;
+    _orders[index] = _orders[index]
+        .copyWith(status: OrderStatus.cancelled, cancelReason: reason);
+  }
+
+  @override
+  Future<void> makeLate(String orderId) async {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index < 0) return;
+    _orders[index] = _orders[index].copyWith(
+      estimatedArrival: DateTime.now().subtract(const Duration(minutes: 5)),
+    );
+  }
 }
 
 OrderItem _line(String name, int price,
@@ -434,13 +458,12 @@ void main() {
     ]);
 
     await tester.pumpWidget(homeHarness(OrdersStore(repo)));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
-    // The banner names the vendor so a multi-vendor feed is unambiguous.
-    expect(find.text('Your order from Green Farm is on the way'), findsOneWidget);
+    // "On the way" is about the order, not the vendor.
+    expect(find.text('Your order is on the way'), findsOneWidget);
 
-    await tester.tap(find.text('Your order from Green Farm is on the way'));
+    await tester.tap(find.text('Your order is on the way'));
     await tester.pumpAndSettle();
 
     // Lands on the orders screen, Active tab.
@@ -450,17 +473,19 @@ void main() {
     expect(find.text('On the way'), findsOneWidget);
   });
 
-  testWidgets('home hides the banner when nothing is active', (tester) async {
+  testWidgets('home prompts for feedback and stays quiet when cancelled',
+      (tester) async {
     final repo = _FakeOrdersRepository([
       _order(id: 'GBX-8', status: OrderStatus.delivered),
       _order(id: 'GBX-10', status: OrderStatus.cancelled),
     ]);
 
     await tester.pumpWidget(homeHarness(OrdersStore(repo)));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
+    // Nothing is in flight, so the banner's remaining job is the rating ask.
+    expect(find.text('Rate your order from Green Farm'), findsOneWidget);
     expect(find.textContaining('Your order is'), findsNothing);
-    expect(find.textContaining('Order confirmed'), findsNothing);
+    expect(find.textContaining('cancelled'), findsNothing);
   });
 }

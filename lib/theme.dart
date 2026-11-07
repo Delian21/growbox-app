@@ -88,9 +88,36 @@ class AppColors {
 
   // ── Brand green: one primary, one tint, one dark surface ────────────────
 
-  /// The brand green. Splash background, branded panels, primary text and
-  /// icons. 10.6:1 against white.
-  static const Color primary = Color(0xFF1C4815);
+  /// The fixed brand green — the forest green of the logo artwork.
+  ///
+  /// This is the one green that must not follow the theme. It is painted
+  /// full-bleed by the splash and the sign-up hero, where the white planter
+  /// and orange wordmark were designed to sit on exactly this colour, so it
+  /// stays #1C4815 in light, dark and system modes.
+  ///
+  /// Do not use it for text, icons or borders on normal surfaces; those use
+  /// [primary] via `C.primary(context)`, which lifts in dark mode for
+  /// contrast. This constant is only for large areas the brand owns.
+  static const Color brand = Color(0xFF1C4815);
+
+  /// Foreground for anything painted on [brand].
+  ///
+  /// White reads 10.6:1 on [brand], and because [brand] never changes it is
+  /// legible in every theme — unlike `C.onPrimary(context)`, which turns
+  /// near-black in dark mode to suit the lifted green.
+  static const Color onBrand = Color(0xFFFFFFFF);
+
+  /// [brand] lifted 9% toward white: the centre of the splash highlight,
+  /// which fades back to exactly [brand] at the edges.
+  ///
+  /// Green-into-green reads as light falling on the surface, where a white
+  /// glow over green reads as grey. Kept as a literal (not `Color.lerp`) so
+  /// it can be used in a `const` gradient.
+  static const Color brandHighlight = Color(0xFF30582A);
+
+  /// The theme-aware brand green. Branded panels, primary text and icons.
+  /// 10.6:1 against white. Full-bleed brand surfaces use [brand] instead.
+  static const Color primary = brand;
 
   /// The single green tint, for chips, pills, selected states and CTA fills.
   /// Always paired with [textPrimary] or [primary] on top of it.
@@ -184,6 +211,11 @@ class AppColors {
   // ── Misc ────────────────────────────────────────────────────────────────
   static const Color divider = Color(0xFFE5E7EB);
   static const Color shimmer = Color(0xFFEDEDED);
+
+  /// The moving band of a skeleton shimmer: barely lighter than [shimmer], so
+  /// the sweep reads as a sheen instead of a scan line.
+  static const Color shimmerHighlight = Color(0xFFF7F7F7);
+
   static const Color warningYellow = Color(0xFF747100);
   static const Color gold = Color(0xFFA37C1E);
 
@@ -403,6 +435,10 @@ class AppDarkColors {
   static const Color divider = Color(0xFF333333);
   static const Color surfaceVariant = Color(0xFF303630);
   static const Color shimmer = Color(0xFF2A2A2A);
+
+  /// Dark counterpart of [AppColors.shimmerHighlight].
+  static const Color shimmerHighlight = Color(0xFF3D3D3D);
+
   static const Color border = Color(0xFF404040);
 
   // ── Semantic (same, but may need adjustments) ───────────────────────────
@@ -473,6 +509,16 @@ class C {
   static Color onPrimary(BuildContext context) =>
       _isDark(context) ? AppDarkColors.background : AppColors.white;
 
+  /// The Home promo banner's gradient, start → end.
+  ///
+  /// The banner carries white text, so it cannot ride on [primary]: in dark
+  /// mode that is the lifted green, where white is ~1.9:1. Dark mode therefore
+  /// uses two deep greens (white is 12:1 or better on both), keeping the
+  /// banner a green surface in either appearance without moving its text.
+  static List<Color> promoGradient(BuildContext context) => _isDark(context)
+      ? const [AppDarkColors.primaryTint, AppDarkColors.surfaceDark]
+      : <Color>[primary(context), surfaceDark(context)];
+
   /// Orange for foregrounds (text, icons). Uses the deep orange on light
   /// surfaces where the bright logo orange would fail contrast.
   static Color accentOrange(BuildContext context) =>
@@ -526,6 +572,19 @@ class C {
 
   static Color shimmer(BuildContext context) =>
       _isDark(context) ? AppDarkColors.shimmer : AppColors.shimmer;
+
+  /// Sweep highlight for skeleton loading blocks (see [Shimmer]).
+  static Color shimmerHighlight(BuildContext context) => _isDark(context)
+      ? AppDarkColors.shimmerHighlight
+      : AppColors.shimmerHighlight;
+
+  /// Amber that is legible as text, for the offline banner.
+  ///
+  /// The bright [warning] yellow is a fill colour: it is 1.6:1 on the light
+  /// page. This one is 4.9:1 on [background] and 4.6:1 on [warningSoft], and
+  /// 8.2:1 on the dark soft tint.
+  static Color warningText(BuildContext context) =>
+      _isDark(context) ? AppDarkColors.warning : AppColors.warningYellow;
 
   static bool isDark(BuildContext context) => _isDark(context);
 

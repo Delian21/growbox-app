@@ -28,8 +28,8 @@ void main() {
 
   Future<void> openHome(WidgetTester tester) async {
     await tester.pumpWidget(harness());
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    // Waits out the feed's simulated latency and entrance animations.
+    await tester.pumpAndSettle();
   }
 
   testWidgets('Order Again See all opens Order History on the Past tab',
@@ -43,13 +43,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(seeAll);
     await tester.pumpAndSettle();
+    // Orders refetch on open, behind the same simulated latency.
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
 
     final screen = tester.widget<OrderHistoryScreen>(
       find.byType(OrderHistoryScreen),
     );
     expect(screen.initialTab, OrdersTab.past);
     // Past is the list on screen, not just the constructor argument.
-    expect(find.text('No past orders'), findsOneWidget);
+    expect(find.text('No past orders yet'), findsOneWidget);
     expect(find.text('No active orders'), findsNothing);
   });
 

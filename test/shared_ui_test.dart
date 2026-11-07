@@ -25,6 +25,15 @@ class _FakeOrdersRepository implements OrdersRepository {
 
   @override
   Future<void> advanceStatus(String orderId) async {}
+
+  @override
+  Future<void> rateOrder(String orderId, OrderRating rating) async {}
+
+  @override
+  Future<void> cancelOrder(String orderId, {String? reason}) async {}
+
+  @override
+  Future<void> makeLate(String orderId) async {}
 }
 
 Order _activeOrder() => Order(
@@ -107,12 +116,11 @@ void main() {
         HomeScreen(store: OrdersStore(_FakeOrdersRepository([_activeOrder()]))),
       ),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    // Loads the feed and finishes the entrance animations.
+    await tester.pumpAndSettle();
 
-    final bannerY = tester
-        .getTopLeft(find.text('Your order from Green Farm is on the way'))
-        .dy;
+    final bannerY =
+        tester.getTopLeft(find.text('Your order is on the way')).dy;
     final nudgeY =
         tester.getTopLeft(find.byKey(const ValueKey('profileNudge'))).dy;
     expect(bannerY, lessThan(nudgeY));

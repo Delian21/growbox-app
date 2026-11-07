@@ -672,8 +672,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         context,
         MaterialPageRoute(
           // The order drives the stage, the step times, the ETA and the
-          // order number; there is nothing left to hand over by hand.
-          builder: (_) => DeliveryTrackingScreen(order: order),
+          // order number; there is nothing left to hand over by hand. The
+          // store lets the tracking screen follow a later cancellation or
+          // delivery while it is open.
+          builder: (_) =>
+              DeliveryTrackingScreen(order: order, store: widget.store),
         ),
       ),
       child: Container(

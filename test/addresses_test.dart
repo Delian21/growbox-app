@@ -16,6 +16,15 @@ class _NoOrders implements OrdersRepository {
 
   @override
   Future<void> advanceStatus(String orderId) async {}
+
+  @override
+  Future<void> rateOrder(String orderId, OrderRating rating) async {}
+
+  @override
+  Future<void> cancelOrder(String orderId, {String? reason}) async {}
+
+  @override
+  Future<void> makeLate(String orderId) async {}
 }
 
 /// A store over device storage, as the app wires it up in `main()`.
@@ -210,8 +219,9 @@ void main() {
     expect(find.text('Gwarinpa, Abuja'), findsOneWidget);
     expect(find.text('Choose location'), findsNothing);
 
-    // Let the feed's entrance animations finish so no timer outlives the test.
-    await tester.pump(const Duration(seconds: 1));
+    // Let the feed load and its entrance animations finish, so no timer
+    // outlives the test.
+    await tester.pumpAndSettle();
   });
 
   group('Checkout', () {

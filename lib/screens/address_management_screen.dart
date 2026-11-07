@@ -5,6 +5,7 @@ import '../data/addresses.dart';
 import '../widgets/app_header.dart';
 import '../widgets/pinned_bottom_bar.dart';
 import '../widgets/micro_interactions.dart';
+import '../widgets/status_view.dart';
 
 /// Screen for managing saved delivery addresses.
 ///
@@ -169,62 +170,13 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   // ── Empty state ────────────────────────────────────────────────────
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.location_off_outlined,
-              size: 64,
-              color: C.textMuted(context),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'No saved addresses',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: C.textPrimary(context),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Add a delivery address so we know where to bring your fresh produce.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: C.textMuted(context),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            TapFeedback(
-              onTap: () => _showAddEditSheet(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                  vertical: AppSpacing.sm + 2,
-                ),
-                decoration: BoxDecoration(
-                  color: C.primaryTint(context),
-                  borderRadius: BorderRadius.circular(AppRadii.pill),
-                ),
-                child: Text(
-                  'Add Address',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: C.primary(context),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return StatusView(
+      icon: Icons.location_off_outlined,
+      title: 'No saved addresses',
+      message: 'Add one so riders can find you.',
+      // Opens the same add-address sheet as the header "+" and the pinned bar.
+      primaryLabel: 'Add address',
+      onPrimary: () => _showAddEditSheet(context),
     );
   }
 

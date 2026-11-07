@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../data/addresses.dart';
 import '../data/app_state.dart';
+import '../data/mock_backend.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
 import '../data/payment_method.dart';
+import '../services/connectivity.dart';
 import '../widgets/saved_address_picker.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/pinned_bottom_bar.dart';
@@ -884,43 +886,54 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.md),
-        GestureDetector(
-          // Null disables the tap: no items or no complete address means no
-          // order, and a request already in flight cannot be sent twice.
-          onTap: canPlaceOrder && !_placing ? _placeOrder : null,
-          child: Opacity(
-            // The dimmed CTA says "not yet" without hiding the price or why
-            // (the warning sits under the address).
-            opacity: canPlaceOrder && !_placing ? 1 : 0.5,
-            child: Container(
-              width: double.infinity,
-              height: AppSizing.buttonHeightLarge(context),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: C.primary(context),
-                borderRadius: BorderRadius.circular(AppRadii.pill),
+        // Connectivity is part of the CTA too: offline there is nothing to send
+        // the order over, so the button says so and stays inert.
+        ListenableBuilder(
+          listenable: connectivityStore,
+          builder: (context, _) {
+            final bool online = connectivityStore.isOnline;
+            final bool enabled = online && canPlaceOrder && !_placing;
+            return GestureDetector(
+              // Null disables the tap: no items, no complete address, no
+              // connection, or a request already in flight.
+              onTap: enabled ? _placeOrder : null,
+              child: Opacity(
+                // The dimmed CTA says "not yet" without hiding the price or why
+                // (the warning sits under the address).
+                opacity: enabled ? 1 : 0.5,
+                child: Container(
+                  width: double.infinity,
+                  height: AppSizing.buttonHeightLarge(context),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: C.primary(context),
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                  // The label is swapped for a spinner in place, so the button
+                  // keeps its size and the customer sees the tap landed.
+                  child: _placing
+                      ? SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: C.onPrimary(context),
+                          ),
+                        )
+                      : Text(
+                          online
+                              ? 'Place order · ₦${formatPrice(total)}'
+                              : "You're offline",
+                          style: AppTypography.labelLarge.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: C.onPrimary(context),
+                          ),
+                        ),
+                ),
               ),
-              // The label is swapped for a spinner in place, so the button keeps
-              // its size and the customer sees the tap landed.
-              child: _placing
-                  ? SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: C.onPrimary(context),
-                      ),
-                    )
-                  : Text(
-                      'Place order · ₦${formatPrice(total)}',
-                      style: AppTypography.labelLarge.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: C.onPrimary(context),
-                      ),
-                    ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -932,8 +945,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _placeOrder() async {
     // Guarded by the CTA and defensive here: one order per tap, never without
-    // something to carry or a street to carry it to.
-    if (_placing) return;
+    // something to carry, a street to carry it to, or a connection to send it
+    // over. Returning early leaves the box exactly as it was.
+    if (_placing || !connectivityStore.isOnline) return;
     final products = widget.products;
     final deliveryAddress = _addresses.selectedAddress;
     if (products.isEmpty) return;
@@ -1008,6 +1022,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   /// button's progress state honest while it does.
   Future<StoredOrder> _submit(CheckoutDraft draft) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
+    // Demo tools: one armed placement fails, exactly as a server refusing the
+    // write would. Nothing is recorded and nothing is cleared, so the retry
+    // starts from the same cart.
+    if (MockBackend.takeOrderFailure()) throw const MockNetworkException();
     return recordOrder(
       orderNumber: draft.orderNumber,
       cartItems: draft.products,

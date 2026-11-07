@@ -9,8 +9,11 @@ import '../widgets/app_snack_bar.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/vendor_card.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/order_rating_sheet.dart';
 import '../data/addresses.dart';
 import '../data/app_state.dart';
+import '../data/catalog_repository.dart';
 import '../data/categories.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
@@ -40,6 +43,19 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Hidden for good once the customer taps the X (see [_dismissNudge]).
   bool _nudgeDismissed = false;
 
+  /// Storage key holding the ids of orders whose rating prompt was dismissed,
+  /// so "Rate your order" is shown once and never again.
+  static const String _ratingPromptDismissedKey = 'rating_prompt_dismissed';
+
+  /// Order ids whose rating banner the customer has closed.
+  final Set<String> _ratingPromptDismissed = {};
+
+  /// The feed is fetched, not read straight from [MockVendors], so it has a
+  /// real loading state, a real failure state and a retry.
+  List<Map<String, dynamic>> _vendors = const [];
+  bool _vendorsLoading = true;
+  bool _vendorsFailed = false;
+
   OrdersStore get _orders => widget.store ?? ordersStore;
 
   /// True while the customer has no name or no email — the same condition the
@@ -61,6 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Fills the feed; the first frame shows skeletons, not an empty section.
+    _loadVendors(keepContent: true);
     // Warm the orders store so the active-order banner is correct on the
     // first frame instead of popping in after the request resolves.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -70,6 +88,83 @@ class _HomeScreenState extends State<HomeScreen> {
     // this screen is the first thing a test (or a deep link) opens.
     addressesStore.load();
     _restoreNudgeDismissal();
+    _restoreRatingPromptDismissals();
+  }
+
+  /// Restores the orders whose rating banner was dismissed in an earlier
+  /// session, so the prompt really is shown once.
+  Future<void> _restoreRatingPromptDismissals() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ids = prefs.getStringList(_ratingPromptDismissedKey) ?? const [];
+      if (mounted && ids.isNotEmpty) {
+        setState(() => _ratingPromptDismissed.addAll(ids));
+      }
+    } catch (_) {
+      // Best effort: the banner simply stays until it is dismissed again.
+    }
+  }
+
+  /// Hides the rating banner for [orderId] now and remembers the choice.
+  Future<void> _dismissRatingPrompt(String orderId) async {
+    setState(() => _ratingPromptDismissed.add(orderId));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _ratingPromptDismissedKey,
+        _ratingPromptDismissed.toList(),
+      );
+    } catch (_) {
+      // Still hidden for this session even if persistence fails.
+    }
+  }
+
+  /// Opens the rating sheet for the delivered order in the banner.
+  Future<void> _rateOrder(Order order) async {
+    final rating = await showOrderRatingSheet(
+      context,
+      vendorName: order.vendorName,
+    );
+    if (!mounted) return;
+    await _orders.rate(order.id, rating);
+  }
+
+  /// Fetches the vendor feed.
+  ///
+  /// [keepContent] is the pull-to-refresh path: the current cards stay up while
+  /// the request runs, and a failure shows the snackbar instead of replacing
+  /// them with an error.
+  Future<void> _loadVendors({bool keepContent = false}) async {
+    if (!keepContent) {
+      setState(() {
+        _vendorsLoading = true;
+        _vendorsFailed = false;
+      });
+    }
+    try {
+      final vendors = await catalogRepository.getVendors();
+      if (!mounted) return;
+      setState(() {
+        _vendors = vendors;
+        _vendorsLoading = false;
+        _vendorsFailed = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      final bool hadContent = _vendors.isNotEmpty;
+      setState(() {
+        _vendorsLoading = false;
+        // Nothing to keep means the section itself becomes the error state.
+        _vendorsFailed = !hadContent;
+      });
+      if (keepContent && hadContent) {
+        showAppSnackBar(
+          context,
+          "Couldn't refresh vendors. Check your connection and try again.",
+          isError: true,
+        );
+      }
+    }
   }
 
   /// Restores a dismissal made in an earlier session.
@@ -131,10 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── Scrollable Content ──────────────────────────────────
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () async {
-                  await Future.delayed(const Duration(milliseconds: 600));
-                  setState(() {});
-                },
+                onRefresh: () => _loadVendors(keepContent: true),
                 color: C.primary(context),
                 backgroundColor: C.surface(context),
                 child: SingleChildScrollView(
@@ -166,17 +258,33 @@ class _HomeScreenState extends State<HomeScreen> {
                         listenable: _orders,
                         builder: (context, _) {
                           final active = _orders.latestActiveOrder;
-                          if (active == null) return const SizedBox.shrink();
-                          return _ActiveOrderBanner(
-                            order: active,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const OrderHistoryScreen(
-                                  initialTab: OrdersTab.active,
+                          if (active != null) {
+                            return _ActiveOrderBanner(
+                              order: active,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const OrderHistoryScreen(
+                                    initialTab: OrdersTab.active,
+                                  ),
                                 ),
                               ),
-                            ),
+                            );
+                          }
+
+                          // Nothing in flight: the banner's other job is to
+                          // ask about the last delivery once. A dismissed or
+                          // answered order never returns to it, and a
+                          // cancelled order has nothing to ask.
+                          final unrated = _orders.latestAwaitingFeedback;
+                          if (unrated == null ||
+                              _ratingPromptDismissed.contains(unrated.id)) {
+                            return const SizedBox.shrink();
+                          }
+                          return _ActiveOrderBanner(
+                            order: unrated,
+                            onTap: () => _rateOrder(unrated),
+                            onDismiss: () => _dismissRatingPrompt(unrated.id),
                           );
                         },
                       ),
@@ -293,6 +401,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPromoBanner(double screenWidth) {
+    // Theme-aware pair: deep greens in dark mode, where the lifted primary
+    // would leave the banner's white text at ~1.9:1.
+    final List<Color> gradient = C.promoGradient(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Container(
@@ -300,14 +412,14 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [C.primary(context), C.surfaceDark(context)],
+            colors: gradient,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: C.primary(context).withValues(alpha: 0.3),
+              color: gradient.first.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -352,7 +464,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: C.primary(context),
+                          // On a white pill, so the fixed brand green (10.6:1)
+                          // rather than the theme's lifted dark-mode primary.
+                          color: AppColors.brand,
                         ),
                       ),
                     ),
@@ -487,7 +601,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildVendorList(double screenWidth) {
-    final vendors = MockVendors.vendors;
+    // ── Loading: three cards at the real card's exact height ──────
+    if (_vendorsLoading) {
+      return Shimmer(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            BottomNavMetrics.contentInset(context),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < 3; i++)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  child: VendorCardSkeleton(),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ── Failed: just this section, so the rest of Home stays ──────
+    if (_vendorsFailed) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: BottomNavMetrics.contentInset(context)),
+        child: LoadErrorView(
+          title: "Couldn't load vendors",
+          onRetry: () => _loadVendors(),
+        ),
+      );
+    }
+
+    final vendors = _vendors;
 
     return ListView.builder(
       shrinkWrap: true,
@@ -772,19 +920,29 @@ class _ActiveOrderBanner extends StatelessWidget {
   final Order order;
   final VoidCallback onTap;
 
-  const _ActiveOrderBanner({required this.order, required this.onTap});
+  /// Supplied only for the rating prompt, which the customer can close.
+  final VoidCallback? onDismiss;
 
-  /// Status line, named by vendor so a multi-vendor feed is unambiguous.
+  const _ActiveOrderBanner({
+    required this.order,
+    required this.onTap,
+    this.onDismiss,
+  });
+
+  /// Status line.
+  ///
+  /// Named by vendor where the vendor is the subject, dropped where the order
+  /// is: "Your order is on the way" needs no name. Delivered is the rating
+  /// prompt, because that is the one thing left to do with a delivered order.
   String get _message => switch (order.status) {
-        OrderStatus.confirmed => 'Order from ${order.vendorName} confirmed',
-        OrderStatus.packing =>
-          'Your order from ${order.vendorName} is being packed',
+        OrderStatus.confirmed => '${order.vendorName} confirmed your order',
+        OrderStatus.packing => '${order.vendorName} is packing your order',
         OrderStatus.pickedUp =>
           'Your order from ${order.vendorName} has been picked up',
-        OrderStatus.onTheWay =>
-          'Your order from ${order.vendorName} is on the way',
-        OrderStatus.delivered =>
-          'Your order from ${order.vendorName} was delivered',
+        OrderStatus.onTheWay => 'Your order is on the way',
+        OrderStatus.delivered => 'Rate your order from ${order.vendorName}',
+        // Never rendered: a cancelled order is neither active nor awaiting
+        // feedback, so it cannot become the banner's source.
         OrderStatus.cancelled =>
           'Your order from ${order.vendorName} was cancelled',
       };
@@ -794,7 +952,7 @@ class _ActiveOrderBanner extends StatelessWidget {
         OrderStatus.packing => Icons.inventory_2_outlined,
         OrderStatus.pickedUp => Icons.two_wheeler_outlined,
         OrderStatus.onTheWay => Icons.local_shipping_outlined,
-        OrderStatus.delivered => Icons.check_circle_outline,
+        OrderStatus.delivered => Icons.thumb_up_alt_outlined,
         OrderStatus.cancelled => Icons.cancel_outlined,
       };
 
@@ -823,10 +981,13 @@ class _ActiveOrderBanner extends StatelessWidget {
             children: [
               Icon(_icon(order.status), size: 18, color: C.primary(context)),
               const SizedBox(width: AppSpacing.sm),
+              // Two lines: a vendor name plus a status line used to truncate
+              // mid-word on a 320dp phone. Two lines fit every status without
+              // growing the strip for the short ones.
               Expanded(
                 child: Text(
                   _message,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
@@ -835,11 +996,34 @@ class _ActiveOrderBanner extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.xs),
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: C.textMuted(context),
-              ),
+              if (onDismiss == null)
+                Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: C.textMuted(context),
+                )
+              else
+                // Closing the prompt must not also open it: its own 44px
+                // target, separate from the banner's tap.
+                Semantics(
+                  button: true,
+                  label: 'Dismiss rating prompt',
+                  child: GestureDetector(
+                    onTap: onDismiss,
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Icon(
+                          Icons.close,
+                          size: 18,
+                          color: C.textMuted(context),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
