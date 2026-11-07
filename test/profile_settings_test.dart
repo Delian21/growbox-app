@@ -67,8 +67,15 @@ void main() {
     await tester.pumpAndSettle();
 
     // The old switch read `value == ThemeMode.dark`, which is false while the
-    // app follows a dark system — it is gone, replaced by three options.
-    expect(find.byType(Switch), findsNothing);
+    // app follows a dark system — it is gone, replaced by three options. (The
+    // demo tools' Simulate offline switch lives in its own section.)
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('sectionCard-Preferences')),
+        matching: find.byType(Switch),
+      ),
+      findsNothing,
+    );
     expect(find.text('System'), findsOneWidget);
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
@@ -289,11 +296,10 @@ void main() {
         child: const MaterialApp(home: HomeScreen()),
       );
 
-  /// Home runs entrance and shimmer animations, so it never settles; pump a
-  /// couple of frames instead of waiting for a quiet tree.
+  /// Home loads its feed behind the simulated latency, then runs its entrance
+  /// animations; settle so neither is still pending at the end of a test.
   Future<void> pumpHome(WidgetTester tester) async {
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
   }
 
   Future<void> pumpRoute(WidgetTester tester) async {

@@ -4,7 +4,11 @@ import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
 import '../widgets/scaffold_with_nav.dart';
 import '../widgets/bottom_nav.dart';
+import '../data/build_info.dart';
+import '../data/mock_backend.dart';
 import '../data/mock_data.dart';
+import '../data/session.dart';
+import '../services/connectivity.dart';
 import 'account_screen.dart';
 import 'edit_profile_screen.dart';
 import 'favorites_screen.dart';
@@ -12,6 +16,7 @@ import 'faq_screen.dart';
 import 'notifications_screen.dart';
 import 'address_management_screen.dart';
 import 'order_history_screen.dart';
+import 'state_gallery_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -169,6 +174,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildMenuSection(context, 'Preferences', [
                 const _ThemeModeSelector(),
               ]),
+              // Demo-only controls. [kDemoTools] is a compile-time constant, so
+              // a normal release build neither shows this section nor keeps
+              // the widgets behind it.
+              if (kDemoTools)
+                _buildMenuSection(context, 'Demo tools', const [
+                  _SimulateOfflineTile(),
+                  _FailNextLoadTile(),
+                  _FailNextOrderTile(),
+                  _StateGalleryTile(),
+                ]),
               const SizedBox(height: AppSpacing.xxl),
               // ── Logout ───────────────────────────────────
               Padding(
@@ -209,10 +224,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              // ── Version ──────────────────────────────────
+              // ── Build label ──────────────────────────────
+              // Same muted 12px line as before; it now says which build this
+              // device is actually running, so a tester can read it out
+              // instead of guessing from what the screen looks like.
               Center(
                 child: Text(
-                  'Version 2026.20.vfhvf',
+                  kBuildLabel,
                   style: TextStyle(fontSize: 12, color: C.textMuted(context)),
                 ),
               ),
@@ -252,6 +270,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               label: 'Log Out',
               variant: AppButtonVariant.destructive,
               onPressed: () {
+                // Manual sign-out keeps its old behaviour — the profile is
+                // wiped and the customer stays on this screen — but the
+                // persisted session has to go too, or the next cold start
+                // would silently sign them back in.
+                SessionStore.clear();
                 CustomerData.clear();
                 Navigator.pop(dialogContext);
                 setState(() {});
@@ -475,6 +498,177 @@ class _MenuItem extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: C.textPrimary(context),
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: C.textMuted(context)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DEMO TOOLS
+//
+// Only reachable when [kDemoTools] is true. The switch drives the same
+// connectivity store the banner and checkout read, so flipping it is exactly
+// like losing the network; the button arms a single failed request, which is
+// how the load error states are demonstrated without a server.
+class _SimulateOfflineTile extends StatelessWidget {
+  const _SimulateOfflineTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: connectivityStore,
+      builder: (context, _) => Padding(
+        padding: const EdgeInsets.fromLTRB(14, 2, 6, 2),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 20,
+              color: C.textMuted(context),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Simulate offline',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: C.textPrimary(context),
+                ),
+              ),
+            ),
+            Switch(
+              value: connectivityStore.simulatedOffline,
+              onChanged: connectivityStore.setSimulatedOffline,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FailNextLoadTile extends StatelessWidget {
+  const _FailNextLoadTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        MockBackend.failNextRequest();
+        showAppSnackBar(context, 'Next load will fail.');
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.bug_report_outlined,
+              size: 20,
+              color: C.textMuted(context),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Fail next load',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: C.textPrimary(context),
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: C.textMuted(context)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Arms one failed checkout, so the "order placement failed" screen can be
+/// seen without breaking anything else.
+///
+/// Placement is a write, not a load, so it has its own one-shot flag: the
+/// retry from the failure screen succeeds, which is what "Try again" must do.
+class _FailNextOrderTile extends StatelessWidget {
+  const _FailNextOrderTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        MockBackend.failNextOrder();
+        showAppSnackBar(context, 'Next order placement will fail.');
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.payment_outlined,
+              size: 20,
+              color: C.textMuted(context),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Fail next order',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: C.textPrimary(context),
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: C.textMuted(context)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens the debug-only gallery of every state the app can be in.
+///
+/// The whole entry point (and the gallery itself) is inside the
+/// [kDemoTools] branch, so a normal release build contains neither.
+class _StateGalleryTile extends StatelessWidget {
+  const _StateGalleryTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const StateGalleryScreen()),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.grid_view_outlined,
+              size: 20,
+              color: C.textMuted(context),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'State gallery',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,

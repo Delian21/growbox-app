@@ -59,6 +59,38 @@ Local web build for a quick check:
 flutter build web --release
 ```
 
+The Profile screen prints the running build at the bottom, as
+`Growbox v1.0.0 · <id>`. Pass the id at build time:
+
+```bash
+# Git Bash / macOS / Linux, from the growbox/ directory
+flutter build web --release \
+  --pwa-strategy=none \
+  --dart-define=BUILD_ID=$(git rev-parse --short HEAD)
+
+# PowerShell
+flutter build web --release --pwa-strategy=none `
+  --dart-define=BUILD_ID=$(git rev-parse --short HEAD)
+
+# cmd.exe (no inline $(...); run git first)
+git rev-parse --short HEAD
+flutter build web --release --pwa-strategy=none --dart-define=BUILD_ID=9ed2acc
+```
+
+A build without the define prints `dev`, which is deliberately unhelpful so
+an unidentified build is obvious. Netlify passes `$COMMIT_REF` for you.
+
+### Why `--pwa-strategy=none`
+
+Flutter's default `offline-first` service worker serves the app shell from
+cache before checking the network, so testers could see the previous deploy
+until a second reload. `none` registers no service worker at all, which
+removes that layer while we are testing; `web/_headers` additionally marks
+`index.html`, `flutter_service_worker.js`, `version.json` and `main.dart.js`
+`no-cache` so they are revalidated instead of reused. Switching back to
+`offline-first` later keeps working — the headers make the next deploy land
+on the first reload either way.
+
 ## Docs
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — folder structure, theme system, state

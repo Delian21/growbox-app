@@ -1,0 +1,28 @@
+# Netlify response headers for the Flutter web build.
+#
+# `no-cache` does NOT mean "don't cache": it means "revalidate before reuse".
+# Netlify still serves a 304 when the file has not changed, so this costs one
+# conditional request and nothing else — but a new deploy is picked up on the
+# next load instead of after a second reload.
+#
+# These four are the files a stale browser actually holds on to:
+#   /index.html               the document that boots everything
+#   /flutter_service_worker.js the cache manifest; a stale copy keeps the old
+#                              asset list alive
+#   /version.json             Flutter's own build stamp
+#   /main.dart.js             the unhashed app bundle (the one big file whose
+#                              name never changes between builds)
+# Everything else in the bundle is addressed by content or by the service
+# worker's resource manifest and can keep normal caching.
+
+/index.html
+  Cache-Control: no-cache
+
+/flutter_service_worker.js
+  Cache-Control: no-cache
+
+/version.json
+  Cache-Control: no-cache
+
+/main.dart.js
+  Cache-Control: no-cache
