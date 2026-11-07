@@ -6,9 +6,17 @@ import '../data/addresses.dart';
 import '../widgets/saved_address_picker.dart';
 import '../widgets/app_button.dart';
 import 'address_management_screen.dart';
+import 'home_screen.dart';
 
 class LocationScreen extends StatefulWidget {
-  const LocationScreen({super.key});
+  const LocationScreen({super.key, this.isFirstRun = false});
+
+  /// True when this screen IS the first-run setup step, reached from
+  /// [AppEntryGate] before the customer has ever seen Home.
+  ///
+  /// That changes what finishing means: setup ends in Home, while the same
+  /// screen opened from the Home header only pops back with the choice made.
+  final bool isFirstRun;
   @override
   State<LocationScreen> createState() => _LocationScreenState();
 }
@@ -123,11 +131,27 @@ class _LocationScreenState extends State<LocationScreen> {
 
   // ── Closing / finishing ──────────────────────────────────────────────────
 
-  void _exit() {
+  /// Leaves the location screen, telling the caller where we are.
+  ///
+  /// First run: setup is over, so Home replaces everything (the gate's stack is
+  /// gone anyway — popping would reveal the splash). Any other entry point
+  /// (Home header) just pops, handing the chosen address back to the caller.
+  void _finish({Address? address}) {
     final navigator = Navigator.of(context);
     if (_sheetOpen) navigator.pop();
-    navigator.pop();
+    if (widget.isFirstRun) {
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+      return;
+    }
+    navigator.pop<Address?>(address);
   }
+
+  /// True when there is a browsing area checkout can never use but the feed
+  /// can — the "browsing only" case first-run setup allows.
+  bool get _canBrowseOnly => browsingAreaStore.hasArea;
 
   // ── Browsing area / delivery address ───────────────────────────────
 
@@ -196,6 +220,14 @@ class _LocationScreenState extends State<LocationScreen> {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     if (!mounted) return;
     setState(() {});
+    // First run: saving an address (the repository auto-selects the first one)
+    // completes setup, so go straight to Home instead of making the customer
+    // pick the address they just created. Other entry points stay here.
+    final saved = addressesStore.selectedAddress;
+    if (widget.isFirstRun && saved != null) {
+      _finish(address: saved);
+      return;
+    }
     _refreshSheet();
   }
 
@@ -208,7 +240,8 @@ class _LocationScreenState extends State<LocationScreen> {
     await addressesStore.select(address.id);
     if (!mounted) return;
     setState(() {});
-    _exit();
+    // Setup done (Home) or a choice handed back to whoever opened the sheet.
+    _finish(address: address);
   }
 
   /// "Missing address details": fixes the selected address, or adds one.
@@ -379,6 +412,33 @@ class _LocationScreenState extends State<LocationScreen> {
                         radius: AppRadii.pill,
                       ),
                     ),
+                    // First-run escape hatch: browse the feed without a
+                    // delivery address. Checkout still refuses without one,
+                    // so this can never produce an undeliverable order.
+                    if (widget.isFirstRun) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: AppButton(
+                          label: 'Continue with browsing only',
+                          onPressed: _canBrowseOnly ? () => _finish() : null,
+                          variant: AppButtonVariant.text,
+                          expand: true,
+                          height: AppSizing.buttonHeight(context),
+                          radius: AppRadii.pill,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        _canBrowseOnly
+                            ? 'Browse vendors around you. Add an address when '
+                                'you are ready to order.'
+                            : 'Set your area above to browse without an address.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.caption
+                            .copyWith(color: C.textMuted(context)),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -558,7 +618,9 @@ class _LocationScreenState extends State<LocationScreen> {
                 left: 16,
                 top: MediaQuery.paddingOf(context).top + 12,
                 child: GestureDetector(
-                  onTap: _exit,
+                  // First run cannot pop back to sign-up, so the close button
+                  // ends setup in Home as well.
+                  onTap: _finish,
                   child: Container(
                     width: 40,
                     height: 40,

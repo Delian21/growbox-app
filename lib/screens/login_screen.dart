@@ -4,11 +4,16 @@ import '../data/placeholder_images.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
 import '../widgets/social_auth_buttons.dart';
-import 'home_screen.dart';
+import '../widgets/app_entry_gate.dart';
+import '../data/session.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.notice});
+
+  /// Optional banner, e.g. the "signed out after 30 minutes away" message the
+  /// away-timer hands over when it drops an expired session.
+  final String? notice;
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -46,10 +51,18 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return;
+      // Identity only — the mock backend has no password to remember.
+      await SessionStore.start(email: email);
+      if (!mounted) return;
       showAppSnackBar(context, 'Welcome back to Growbox!');
+      // Through the gate, so a customer who has not set an address yet is
+      // asked for one, and the stack forgets this form (Back cannot return
+      // to a signed-in user's login screen). Zero dwell: no second splash.
       Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(
+              builder: (_) =>
+                  const AppEntryGate(minimumSplash: Duration.zero)),
           (route) => false);
     } catch (error) {
       if (!mounted) return;
@@ -120,6 +133,37 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: C.textMuted(context),
                 ),
               ),
+              // Shown when the away-timer dropped an expired session, so the
+              // customer knows why they are back on this form.
+              if (widget.notice != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: C.warningSoft(context),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.lock_clock_outlined,
+                          size: 18, color: C.onWarningSoft(context)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.notice!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.35,
+                            color: C.onWarningSoft(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 40),
 
               // ── Email Field ───────────────────────────────

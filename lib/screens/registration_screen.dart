@@ -6,9 +6,10 @@ import 'cookies_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_screen.dart';
 import 'login_screen.dart';
-import 'location_screen.dart';
 import '../data/mock_data.dart';
 import '../data/placeholder_images.dart';
+import '../data/session.dart';
+import '../widgets/app_entry_gate.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
 import '../widgets/social_auth_buttons.dart';
@@ -178,9 +179,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       CustomerData.email = _email;
       if (mounted) Navigator.of(context).pop();
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LocationScreen()),
-      );
+      await _enterApp(guest: false);
     } catch (error) {
       if (mounted) Navigator.of(context).pop();
       if (!mounted) return;
@@ -193,8 +192,27 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
     setState(() => _isChecking = false);
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LocationScreen()),
+    await _enterApp(guest: false);
+  }
+
+  /// Signs the customer in and hands over to [AppEntryGate], which decides
+  /// between location setup and Home and replaces the whole stack — Back can
+  /// never walk back into the sign-up wizard.
+  ///
+  /// [guest] is the "Skip" path: a session with no email, so the next cold
+  /// start does not throw the customer back to the welcome screen.
+  Future<void> _enterApp({required bool guest}) async {
+    if (guest) {
+      await SessionStore.startGuest();
+    } else {
+      await SessionStore.start(email: _email);
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const AppEntryGate(minimumSplash: Duration.zero),
+      ),
+      (route) => false,
     );
   }
 
@@ -223,7 +241,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final panelGap = AppSizing.signUpPanelGap(context);
 
     return Scaffold(
-      backgroundColor: C.primary(context),
+      // Pinned brand green, not C.primary(context): this band is the sign-up
+      // hero and carries the white logo and white-on-green tagline, so it must
+      // be the same forest green in light and dark mode. In dark mode the
+      // theme-aware token lifted it to #7ED36B, which made the white artwork
+      // unreadable (1.7:1) and the hero look mint instead of branded.
+      backgroundColor: AppColors.brand,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Stack(
@@ -253,7 +276,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       errorBuilder: (_, _, _) => Text(
                         'Growbox',
                         style: TextStyle(
-                          color: C.onPrimary(context),
+                          // White on [AppColors.brand] in every theme; the
+                          // theme-aware equivalent turns near-black in dark
+                          // mode for the lifted green and would vanish here.
+                          color: AppColors.onBrand,
                           fontSize: 42,
                           fontWeight: FontWeight.bold,
                         ),
@@ -263,8 +289,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     Text(
                       'Fresh from the farm to your door',
                       textAlign: TextAlign.center,
-                      style: AppTypography.bodySmall
-                          .copyWith(color: C.onPrimary(context).withValues(alpha: 0.82)),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.onBrand.withValues(alpha: 0.82),
+                      ),
                     ),
                   ],
                 ),
@@ -329,10 +356,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               MaterialPageRoute(
                                   builder: (_) => const LoginScreen()),
                             ),
-                            onSkip: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const LocationScreen()),
-                            ),
+                            onSkip: () => _enterApp(guest: true),
                           ),
                           _EmailStep(controller: _emailController),
                           _PasswordStep(

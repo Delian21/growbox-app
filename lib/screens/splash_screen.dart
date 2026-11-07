@@ -1,20 +1,22 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/placeholder_images.dart';
-import 'onboarding_screen.dart';
-import 'registration_screen.dart';
 
+/// The branded first screen.
+///
+/// Purely visual: it does not decide where to go. Routing lives in
+/// [AppEntryGate], which shows this screen while it reads the persisted facts
+/// and then replaces the stack with the destination.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   /// Official Growbox brand logo (white planter icon + orange "Growbox"
   /// wordmark on transparent background).
   ///
-  /// White art is always correct here: the splash background is the brand
-  /// green (AppColors.primary) in both light and dark themes, so there is
-  /// no brightness-based variant swap on this screen.
+  /// White art is always correct here: the splash background is the fixed
+  /// brand green ([AppColors.brand]) in both light and dark themes, so there
+  /// is no brightness-based variant swap on this screen.
   static String get logoUrl => PlaceholderImages.growboxLogo;
 
   @override
@@ -95,30 +97,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     // ── Kick off entrance animations ──────────────────────────────
     _startAnimations();
-
-    // ── Navigate after 4 seconds ──────────────────────────────────
-    Timer(const Duration(seconds: 4), () async {
-      if (!mounted) return;
-      final hasSeenOnboarding = await OnboardingScreen.hasCompleted();
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, _, _) => hasSeenOnboarding
-              ? const RegistrationScreen()
-              : const OnboardingScreen(),
-          transitionsBuilder: (_, animation, _, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              ),
-              child: child,
-            );
-          },
-        ),
-      );
-    });
   }
 
   Future<void> _startAnimations() async {
@@ -161,134 +139,163 @@ class _SplashScreenState extends State<SplashScreen>
         .reduce((a, b) => a < b ? a : b);
 
     return Scaffold(
-      backgroundColor: C.primary(context),
-      body: SafeArea(
-        child: SizedBox.expand(
-          child: Column(
-            children: [
-              // ── Logo area with glow ────────────────────────────
-              Expanded(
-                child: Center(
-                  child: AnimatedBuilder(
-                    animation: _pulseValue,
-                    builder: (context, child) {
-                      // Pulse oscillates glow opacity between 0.15 and 0.35.
-                      final glowOpacity =
-                          0.15 + 0.20 * math.sin(_pulseValue.value * math.pi);
-                      return Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.white.withValues(alpha: glowOpacity),
-                              blurRadius: 60,
-                              spreadRadius: 20,
-                            ),
-                          ],
-                        ),
-                        child: child,
-                      );
-                    },
+      // Pinned, not C.primary(context): the splash is a brand surface and has
+      // to be the same forest green whether the phone is in light or dark
+      // mode. The theme-aware token used to make this #7ED36B in dark mode,
+      // which read as mint rather than the brand.
+      backgroundColor: AppColors.brand,
+      body: DecoratedBox(
+        // The highlight is a green-on-green radial ramp instead of a white
+        // glow: 9% lighter than brand behind the logo, exactly brand by the
+        // time it reaches the edges. A white overlay here is what turned the
+        // centre grey-green.
+        decoration: const BoxDecoration(gradient: _brandHighlight),
+        child: SafeArea(
+          child: SizedBox.expand(
+            child: Column(
+              children: [
+                // ── Logo area with glow ────────────────────────────
+                Expanded(
+                  child: Center(
                     child: AnimatedBuilder(
-                      animation: Listenable.merge([
-                        _logoController,
-                        _pulseController,
-                      ]),
-                      builder: (context, _) {
-                        return Opacity(
-                          opacity: _logoOpacity.value,
-                          child: Transform.scale(
-                            scale: _logoScale.value,
-                            child: Image.asset(
-                              SplashScreen.logoUrl,
-                              width: logoSize,
-                              height: logoSize,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Text(
-                                  'Growbox',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: AppColors.white,
-                                    fontSize: 42,
-                                    fontWeight: FontWeight.bold,
-                                    shadows: [
-                                      Shadow(
-                                        color: AppColors.black.withValues(alpha: 0.3),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                      animation: _pulseValue,
+                      builder: (context, child) {
+                        // Pulse oscillates the halo's opacity between 0.15 and
+                        // 0.35.
+                        final glowOpacity =
+                            0.15 + 0.20 * math.sin(_pulseValue.value * math.pi);
+                        return Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                // Green, not white: white over green greys the
+                                // brand out. Same hue as the gradient centre,
+                                // so the logo sits in a pool of lighter green.
+                                color: AppColors.brandHighlight
+                                    .withValues(alpha: glowOpacity),
+                                blurRadius: 60,
+                                spreadRadius: 20,
+                              ),
+                            ],
                           ),
+                          child: child,
                         );
                       },
-                    ),
-                  ),
-                ),
-              ),
-
-              // ── Tagline ────────────────────────────────────────
-              SlideTransition(
-                position: _taglineOffset,
-                child: FadeTransition(
-                  opacity: _taglineOpacity,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      'Fresh produce, delivered to your door',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.9),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        height: 1.4,
+                      // The animated child is built once and reused by the
+                      // pulse above; it reads the logo controllers itself.
+                      child: AnimatedBuilder(
+                        animation: Listenable.merge([
+                          _logoController,
+                          _pulseController,
+                        ]),
+                        builder: (context, _) {
+                          return Opacity(
+                            opacity: _logoOpacity.value,
+                            child: Transform.scale(
+                              scale: _logoScale.value,
+                              child: Image.asset(
+                                SplashScreen.logoUrl,
+                                width: logoSize,
+                                height: logoSize,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Text(
+                                    'Growbox',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.onBrand,
+                                      fontSize: 42,
+                                      fontWeight: FontWeight.bold,
+                                      shadows: [
+                                        Shadow(
+                                          color: AppColors.black
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 24),
-
-              // ── Footer ─────────────────────────────────────────
-              FadeTransition(
-                opacity: _footerOpacity,
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 0, 16, 20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Powered by',
+                // ── Tagline ────────────────────────────────────────
+                SlideTransition(
+                  position: _taglineOffset,
+                  child: FadeTransition(
+                    opacity: _taglineOpacity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        'Fresh produce, delivered to your door',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: AppColors.white70,
-                          fontSize: 12,
+                          color: AppColors.onBrand.withValues(alpha: 0.9),
+                          fontSize: 16,
                           fontWeight: FontWeight.w400,
+                          height: 1.4,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Universal Integrated Agricultural Network Ltd',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 24),
+
+                // ── Footer ────────────────────────────────────────
+                FadeTransition(
+                  opacity: _footerOpacity,
+                  child: const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Powered by',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Universal Integrated Agricultural Network Ltd',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.onBrand,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+/// The splash highlight: [AppColors.brandHighlight] at the centre, exactly
+/// [AppColors.brand] from 85% of the way out, so the corners of any screen are
+/// pure brand green and only the middle carries the glow.
+const RadialGradient _brandHighlight = RadialGradient(
+  center: Alignment.center,
+  radius: 1.0,
+  colors: [AppColors.brandHighlight, AppColors.brand],
+  stops: [0.0, 0.85],
+);
