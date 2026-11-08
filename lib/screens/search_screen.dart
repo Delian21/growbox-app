@@ -7,6 +7,8 @@ import '../theme.dart';
 import '../data/categories.dart';
 import '../data/catalog_repository.dart';
 import '../widgets/scaffold_with_nav.dart';
+import '../widgets/root_shell.dart';
+import '../tabs.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/micro_interactions.dart';
 import '../data/mock_data.dart';
@@ -17,7 +19,11 @@ import '../widgets/status_view.dart';
 import 'category_vendors_screen.dart';
 import 'vendor_screen.dart';
 import '../widgets/vendor_rating.dart';
-import '../widgets/voice_search_overlay.dart';
+import '../widgets/voice_search_button.dart';
+import '../services/speech_service.dart';
+import '../services/speech_to_text_service.dart';
+import '../services/voice_search_session.dart';
+import '../routes.dart';
 
 /// In-memory recent search history (resets on app restart).
 final List<String> recentSearches = [];
@@ -28,13 +34,18 @@ class SearchScreen extends StatefulWidget {
   /// default (null) keeps the interactive behaviour unchanged.
   final String? initialQuery;
 
-  const SearchScreen({super.key, this.initialQuery});
+  /// The speech engine. Defaults to the platform implementation; tests (and the
+  /// gallery) pass a fake so no platform channel is involved.
+  final SpeechService? speechService;
+
+  const SearchScreen({super.key, this.initialQuery, this.speechService});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen>
+    with WidgetsBindingObserver, RouteAware {
   final TextEditingController searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
@@ -49,6 +60,14 @@ class _SearchScreenState extends State<SearchScreen> {
 
   static const Duration _typingPause = Duration(milliseconds: 400);
 
+  /// The focus request this screen has already acted on, so the listener does
+  /// not re-focus on every unrelated tab change.
+  late int _seenFocusRequest;
+
+  /// Owns the microphone: partials, the 1.2 s silence stop and the failure
+  /// message. Created in initState because it survives re-renders.
+  late final VoiceSearchSession _voice;
+
   /// The catalogue behind the results, fetched once so typing filters a list
   /// in memory instead of re-requesting on every keystroke.
   List<Map<String, dynamic>> _vendors = const [];
@@ -59,6 +78,34 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _loadCatalog(showLoading: false);
+
+    // A cold start mounts every tab at once (that is what keeps their state),
+    // so Search must not grab the keyboard before it is the visible tab.
+    _seenFocusRequest = tabNavigator.searchFocusRequest;
+    tabNavigator.addListener(_onTabRequest);
+    WidgetsBinding.instance.addObserver(this);
+
+    _voice = VoiceSearchSession(
+      speech: widget.speechService ?? platformSpeechService,
+      // Live partials go straight into the field — the customer watches their
+      // words appear instead of waiting for a result screen.
+      onPartial: (text) {
+        searchController.value = TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: text.length),
+        );
+        _onQueryChanged(text);
+      },
+      // Silence or a final submits immediately, with the catalogue's wording
+      // when the transcript is close to it.
+      onSubmit: (query) {
+        searchController.text = query;
+        _submitSearch(query);
+      },
+    );
+    // Initialise once, on first open, so the mic can be drawn as unavailable
+    // before anyone taps it.
+    _voice.prepare();
 
     final initial = widget.initialQuery?.trim();
     if (initial != null && initial.isNotEmpty) {
@@ -71,7 +118,55 @@ class _SearchScreenState extends State<SearchScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Don't pop the keyboard over a state that was opened to be looked at.
-      if (initial == null || initial.isEmpty) _focusNode.requestFocus();
+      if (initial != null && initial.isNotEmpty) return;
+      // Standalone (gallery, tests) always behaves as the active screen.
+      if (RootShellScope.isInside(context) &&
+          tabNavigator.tab != AppTab.search) {
+        return;
+      }
+      _focusNode.requestFocus();
+    });
+  }
+
+  /// Subscribes for "something was pushed on top of me".
+  ///
+  /// Disposal is not enough: opening a vendor page leaves this screen mounted
+  /// underneath, and the recogniser would keep the microphone for the life of
+  /// that page.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) routeObserver.subscribe(this, route);
+  }
+
+  @override
+  void didPushNext() => _voice.cancel();
+
+  /// The microphone must never stay on when the customer leaves the screen.
+  /// App pause is the case the system cannot handle for us: Android and iOS
+  /// keep the recogniser running until it is told otherwise.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _voice.cancel();
+  }
+
+  /// The Home search bar asks for the field whenever it switches tabs, so a
+  /// second tap on it re-opens the keyboard even though the screen never
+  /// unmounted.
+  void _onTabRequest() {
+    // Switching to another tab is a route change as far as the mic is
+    // concerned: drop the session instead of listening in the background.
+    if (tabNavigator.tab != AppTab.search && _voice.isListening) {
+      _voice.cancel();
+    }
+    if (tabNavigator.searchFocusRequest == _seenFocusRequest) return;
+    _seenFocusRequest = tabNavigator.searchFocusRequest;
+    // After the frame that makes Search the visible tab: asking for focus while
+    // the screen is still the offstage child is a no-op the keyboard never
+    // recovers from.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
     });
   }
 
@@ -103,6 +198,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    tabNavigator.removeListener(_onTabRequest);
+    WidgetsBinding.instance.removeObserver(this);
+    _voice.dispose();
     _typingTimer?.cancel();
     searchController.dispose();
     _focusNode.dispose();
@@ -201,7 +299,9 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    // Back from a tab root goes to Home, it does not pop the
+                    // shell (which is the first route and would leave the app).
+                    onTap: () => tabNavigator.select(AppTab.home),
                     behavior: HitTestBehavior.opaque,
                     child: SizedBox(
                       width: 40, height: 40,
@@ -238,16 +338,11 @@ class _SearchScreenState extends State<SearchScreen> {
                         if (searchController.text.isNotEmpty)
                           IconButton(onPressed: clearSearch, splashRadius: 22,
                             icon: Icon(Icons.close, color: C.textPrimary(context))),
-                        IconButton(
-                          onPressed: () async {
-                            final intent = await showVoiceSearch(context);
-                            if (intent != null && mounted) {
-                              searchController.text = intent.productQuery;
-                              _submitSearch(intent.productQuery);
-                            }
-                          },
-                          splashRadius: 22,
-                          icon: Icon(Icons.mic, color: C.primary(context))),
+                        // Drives the field directly: partials rewrite the text,
+                        // silence or a final submits. Hidden when the device
+                        // has no speech recognition, with the status line below
+                        // saying why.
+                        VoiceSearchButton(session: _voice),
                       ],
                     ),
                     filled: true,
@@ -259,6 +354,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                 ),
               ),
+            ),
+            // "Listening…", a retry after silence, or why voice is unavailable.
+            // Outside the TextField so it is not squeezed into the suffix icon.
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: VoiceSearchStatus(session: _voice),
             ),
             // ── Body ──────────────────────────────────────────────────
             Expanded(

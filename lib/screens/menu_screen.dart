@@ -7,7 +7,10 @@ import '../data/categories.dart';
 import '../data/mock_data.dart';
 import '../widgets/vendor_card.dart';
 import '../widgets/vendor_rating.dart';
-import '../widgets/voice_search_overlay.dart';
+import '../widgets/voice_search_button.dart';
+import '../services/speech_service.dart';
+import '../services/speech_to_text_service.dart';
+import '../services/voice_search_session.dart';
 import 'category_vendors_screen.dart';
 import 'vendor_screen.dart';
 
@@ -23,20 +26,56 @@ class MenuScreen extends StatefulWidget {
   /// what the screen is showing.
   final String allFilterLabel;
 
+  /// The speech engine. Defaults to the platform implementation; tests pass a
+  /// fake so no platform channel is involved.
+  final SpeechService? speechService;
+
   const MenuScreen({
     super.key,
     this.title = 'Browse Produce',
     this.allFilterLabel = 'All Produce',
+    this.speechService,
   });
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _MenuScreenState extends State<MenuScreen> {
+class _MenuScreenState extends State<MenuScreen>
+    with WidgetsBindingObserver {
   bool vendorsOpen = true;
   late String selectedProduceType = widget.allFilterLabel;
   String selectedSort = 'Sort by';
   String searchQuery = '';
+
+  /// Owns the microphone for this field, so a session can never outlive the
+  /// screen or keep running while the app is in the background.
+  late final VoiceSearchSession _voice;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _voice = VoiceSearchSession(
+      speech: widget.speechService ?? platformSpeechService,
+      // Partial words land in the filter as they arrive; silence or a final
+      // applies the catalogue's wording and filters the list.
+      onPartial: (text) => setState(() => searchQuery = text),
+      onSubmit: (query) => setState(() => searchQuery = query),
+    );
+    _voice.prepare();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _voice.cancel();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _voice.dispose();
+    super.dispose();
+  }
 
   /// Adds or removes a vendor from the shared favourites list.
   void _toggleFavorite(String name, Map<String, dynamic> vendor) {
@@ -159,15 +198,9 @@ class _MenuScreenState extends State<MenuScreen> {
                               color: C.textMuted(context),
                             ),
                             prefixIcon: Icon(Icons.search, size: 20, color: C.textMuted(context)),
-                            suffixIcon: IconButton(
-                              onPressed: () async {
-                                final intent = await showVoiceSearch(context);
-                                if (intent != null && mounted) {
-                                  setState(() => searchQuery = intent.productQuery);
-                                }
-                              },
-                              icon: Icon(Icons.mic,
-                                  size: 20, color: C.primary(context)),
+                            suffixIcon: VoiceSearchButton(
+                              session: _voice,
+                              iconSize: 20,
                             ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
