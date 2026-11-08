@@ -352,6 +352,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         children: [
                           _WelcomeStep(
                             compact: compact,
+                            onContinue: _next,
                             onLogin: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                   builder: (_) => const LoginScreen()),
@@ -381,7 +382,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ],
                       ),
                     ),
-                    if (_currentStep <= 3)
+                    // Steps 2 and up keep the pinned footer. The welcome step
+                    // puts its own "Continue with Email" inside the scrolling
+                    // content, directly under the heading, so it is not
+                    // separated from the words it continues from.
+                    if (_currentStep >= 1 && _currentStep <= 3)
                       SafeArea(
                         top: false,
                         child: Padding(
@@ -429,30 +434,57 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 class _WelcomeStep extends StatelessWidget {
   /// Whether this is a short phone: tighter gaps and buttons, same content.
   final bool compact;
+  final VoidCallback onContinue;
   final VoidCallback onLogin;
   final VoidCallback onSkip;
 
   const _WelcomeStep({
     required this.compact,
+    required this.onContinue,
     required this.onLogin,
     required this.onSkip,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Short phones tighten this column and nothing else: the same content in the
-    // same order with smaller gaps and buttons, so the consent notice and the
-    // Skip shortcut sit above the fold at 360×640 instead of below it.
-    final sectionSpacing =
-        AppSizing.welcomeFontSize(context) * (compact ? 0.45 : 0.9);
-
+    // One column, in the order the decision is made: heading, primary action,
+    // consent, then the alternatives, then the escape hatch back to logging in.
+    // Short phones only shrink the gaps and buttons — the order never changes —
+    // and the whole column scrolls, so nothing is unreachable at 360×640.
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: EdgeInsets.symmetric(
-          horizontal: AppSizing.horizontalPadding(context)),
+      padding: EdgeInsets.fromLTRB(
+        AppSizing.horizontalPadding(context),
+        AppSpacing.xs,
+        AppSizing.horizontalPadding(context),
+        AppSpacing.lg,
+      ),
       child: Column(
         children: [
-          SizedBox(height: sectionSpacing * 0.4),
+          // Guest shortcut, kept out of the sign-up flow's own order (and out
+          // of the scroll's tail) so "Log in" can stay the last row.
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: onSkip,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Skip',
+                        style: AppTypography.labelLarge
+                            .copyWith(color: C.textPrimary(context))),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_ios,
+                        size: 16, color: C.textPrimary(context)),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Text(
             'Welcome',
             textAlign: TextAlign.center,
@@ -463,7 +495,7 @@ class _WelcomeStep extends StatelessWidget {
               color: C.textPrimary(context),
             ),
           ),
-          SizedBox(height: sectionSpacing),
+          SizedBox(height: compact ? 4 : AppSpacing.sm),
           // Plain subtitle — the rule that used to underline this line made
           // a static sentence read like a text field.
           SizedBox(
@@ -471,7 +503,7 @@ class _WelcomeStep extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: AppSpacing.sm + 2,
-                vertical: compact ? 4 : AppSpacing.sm + 2,
+                vertical: compact ? 2 : 4,
               ),
               child: Text(
                 'Create your account',
@@ -480,22 +512,24 @@ class _WelcomeStep extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: sectionSpacing * 0.75),
-          SizedBox(height: compact ? 10 : AppSpacing.lg - 2),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Already have an account? ',
-                  style: AppTypography.bodyMedium.copyWith(color: C.textMuted(context))),
-              GestureDetector(
-                onTap: onLogin,
-                child: Text('Log in',
-                    style: AppTypography.labelMedium.copyWith(
-                        color: C.primary(context))),
-              ),
-            ],
+          SizedBox(height: compact ? 8 : AppSpacing.sm + 2),
+          // The primary action, directly under the heading it acts on: one
+          // full-width button, the same widget the other steps pin.
+          SizedBox(
+            width: double.infinity,
+            height: AppSizing.buttonHeight(context),
+            child: AppButton(
+              label: 'Continue with Email',
+              onPressed: onContinue,
+              expand: true,
+              height: AppSizing.buttonHeight(context),
+              radius: AppRadii.pill,
+            ),
           ),
-          SizedBox(height: sectionSpacing),
+          // Consent sits directly under the action it accompanies.
+          SizedBox(height: compact ? 10 : AppSpacing.sm + 2),
+          _LegalNotice(compact: compact),
+          SizedBox(height: compact ? 14 : AppSpacing.lg),
           // Divider with 'or with' text
           Row(
             children: [
@@ -512,27 +546,22 @@ class _WelcomeStep extends StatelessWidget {
           SizedBox(height: compact ? 12 : AppSpacing.md + 4),
           // The same stacked Google/Apple pair the login screen shows.
           SocialAuthButtons(compact: compact),
-          SizedBox(height: compact ? 12 : AppSpacing.lg),
-          _LegalNotice(compact: compact),
-          SizedBox(height: compact ? 8 : AppSpacing.md),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: onSkip,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Skip',
-                      style: AppTypography.labelLarge.copyWith(
-                          color: C.textPrimary(context))),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_ios, size: 18, color: C.textPrimary(context)),
-                  ],
-                ),
+          SizedBox(height: compact ? 14 : AppSpacing.lg),
+          // Log in is the last row: the customer who already has an account
+          // reaches it after the alternatives, not before them.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Already have an account? ',
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: C.textMuted(context))),
+              GestureDetector(
+                onTap: onLogin,
+                child: Text('Log in',
+                    style: AppTypography.labelMedium
+                        .copyWith(color: C.primary(context))),
               ),
-            ),
+            ],
           ),
         ],
       ),
