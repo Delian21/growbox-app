@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import '../widgets/animated_entrance.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
@@ -272,14 +272,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         context,
         'Only $added available, added to box',
         actionLabel: 'View box',
-        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+        onAction: () => openTab(context, AppTab.cart),
       );
     } else {
       showAppSnackBar(
         context,
         '$variantName × $added added to box',
         actionLabel: 'View box',
-        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+        onAction: () => openTab(context, AppTab.cart),
       );
     }
   }

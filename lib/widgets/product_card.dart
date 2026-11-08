@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/micro_interactions.dart';
 import '../widgets/quantity_stepper.dart';
@@ -177,8 +177,7 @@ class ProductCard extends StatelessWidget {
                                       context,
                                       '${product.name} added to box',
                                       actionLabel: 'View box',
-                                      onAction: () => AppRoutes.pushReplaceAll(
-                                          context, AppRoutes.cart),
+                                      onAction: () => openTab(context, AppTab.cart),
                                     );
                                   }
                                 }

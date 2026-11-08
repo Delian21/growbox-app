@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../data/addresses.dart';
 import '../data/session.dart';
-import '../screens/home_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/location_screen.dart';
 import '../screens/onboarding_screen.dart';
 import '../screens/registration_screen.dart';
 import '../screens/splash_screen.dart';
+import 'root_shell.dart';
 
 /// Where a cold start (or a fresh sign-in) should land.
 enum EntryDestination {
@@ -111,7 +111,8 @@ class _AppEntryGateState extends State<AppEntryGate> {
         // going Home instead of popping back to a form.
         return const LocationScreen(isFirstRun: true);
       case EntryDestination.home:
-        return const HomeScreen();
+        // The signed-in app is one shell with four tabs; Home is its first tab.
+        return const RootShell();
     }
   }
 

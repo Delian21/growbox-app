@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/orders.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/bottom_nav.dart';
@@ -78,7 +78,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
   }
 
   void _continueShopping() =>
-      AppRoutes.pushReplaceAll(context, AppRoutes.home);
+      openTab(context, AppTab.home);
 
   // ── Build ───────────────────────────────────────────────────────────────
 

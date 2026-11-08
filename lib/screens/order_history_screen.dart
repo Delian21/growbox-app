@@ -5,7 +5,7 @@ import '../data/app_state.dart';
 import '../data/mock_backend.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import '../theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/animated_entrance.dart';
@@ -115,7 +115,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         context,
         '$added item${added == 1 ? '' : 's'} added to your box',
         actionLabel: 'View box',
-        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+        onAction: () => openTab(context, AppTab.cart),
       );
     } else if (added == 0) {
       showAppSnackBar(context, 'All items are out of stock', isError: true);
@@ -128,7 +128,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   void _startShopping() {
     // Same hand-off the bottom nav uses for a tab switch.
-    AppRoutes.pushReplaceAll(context, AppRoutes.home);
+    openTab(context, AppTab.home);
   }
 
   /// Asks how the delivery went and records the answer on the order.

@@ -65,12 +65,15 @@ Order _order({
     );
 
 Widget harness(Order order, {bool disableAnimations = false}) => MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(disableAnimations: disableAnimations),
-        child: OrderSuccessScreen(order: order),
-      ),
+      // The confirmation is pushed above the shell, so Back and "Continue
+      // shopping" both land on Home instead of on an emptied checkout.
+      initialRoute: '/success',
       routes: {
-        AppRoutes.home: (_) => const Scaffold(body: Text('Home stub')),
+        '/': (_) => const Scaffold(body: Text('Home stub')),
+        '/success': (_) => MediaQuery(
+              data: MediaQueryData(disableAnimations: disableAnimations),
+              child: OrderSuccessScreen(order: order),
+            ),
       },
     );
 
@@ -171,7 +174,7 @@ void main() {
     expect(badge.scale.value, 1.0);
   });
 
-  testWidgets('Continue shopping replaces the stack with Home', (tester) async {
+  testWidgets('Continue shopping pops back to Home', (tester) async {
     await tester.pumpWidget(harness(_order()));
     await tester.pumpAndSettle();
 

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -174,6 +175,7 @@ class _GrowboxAppState extends State<GrowboxApp> with WidgetsBindingObserver {
               debugShowCheckedModeBanner: false,
               title: 'Growbox',
               navigatorKey: _navigatorKey,
+              navigatorObservers: [routeObserver],
               // The offline banner sits above the navigator and pushes the
               // current screen down, so no header or nav is ever covered.
               //
@@ -234,7 +236,11 @@ class _GrowboxAppState extends State<GrowboxApp> with WidgetsBindingObserver {
                 pageTransitionsTheme: const PageTransitionsTheme(
                   builders: {
                     TargetPlatform.android: SlideFadeTransitionsBuilder(),
-                    TargetPlatform.iOS: SlideFadeTransitionsBuilder(),
+                    // Cupertino on iOS: that builder is what installs the
+                    // edge-swipe back gesture on a pushed route. The app's
+                    // slide-fade has no interactive dismiss, so swiping back
+                    // did nothing on iOS.
+                    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
                     TargetPlatform.windows: SlideFadeTransitionsBuilder(),
                     TargetPlatform.macOS: SlideFadeTransitionsBuilder(),
                     TargetPlatform.linux: SlideFadeTransitionsBuilder(),
@@ -286,7 +292,11 @@ class _GrowboxAppState extends State<GrowboxApp> with WidgetsBindingObserver {
                 pageTransitionsTheme: const PageTransitionsTheme(
                   builders: {
                     TargetPlatform.android: SlideFadeTransitionsBuilder(),
-                    TargetPlatform.iOS: SlideFadeTransitionsBuilder(),
+                    // Cupertino on iOS: that builder is what installs the
+                    // edge-swipe back gesture on a pushed route. The app's
+                    // slide-fade has no interactive dismiss, so swiping back
+                    // did nothing on iOS.
+                    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
                     TargetPlatform.windows: SlideFadeTransitionsBuilder(),
                     TargetPlatform.macOS: SlideFadeTransitionsBuilder(),
                     TargetPlatform.linux: SlideFadeTransitionsBuilder(),

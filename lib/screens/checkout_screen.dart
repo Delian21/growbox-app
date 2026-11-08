@@ -10,6 +10,7 @@ import '../data/mock_data.dart';
 import '../data/orders.dart';
 import '../data/payment_method.dart';
 import '../services/connectivity.dart';
+import '../tabs.dart';
 import '../widgets/saved_address_picker.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/pinned_bottom_bar.dart';
@@ -982,6 +983,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // Republish orders so the home banner and the orders screen pick up the
       // order that was just placed.
       ordersStore.load(force: true);
+      // Show the confirmation on top of the shell, on the Home tab, so Back
+      // from it lands on Home rather than on the checkout form or an empty
+      // cart. `isFirst` keeps exactly one route underneath instead of leaving
+      // the confirmation with nothing behind it.
+      tabNavigator.select(AppTab.home);
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
@@ -989,7 +995,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           // its numbers.
           builder: (_) => OrderSuccessScreen(order: orderFromStored(recorded)),
         ),
-        (route) => false,
+        (route) => route.isFirst,
       );
     } catch (_) {
       if (!mounted) return;

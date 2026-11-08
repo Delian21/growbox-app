@@ -6,7 +6,7 @@ import '../data/addresses.dart';
 import '../widgets/saved_address_picker.dart';
 import '../widgets/app_button.dart';
 import 'address_management_screen.dart';
-import 'home_screen.dart';
+import '../widgets/root_shell.dart';
 
 class LocationScreen extends StatefulWidget {
   const LocationScreen({super.key, this.isFirstRun = false});
@@ -141,7 +141,7 @@ class _LocationScreenState extends State<LocationScreen> {
     if (_sheetOpen) navigator.pop();
     if (widget.isFirstRun) {
       navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const RootShell()),
         (route) => false,
       );
       return;

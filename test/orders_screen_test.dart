@@ -96,8 +96,15 @@ void main() {
     return ChangeNotifierProvider(
       create: (_) => cart ?? CartNotifier(),
       child: MaterialApp(
-        home: OrderHistoryScreen(store: store),
-        routes: routes ?? const {},
+        // The orders screen is a pushed page in the app; Back and "Start
+        // shopping" both pop to the shell underneath, so the stub stands in
+        // for it here.
+        initialRoute: '/orders',
+        routes: {
+          '/': (_) => const Scaffold(body: Text('Home stub')),
+          '/orders': (_) => OrderHistoryScreen(store: store),
+          ...?routes,
+        },
       ),
     );
   }

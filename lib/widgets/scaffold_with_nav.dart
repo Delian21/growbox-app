@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../data/app_state.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import 'bottom_nav.dart';
+import 'root_shell.dart';
 
 /// Standard shell that wraps screen content with the floating BottomNav.
 ///
@@ -34,6 +35,12 @@ class ScaffoldWithNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Inside the signed-in shell the Scaffold, the fade and the nav belong to
+    // the shell, which draws them once around all four tabs. A tab root only
+    // contributes its content there; rendering its own Scaffold and nav would
+    // stack two bars on top of each other.
+    if (RootShellScope.isInside(context)) return child;
+
     final background = C.background(context);
 
     // Read above the Scaffold: it removes viewInsets from the body, so a widget
@@ -100,22 +107,22 @@ class ScaffoldWithNav extends StatelessWidget {
                   return BottomNav.growbox(
                     activeIndex: activeIndex,
                     cartBadgeCount: cart.length,
+                    // A tap switches the tab instead of replacing the route.
+                    // [openTab] also drops any screen pushed on top, so the
+                    // bar works from a pushed page (the catalog) too, where
+                    // this nav is drawn on its own.
                     onHome: activeIndex == 0
                         ? () {}
-                        : () =>
-                            AppRoutes.pushReplaceAll(context, AppRoutes.home),
+                        : () => openTab(context, AppTab.home),
                     onSearch: activeIndex == 1
                         ? () {}
-                        : () =>
-                            AppRoutes.pushReplaceAll(context, AppRoutes.search),
+                        : () => openTab(context, AppTab.search),
                     onCart: activeIndex == 2
                         ? () {}
-                        : () =>
-                            AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+                        : () => openTab(context, AppTab.cart),
                     onProfile: activeIndex == 3
                         ? () {}
-                        : () => AppRoutes.pushReplaceAll(
-                            context, AppRoutes.profile),
+                        : () => openTab(context, AppTab.profile),
                   );
                 },
               ),

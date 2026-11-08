@@ -17,7 +17,7 @@ import '../data/catalog_repository.dart';
 import '../data/categories.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import 'edit_profile_screen.dart';
 import 'location_screen.dart';
 import 'order_history_screen.dart';
@@ -241,10 +241,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Opens the Search tab (not a pushed copy of it), so the
                       // nav highlights Search and its field takes focus.
                       _SearchBar(
-                        // Pushed, not replace-all: the Search tab keeps Home
-                        // underneath, so Back (and the header arrow) returns
-                        // here instead of leaving the app.
-                        onTap: () => AppRoutes.push(context, AppRoutes.search),
+                        // A tab switch, not a push: Search is the second tab
+                        // of the shell, so Back from it returns to Home and the
+                        // field is focused as if the bar had been tapped.
+                        onTap: () => openTab(
+                          context,
+                          AppTab.search,
+                          focusSearchField: true,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xxl),
                       // ── Category Chips ──────────────────────────
@@ -506,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 '${product.name} added to box',
                 actionLabel: 'View box',
-                onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+                onAction: () => openTab(context, AppTab.cart),
               );
             },
             child: Container(

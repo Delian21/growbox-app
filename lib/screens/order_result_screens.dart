@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/orders.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import '../theme.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/order_outcome.dart';
@@ -29,7 +29,7 @@ class OrderPendingScreen extends StatelessWidget {
   }
 
   void _continueShopping(BuildContext context) =>
-      AppRoutes.pushReplaceAll(context, AppRoutes.home);
+      openTab(context, AppTab.home);
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +85,7 @@ class OrderFailedScreen extends StatelessWidget {
         // The box is still in the cart, so "back to box" goes there rather than
         // duplicating the retry.
         secondaryLabel: 'Back to box',
-        onSecondary: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+        onSecondary: () => openTab(context, AppTab.cart),
       ),
     );
   }

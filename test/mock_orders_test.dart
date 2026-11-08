@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:growbox/data/app_state.dart';
 import 'package:growbox/data/orders.dart';
-import 'package:growbox/routes.dart';
 import 'package:growbox/screens/order_history_screen.dart';
 
 /// A backend with nothing in it: what a brand-new install looks like once no
@@ -196,9 +195,14 @@ void main() {
       ChangeNotifierProvider(
         create: (_) => CartNotifier(),
         child: MaterialApp(
-          home: OrderHistoryScreen(store: OrdersStore(_EmptyRepository())),
+          // Orders is a pushed page in the app, so "Start shopping" pops back
+          // to the shell instead of replacing the stack.
+          initialRoute: '/orders',
           routes: {
-            AppRoutes.home: (_) => const Scaffold(body: Text('Home stub')),
+            '/': (_) => const Scaffold(body: Text('Home stub')),
+            '/orders': (_) => OrderHistoryScreen(
+              store: OrdersStore(_EmptyRepository()),
+            ),
           },
         ),
       ),
@@ -221,9 +225,14 @@ void main() {
       ChangeNotifierProvider(
         create: (_) => CartNotifier(),
         child: MaterialApp(
-          home: OrderHistoryScreen(store: OrdersStore(_EmptyRepository())),
+          // Orders is a pushed page in the app, so "Start shopping" pops back
+          // to the shell instead of replacing the stack.
+          initialRoute: '/orders',
           routes: {
-            AppRoutes.home: (_) => const Scaffold(body: Text('Home stub')),
+            '/': (_) => const Scaffold(body: Text('Home stub')),
+            '/orders': (_) => OrderHistoryScreen(
+              store: OrdersStore(_EmptyRepository()),
+            ),
           },
         ),
       ),

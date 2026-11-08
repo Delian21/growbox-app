@@ -16,6 +16,7 @@ import 'faq_screen.dart';
 import 'notifications_screen.dart';
 import 'address_management_screen.dart';
 import 'order_history_screen.dart';
+import 'registration_screen.dart';
 import 'state_gallery_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -270,15 +271,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               label: 'Log Out',
               variant: AppButtonVariant.destructive,
               onPressed: () {
-                // Manual sign-out keeps its old behaviour — the profile is
-                // wiped and the customer stays on this screen — but the
-                // persisted session has to go too, or the next cold start
-                // would silently sign them back in.
+                // Signed out for real: drop the session and the profile, then
+                // replace the whole stack with the welcome screen. Back must
+                // not return to a signed-in profile, so this is one of the few
+                // flows allowed to remove routes rather than pop one.
                 SessionStore.clear();
                 CustomerData.clear();
+                final navigator = Navigator.of(context);
                 Navigator.pop(dialogContext);
-                setState(() {});
-                showAppSnackBar(context, 'You have been logged out.');
+                navigator.pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => const RegistrationScreen(),
+                  ),
+                  (route) => false,
+                );
               },
             ),
           ],

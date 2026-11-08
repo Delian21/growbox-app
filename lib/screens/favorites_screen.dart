@@ -6,7 +6,7 @@ import '../widgets/skeleton_loader.dart';
 import '../data/mock_data.dart';
 import '../widgets/vendor_rating.dart';
 import '../widgets/status_view.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import 'vendor_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -77,7 +77,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       // Same tab hand-off the bottom nav uses, so Home is the live tab and
       // not a second Home stacked on this screen.
       primaryLabel: 'Browse vendors',
-      onPrimary: () => AppRoutes.pushReplaceAll(context, AppRoutes.home),
+      onPrimary: () => openTab(context, AppTab.home),
     );
   }
 

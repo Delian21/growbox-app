@@ -10,7 +10,7 @@ import '../widgets/status_view.dart';
 import '../widgets/skeleton_loader.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
-import 'home_screen.dart';
+import '../tabs.dart';
 import 'checkout_screen.dart';
 import 'order_history_screen.dart';
 
@@ -92,10 +92,10 @@ class _CartScreenState extends State<CartScreen> {
         title: 'Your box is empty',
         message: 'Browse our fresh produce and add items to your box',
         primaryLabel: 'Browse produce',
-        onPrimary: () => Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => HomeScreen()),
-        ),
+        // Home is the first tab of the shell this screen lives in, so this
+        // switches tabs instead of replacing the route — the box stays mounted
+        // with its state, and Back still has somewhere to go.
+        onPrimary: () => tabNavigator.select(AppTab.home),
         // The order-history link used to be a bare tappable row; as the
         // secondary action it now has a full 48dp target.
         secondaryLabel: 'View order history',

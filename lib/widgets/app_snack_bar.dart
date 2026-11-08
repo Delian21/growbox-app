@@ -40,6 +40,9 @@ void showAppSnackBar(
   VoidCallback? onAction,
   bool isError = false,
   double bottomOffset = 0,
+  // Overrides the default 2.5 s / 4 s above. The shell's exit prompt passes the
+  // same window it is armed for, so the bar never outlives the invitation.
+  Duration? duration,
 }) {
   final messenger = ScaffoldMessenger.of(context);
   // Replace rather than queue: two quick taps should show the newest message,
@@ -48,7 +51,8 @@ void showAppSnackBar(
 
   final accent = isError ? C.errorBright(context) : C.primary(context);
   final hasAction = actionLabel != null && onAction != null;
-  final duration = hasAction ? _actionDuration : _plainDuration;
+  final effectiveDuration = duration ??
+      (hasAction ? _actionDuration : _plainDuration);
 
   // `width` can't be combined with `margin`, and the margin is what lifts the
   // bar over the nav. So the side inset does the constraining instead: on a
@@ -71,7 +75,7 @@ void showAppSnackBar(
       // Without this, a bar that has an action never dismisses itself:
       // ScaffoldMessenger defaults `persist` to `action != null`.
       persist: false,
-      duration: duration,
+      duration: effectiveDuration,
       // Clears the floating pill (height + margin + gesture inset) plus a
       // small gap, so the bar never overlaps the nav. [bottomOffset] adds the
       // height of a pinned action bar for screens that have one above the pill.
@@ -96,7 +100,7 @@ void showAppSnackBar(
       // Swipe the toast down to get rid of it.
       dismissDirection: DismissDirection.down,
       content: _AutoDismiss(
-        duration: duration,
+        duration: effectiveDuration,
         onTimeout: () => dismiss?.call(),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: _contentMinHeight),

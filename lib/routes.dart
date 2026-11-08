@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../screens/home_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/cart_screen.dart';
 import '../screens/profile_screen.dart';
@@ -18,6 +17,15 @@ import '../screens/address_management_screen.dart';
 import '../screens/faq_screen.dart';
 import '../screens/terms_screen.dart';
 import '../screens/privacy_policy_screen.dart';
+import '../widgets/root_shell.dart';
+
+/// Tells a screen when another one is pushed above it.
+///
+/// Used by the search field to drop a live microphone on route change: the
+/// screen stays mounted underneath a pushed vendor page, so `dispose` is not
+/// enough.
+final RouteObserver<PageRoute<dynamic>> routeObserver =
+    RouteObserver<PageRoute<dynamic>>();
 
 class AppRoutes {
   AppRoutes._();
@@ -43,7 +51,8 @@ class AppRoutes {
   static const String privacyPolicy = '/privacy-policy';
 
   static Map<String, WidgetBuilder> get routes => {
-        home: (_) => const HomeScreen(),
+        // The whole signed-in app: four tabs in one shell.
+        home: (_) => const RootShell(),
         search: (_) => const SearchScreen(),
         cart: (_) => const CartScreen(),
         profile: (_) => const ProfileScreen(),
@@ -70,8 +79,4 @@ class AppRoutes {
     Navigator.pushNamed(context, route, arguments: arguments);
   }
 
-  /// Push and remove everything below (for tab switches).
-  static void pushReplaceAll(BuildContext context, String route) {
-    Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
-  }
 }

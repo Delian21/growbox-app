@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../data/app_state.dart';
 import '../data/mock_data.dart';
 import '../data/orders.dart';
-import '../routes.dart';
+import '../tabs.dart';
 import '../theme.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_button.dart';
@@ -449,7 +449,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen>
         context,
         '$added item${added == 1 ? '' : 's'} added to your box',
         actionLabel: 'View box',
-        onAction: () => AppRoutes.pushReplaceAll(context, AppRoutes.cart),
+        onAction: () => openTab(context, AppTab.cart),
       );
     } else if (added == 0) {
       showAppSnackBar(context, 'All items are out of stock', isError: true);
