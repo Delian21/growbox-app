@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/app_button.dart';
 import '../data/addresses.dart';
+import '../data/service_areas.dart';
 import '../widgets/app_header.dart';
+import '../widgets/area_picker_sheet.dart';
 import '../widgets/pinned_bottom_bar.dart';
 import '../widgets/micro_interactions.dart';
 import '../widgets/status_view.dart';
@@ -538,9 +540,11 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
     final streetController = TextEditingController(
       text: isEditing ? address.street : '',
     );
-    final areaController = TextEditingController(
-      text: isEditing ? address.area : '',
-    );
+    // Areas are picked, not typed: the text saved before the picker existed is
+    // resolved to its curated label so the field shows a real choice.
+    String area = isEditing
+        ? (serviceAreaForLabel(address.area)?.label ?? address.area)
+        : '';
     final landmarkController = TextEditingController(
       text: isEditing ? (address.landmark ?? '') : '',
     );
@@ -689,11 +693,44 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
 
                               _fieldLabel(ctx, 'Area'),
                               const SizedBox(height: AppSpacing.sm),
-                              TextField(
-                                controller: areaController,
-                                decoration: AppDecorations.inputDecoration(
-                                  hintText: 'Area, city (e.g. Gwarinpa, Abuja)',
-                                  context: ctx,
+                              // Tap to choose from the areas vendors serve. The
+                              // picker's own "use it anyway" row is the only
+                              // way to enter an unlisted area here.
+                              Semantics(
+                                button: true,
+                                label: area.isEmpty
+                                    ? 'Choose area'
+                                    : 'Area, $area, change',
+                                child: InkWell(
+                                  onTap: () => _pickArea(
+                                    ctx,
+                                    current: area,
+                                    onPicked: (picked) =>
+                                        setSheetState(() => area = picked),
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.md,
+                                  ),
+                                  child: InputDecorator(
+                                    isEmpty: area.isEmpty,
+                                    decoration: AppDecorations.inputDecoration(
+                                      hintText: 'Choose your area',
+                                      context: ctx,
+                                    ).copyWith(
+                                      suffixIcon: Icon(
+                                        Icons.expand_more,
+                                        size: 22,
+                                        color: C.textMuted(ctx),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      area,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: C.textPrimary(ctx),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
 
@@ -771,7 +808,6 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                             label: isEditing ? 'Update address' : 'Save address',
                             onPressed: () async {
                               final street = streetController.text.trim();
-                              final area = areaController.text.trim();
                               if (street.isEmpty && area.isEmpty) return;
 
                               final label = selectedLabel == 'Other'
@@ -812,13 +848,28 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
           },
         );
       },
-    ).whenComplete(() {
-      labelController.dispose();
-      streetController.dispose();
-      areaController.dispose();
-      landmarkController.dispose();
-      phoneController.dispose();
-    });
+    );
+    // The controllers are deliberately not disposed here: the sheet keeps
+    // rendering through its exit animation after the route pops, and disposing
+    // them in `whenComplete` made saving an address throw "used after being
+    // disposed". They hold no listeners once the fields are gone and are
+    // collected with the sheet.
+  }
+
+  /// Opens the shared area picker above the address sheet and hands back the
+  /// chosen label, or the raw text if the customer chose to use it anyway.
+  Future<void> _pickArea(
+    BuildContext ctx, {
+    required String current,
+    required ValueChanged<String> onPicked,
+  }) async {
+    final pick = await showAreaPickerSheet(
+      ctx,
+      currentAreaId: serviceAreaForLabel(current)?.id,
+      recentAreaIds: browsingAreaStore.recentAreaIds,
+    );
+    if (pick == null) return;
+    onPicked(pick.label);
   }
 
   Widget _fieldLabel(BuildContext ctx, String text) => Text(
