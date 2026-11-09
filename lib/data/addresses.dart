@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'mock_data.dart';
+import 'service_areas.dart';
 
 // ---------------------------------------------------------------------------
 // Delivery address model
@@ -353,37 +354,101 @@ final AddressesStore addressesStore = AddressesStore(LocalAddressRepository());
 /// [Address] with a street line.
 class BrowsingAreaStore extends ChangeNotifier {
   static const String _storageKey = 'browsing_area_v1';
+  static const String _areaIdKey = 'browsing_area_id_v1';
+  static const String _recentsKey = 'browsing_area_recents_v1';
+
+  /// How many picked areas are offered again at the top of the picker.
+  static const int _maxRecents = 4;
 
   String? _area;
+  String? _areaId;
+  List<String> _recentAreaIds = const <String>[];
   bool _hasLoaded = false;
 
   String? get area => _area;
   bool get hasArea => (_area ?? '').trim().isNotEmpty;
+
+  /// Canonical [ServiceArea] key for [area], or null when the customer typed
+  /// an area that is not on the curated list.
+  String? get areaId => serviceAreaById(_areaId) == null ? null : _areaId;
+
+  /// True when an area is set by hand rather than picked from the list.
+  bool get isUnlistedArea => hasArea && areaId == null;
+
+  /// Curated ids, most recently picked first.
+  List<String> get recentAreaIds => List<String>.unmodifiable(
+        _recentAreaIds.where((id) => serviceAreaById(id) != null),
+      );
 
   Future<void> load() async {
     if (_hasLoaded) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       _area = prefs.getString(_storageKey);
+      _areaId = prefs.getString(_areaIdKey);
+      _recentAreaIds = prefs.getStringList(_recentsKey) ?? const <String>[];
     } catch (_) {
       // Unreadable storage simply means no browsing area yet.
+    }
+    // Areas saved as free text before the picker existed get their curated id
+    // back, so a returning customer is not told their own area is unserved.
+    if (hasArea && areaId == null) {
+      final legacy = serviceAreaForLabel(_area);
+      if (legacy != null) {
+        _areaId = legacy.id;
+        _area = legacy.label;
+        _recentAreaIds = <String>[
+          legacy.id,
+          ..._recentAreaIds.where((id) => id != legacy.id),
+        ].take(_maxRecents).toList();
+        _hasLoaded = true;
+        notifyListeners();
+        await _persist();
+        return;
+      }
     }
     _hasLoaded = true;
     notifyListeners();
   }
 
-  Future<void> setArea(String value) async {
+  /// Sets the area the customer browses from.
+  ///
+  /// [areaId] is the curated key and makes the choice comparable and
+  /// serviceable; it is null when the customer typed an area by hand, in which
+  /// case [value] is the only thing remembered. Picking a curated area also
+  /// moves it to the front of [recentAreaIds].
+  Future<void> setArea(String value, {String? areaId}) async {
     final trimmed = value.trim();
+    final canonical = serviceAreaById(areaId)?.id;
     _area = trimmed.isEmpty ? null : trimmed;
+    _areaId = _area == null ? null : canonical;
+    if (canonical != null) {
+      _recentAreaIds = <String>[
+        canonical,
+        ..._recentAreaIds.where((id) => id != canonical),
+      ].take(_maxRecents).toList();
+    }
     _hasLoaded = true;
     notifyListeners();
+    await _persist();
+  }
+
+  /// Writes the current area, its id and the recents, best effort.
+  Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (_area == null) {
         await prefs.remove(_storageKey);
+        await prefs.remove(_areaIdKey);
       } else {
         await prefs.setString(_storageKey, _area!);
+        if (_areaId == null) {
+          await prefs.remove(_areaIdKey);
+        } else {
+          await prefs.setString(_areaIdKey, _areaId!);
+        }
       }
+      await prefs.setStringList(_recentsKey, _recentAreaIds);
     } catch (_) {
       // Best effort: the in-memory area still applies for this session.
     }

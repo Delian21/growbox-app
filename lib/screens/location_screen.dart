@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../theme.dart';
 import '../data/addresses.dart';
 import '../widgets/saved_address_picker.dart';
+import '../widgets/area_picker_sheet.dart';
 import '../widgets/app_button.dart';
 import 'address_management_screen.dart';
 import '../widgets/root_shell.dart';
@@ -155,64 +156,25 @@ class _LocationScreenState extends State<LocationScreen> {
 
   // ── Browsing area / delivery address ───────────────────────────────
 
-  /// Edits the browsing area only.
+  /// Edits the browsing area only, by picking it from the served areas.
   ///
   /// The pin says where the customer is shopping from, not where an order can
-  /// be delivered: an area without a street is never handed to checkout.
-  void _editArea() {
-    final controller = TextEditingController(
-      text: browsingAreaStore.area ?? '',
+  /// be delivered: an area without a street is never handed to checkout. A
+  /// picked area is stored with its curated id so the feed can tell a served
+  /// area from text someone typed by hand.
+  Future<void> _editArea() async {
+    await browsingAreaStore.load();
+    if (!mounted) return;
+    final pick = await showAreaPickerSheet(
+      context,
+      currentAreaId: browsingAreaStore.areaId,
+      recentAreaIds: browsingAreaStore.recentAreaIds,
     );
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: C.surface(dialogContext),
-          title: Text(
-            'Set your browsing area',
-            style: TextStyle(color: C.textPrimary(dialogContext)),
-          ),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 2,
-            style: TextStyle(color: C.textPrimary(dialogContext)),
-            decoration: InputDecoration(
-              hintText: 'Area, city (e.g. Gwarinpa, Abuja)',
-              hintStyle: TextStyle(color: C.textMuted(dialogContext)),
-              border: const OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: C.divider(dialogContext)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: C.primary(dialogContext)),
-              ),
-            ),
-          ),
-          actions: [
-            AppButton(
-              label: 'Cancel',
-              variant: AppButtonVariant.text,
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              height: 44,
-              radius: AppRadii.sm,
-            ),
-            AppButton(
-              label: 'Save',
-              onPressed: () {
-                final area = controller.text.trim();
-                Navigator.of(dialogContext).pop();
-                browsingAreaStore.setArea(area);
-                setState(() {});
-                _refreshSheet();
-              },
-              height: 44,
-              radius: AppRadii.sm,
-            ),
-          ],
-        );
-      },
-    );
+    if (pick == null || !mounted) return;
+    await browsingAreaStore.setArea(pick.label, areaId: pick.id);
+    if (!mounted) return;
+    setState(() {});
+    _refreshSheet();
   }
 
   /// Opens the app's one address editor (with a new-address sheet ready).
@@ -364,6 +326,20 @@ class _LocationScreenState extends State<LocationScreen> {
                                 ),
                               ),
                               const SizedBox(height: AppSpacing.xs),
+                              // Only shown for text that is not on the served
+                              // list: the picker already said so, this keeps it
+                              // visible after the sheet is closed.
+                              if (browsingAreaStore.isUnlistedArea) ...[
+                                Text(
+                                  'Not a covered area yet — vendors may be '
+                                  'limited.',
+                                  style: AppTypography.caption.copyWith(
+                                    color: C.accentOrange(context),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                              ],
                               Text(
                                 'Browsing only — deliveries go to a saved address.',
                                 style: AppTypography.caption.copyWith(
