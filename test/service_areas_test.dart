@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:growbox/data/addresses.dart';
+import 'package:growbox/data/mock_data.dart';
 import 'package:growbox/data/service_areas.dart';
 import 'package:growbox/widgets/area_picker_sheet.dart';
 
@@ -13,11 +14,39 @@ import 'package:growbox/widgets/area_picker_sheet.dart';
 void main() {
   group('service areas', () {
     test('ids are unique and every area is in Abuja', () {
-      final ids = kServiceAreas.map((area) => area.id).toSet();
-      expect(ids, hasLength(kServiceAreas.length));
-      for (final area in kServiceAreas) {
+      final ids = kAreaCatalog.map((area) => area.id).toSet();
+      expect(ids, hasLength(kAreaCatalog.length));
+      for (final area in kAreaCatalog) {
         expect(area.city, 'Abuja');
         expect(area.label, endsWith(', Abuja'));
+      }
+    });
+
+    test('the served list is exactly what the vendors cover', () {
+      final fromVendors = <String>{};
+      for (final vendor in MockVendors.vendors) {
+        fromVendors.addAll((vendor['serviceAreas'] as List).cast<String>());
+      }
+      expect(kServiceAreas.map((area) => area.id).toSet(), fromVendors);
+    });
+
+    test('every vendor area id exists in the catalog', () {
+      final known = kAreaCatalog.map((area) => area.id).toSet();
+      for (final vendor in MockVendors.vendors) {
+        final areas = (vendor['serviceAreas'] as List).cast<String>();
+        expect(areas, isNotEmpty, reason: '${vendor['name']} serves nowhere');
+        expect(known.containsAll(areas), isTrue,
+            reason: '${vendor['name']} lists an unknown area');
+      }
+    });
+
+    test('a catalogued area no vendor covers is not offered', () {
+      final unserved =
+          kAreaCatalog.where((area) => !isServiceAreaServed(area.id)).toList();
+      expect(unserved, isNotEmpty);
+      for (final area in unserved) {
+        expect(searchServiceAreas(area.name), isEmpty);
+        expect(serviceAreaById(area.id), isNotNull);
       }
     });
 
@@ -37,7 +66,7 @@ void main() {
       expect(names, containsAll(<String>['bwari', 'kubwa', 'dutse-alhaji', 'ushafa']));
     });
 
-    test('empty search returns the whole list in list order', () {
+    test('empty search returns the served list in list order', () {
       expect(searchServiceAreas('   '), same(kServiceAreas));
     });
 

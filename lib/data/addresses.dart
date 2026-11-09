@@ -376,8 +376,11 @@ class BrowsingAreaStore extends ChangeNotifier {
   bool get isUnlistedArea => hasArea && areaId == null;
 
   /// Curated ids, most recently picked first.
+  ///
+  /// Ids a vendor no longer covers are dropped from the recents so the picker
+  /// never offers an area the app cannot deliver to.
   List<String> get recentAreaIds => List<String>.unmodifiable(
-        _recentAreaIds.where((id) => serviceAreaById(id) != null),
+        _recentAreaIds.where(isServiceAreaServed),
       );
 
   Future<void> load() async {

@@ -1,3 +1,5 @@
+import 'mock_data.dart';
+
 /// The places the app can be browsed from.
 ///
 /// A [ServiceArea] is a curated, human-known neighbourhood rather than an
@@ -5,14 +7,12 @@
 /// a rider goes (Gwarinpa, Wuse and Lugbe are all inside AMAC), so the list is
 /// flat and each entry carries its LGA only as context.
 ///
-/// The list is deliberately short. It is the set of areas the nearby vendors
-/// actually cover, not a gazetteer of Nigeria: listing an area the app cannot
-/// serve would promise a delivery window that does not exist. Customers can
-/// still type anything they like — [BrowsingAreaStore] keeps that text as-is —
-/// but only these entries get a canonical [ServiceArea.id].
-///
-/// When vendors gain their own service areas, this list should be derived from
-/// them instead of maintained by hand.
+/// [kAreaCatalog] is the set of neighbourhoods the app knows how to name, and
+/// [kServiceAreas] is the subset some vendor actually delivers to. Only the
+/// latter is offered in the picker: listing an area the app cannot serve would
+/// promise a delivery window that does not exist. Customers can still type
+/// anything they like — [BrowsingAreaStore] keeps that text as-is — but only
+/// catalogued entries get a canonical [ServiceArea.id].
 class ServiceArea {
   const ServiceArea({
     required this.id,
@@ -44,11 +44,13 @@ class ServiceArea {
   String get region => '$lga · $city';
 }
 
-/// The areas with vendors nearby, alphabetical so the list can be scanned.
+/// Every neighbourhood the app can name, alphabetical so the list can be
+/// scanned. This is the name/alias/LGA dictionary only — what is *served* is
+/// derived from the vendors in [kServiceAreas].
 ///
-/// Adding an area here is a promise that vendors cover it; removing one only
-/// hides it from the picker, since a saved [ServiceArea.id] still resolves.
-const List<ServiceArea> kServiceAreas = <ServiceArea>[
+/// Adding an entry here does not offer it to customers; a vendor has to list
+/// its id in its own `serviceAreas` first.
+const List<ServiceArea> kAreaCatalog = <ServiceArea>[
   ServiceArea(id: 'apo', name: 'Apo', lga: 'AMAC', aliases: ['Apo Legislative Quarters', 'Apo Mechanic']),
   ServiceArea(id: 'asokoro', name: 'Asokoro', lga: 'AMAC'),
   ServiceArea(id: 'bwari', name: 'Bwari', lga: 'Bwari'),
@@ -77,10 +79,42 @@ const List<ServiceArea> kServiceAreas = <ServiceArea>[
   ServiceArea(id: 'wuye', name: 'Wuye', lga: 'AMAC'),
 ];
 
-/// Finds a curated area by its persisted [ServiceArea.id].
+/// The areas at least one vendor delivers to, alphabetical.
+///
+/// Derived rather than hand-written: a vendor's own coverage is the honest
+/// source of truth, so adding or dropping an area is one edit in the vendor
+/// data and cannot drift from what the picker offers. A catalogued area no
+/// vendor serves (say Karu today) simply does not appear.
+final List<ServiceArea> kServiceAreas = _servedAreas();
+
+List<ServiceArea> _servedAreas() {
+  final served = <String>{};
+  for (final vendor in MockVendors.vendors) {
+    final areas = vendor['serviceAreas'];
+    if (areas is List) served.addAll(areas.whereType<String>());
+  }
+  return [
+    for (final area in kAreaCatalog)
+      if (served.contains(area.id)) area,
+  ];
+}
+
+/// True when some vendor covers [id]. Unknown ids are not served.
+bool isServiceAreaServed(String? id) {
+  if (id == null || id.isEmpty) return false;
+  for (final area in kServiceAreas) {
+    if (area.id == id) return true;
+  }
+  return false;
+}
+
+/// Finds a catalogued area by its persisted [ServiceArea.id].
+///
+/// Looks at the whole catalog, not just what is served today, so a saved area
+/// keeps its identity if a vendor later stops covering it.
 ServiceArea? serviceAreaById(String? id) {
   if (id == null || id.isEmpty) return null;
-  for (final area in kServiceAreas) {
+  for (final area in kAreaCatalog) {
     if (area.id == id) return area;
   }
   return null;
@@ -93,7 +127,7 @@ ServiceArea? serviceAreaById(String? id) {
 ServiceArea? serviceAreaForLabel(String? label) {
   final query = _normalise(label ?? '');
   if (query.isEmpty) return null;
-  for (final area in kServiceAreas) {
+  for (final area in kAreaCatalog) {
     if (_normalise(area.label) == query || _normalise(area.name) == query) {
       return area;
     }

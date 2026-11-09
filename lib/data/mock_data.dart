@@ -224,6 +224,9 @@ class MockVendors {
   static List<Map<String, dynamic>> get vendors => [
     {
       'name': 'Green Farm',
+      // Neighbourhood ids from lib/data/service_areas.dart this vendor
+      // delivers to; the browsing-area picker is the union of these.
+      'serviceAreas': ['gwarinpa', 'life-camp', 'jabi', 'kubwa', 'dutse-alhaji', 'gwagwalada', 'central-area'],
       'image': PlaceholderImages.greenFarm,
       'logo': PlaceholderImages.greenFarmLogo,
       'percentage': '84%',
@@ -303,6 +306,9 @@ class MockVendors {
     },
     {
       'name': 'Yummy Bunch',
+      // Neighbourhood ids from lib/data/service_areas.dart this vendor
+      // delivers to; the browsing-area picker is the union of these.
+      'serviceAreas': ['wuse-2', 'maitama', 'asokoro', 'garki', 'utako', 'jabi', 'wuye', 'central-area'],
       'image': PlaceholderImages.yummyBunch,
       'logo': PlaceholderImages.yummyBunchLogo,
       'percentage': '',
@@ -344,6 +350,9 @@ class MockVendors {
     },
     {
       'name': 'Fresh off Flesh',
+      // Neighbourhood ids from lib/data/service_areas.dart this vendor
+      // delivers to; the browsing-area picker is the union of these.
+      'serviceAreas': ['wuse-2', 'maitama', 'asokoro', 'central-area', 'garki', 'utako'],
       'image': PlaceholderImages.freshOffFlesh,
       'logo': PlaceholderImages.freshOffFleshLogo,
       'percentage': '92%',
@@ -390,6 +399,9 @@ class MockVendors {
     },
     {
       'name': 'Heart of Red',
+      // Neighbourhood ids from lib/data/service_areas.dart this vendor
+      // delivers to; the browsing-area picker is the union of these.
+      'serviceAreas': ['gwarinpa', 'wuse-2', 'jabi', 'apo', 'life-camp', 'wuye'],
       'image': PlaceholderImages.heartOfRed,
       'logo': PlaceholderImages.heartOfRedLogo,
       'percentage': '100%',
@@ -453,6 +465,9 @@ class MockVendors {
     },
     {
       'name': 'Real Green',
+      // Neighbourhood ids from lib/data/service_areas.dart this vendor
+      // delivers to; the browsing-area picker is the union of these.
+      'serviceAreas': ['apo', 'gudu', 'lokogoma', 'galadimawa', 'durumi', 'garki', 'karsana'],
       'image': PlaceholderImages.realGreen,
       'logo': PlaceholderImages.realGreenLogo,
       'percentage': '',
@@ -540,6 +555,9 @@ class MockVendors {
     },
     {
       'name': 'Cereals Greetings',
+      // Neighbourhood ids from lib/data/service_areas.dart this vendor
+      // delivers to; the browsing-area picker is the union of these.
+      'serviceAreas': ['kubwa', 'bwari', 'dutse-alhaji', 'ushafa'],
       'image': PlaceholderImages.cerealsGreetings,
       'logo': PlaceholderImages.cerealsGreetingsLogo,
       'percentage': '',
@@ -582,6 +600,9 @@ class MockVendors {
     },
     {
       'name': 'Golden Oils',
+      // Neighbourhood ids from lib/data/service_areas.dart this vendor
+      // delivers to; the browsing-area picker is the union of these.
+      'serviceAreas': ['utako', 'life-camp', 'karsana', 'dawaki', 'gaduwa', 'lugbe', 'wuye'],
       'image': PlaceholderImages.goldenOils,
       'logo': PlaceholderImages.goldenOilsLogo,
       'percentage': '95%',
