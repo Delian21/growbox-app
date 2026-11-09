@@ -235,7 +235,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
-                        'Fresh produce, delivered to your door',
+                        'Everyday is a market day',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.onBrand.withValues(alpha: 0.9),
