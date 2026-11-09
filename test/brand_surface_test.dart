@@ -89,7 +89,7 @@ void main() {
       // C.onPrimary(context), which turns near-black in dark mode because it
       // expects the lifted green.
       final tagline = tester.widget<Text>(
-        find.text('Everyday is a market day'),
+        find.text('Every day is a market day'),
       );
       expect(
         tagline.style?.color,

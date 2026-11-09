@@ -287,7 +287,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Everyday is a market day',
+                      'Every day is a market day',
                       textAlign: TextAlign.center,
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.onBrand.withValues(alpha: 0.82),

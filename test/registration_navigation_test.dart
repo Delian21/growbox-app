@@ -10,7 +10,7 @@ void main() {
 
     // Welcome step is visible, with the brand tagline under the logo.
     expect(find.text('Welcome'), findsOneWidget);
-    expect(find.text('Everyday is a market day'), findsOneWidget);
+    expect(find.text('Every day is a market day'), findsOneWidget);
     expect(find.text('Continue with Email'), findsOneWidget);
 
     // The primary CTA uses brand green with a white label, not the mint tint.
