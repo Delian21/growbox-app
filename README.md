@@ -5,6 +5,10 @@ the catalog, cart, and orders live in in-memory mock data and every image is a
 bundled asset, so the app runs fully offline. It shares branding and design
 language with the vendor app in a sibling project (`growbox_vendor`).
 
+**New here?** [ARCHITECTURE.md §1](ARCHITECTURE.md#1-the-app-in-ten-lines) is the
+ten-line map of the app, and §3 answers "where do I change this?" without a
+search through the code.
+
 ## Highlights
 
 - **Branded entry flow** — animated splash screen, first-run onboarding, and a
@@ -27,6 +31,7 @@ language with the vendor app in a sibling project (`growbox_vendor`).
 | `shared_preferences` | Persistence (cart, orders, profile, addresses, favorites) |
 | `google_fonts` | Inter (body) + Poppins (headlines/buttons) |
 | `google_maps_flutter` | Location picker and delivery-tracking maps |
+| `connectivity_plus` | Online/offline signal for the banner and checkout (native builds only; web uses the browser's own events) |
 | `speech_to_text` | Voice search |
 
 ## Getting started
