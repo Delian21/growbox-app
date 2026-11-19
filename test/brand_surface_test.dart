@@ -67,7 +67,7 @@ void main() {
       expect(gradient.colors.last, AppColors.brand);
 
       // Let the 4 s hand-off timer fire so the test ends without a pending
-      // timer; the splash is disposed and its pulse loop with it.
+      // timer.
       await tester.pump(const Duration(seconds: 5));
       await tester.pump(const Duration(milliseconds: 600));
     });

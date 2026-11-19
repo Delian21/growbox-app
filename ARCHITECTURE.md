@@ -20,7 +20,7 @@ main()                      restores what was saved, then runApp()
   RootShell                 signed in: four tabs in one IndexedStack + one floating bottom nav
                             Home · Search · Cart · Profile
   pushed above the shell    vendor, product, checkout, orders, tracking, profile sub-pages…
-  every screen              reads a store (lib/data/ or lib/services/) and never writes storage itself
+  every screen              reads a store (lib/data/ or lib/services/); two also persist a flag of their own
   the stores                save themselves and notify the screens that listen
   no backend                "requests" go through MockBackend: 600 ms delay, can be made to fail
 ```
@@ -67,7 +67,7 @@ Two things follow from that shape, and they explain most of the layout:
 | A product, its price, photo or vendor | `lib/data/mock_data.dart` (`MockVendors.vendors`) |
 | Which image a product shows | `lib/data/placeholder_images.dart`, file in `assets/images/` |
 | A vendor's delivery fee | `MockVendors.deliveryFeeFor` in `lib/data/mock_data.dart` |
-| Which areas are offered | A vendor's `serviceAreas` list — the picker derives itself from it (§6) |
+| Which areas are offered | A vendor's `serviceAreas` list — the picker is derived from it, never hand-written |
 | The category rail | `lib/data/categories.dart` (`kCategories`) |
 | What a cold start shows | `lib/widgets/app_entry_gate.dart` |
 | The 30-minute sign-out window | `lib/config.dart` |
@@ -89,10 +89,12 @@ Two things follow from that shape, and they explain most of the layout:
 
 ## 4. The stores: who owns what
 
-All except the cart are plain singletons (`ordersStore`, `addressesStore`,
-`connectivityStore`, `tabNavigator`, static `SessionStore`). That is deliberate:
-a pushed screen is not a descendant of the shell, so a `Provider` could not
-reach it. Screens `addListener`/`AnimatedBuilder` on the store they show.
+All except the cart are module-level singletons (`ordersStore`, `addressesStore`,
+`browsingAreaStore`, `connectivityStore`, `tabNavigator`) or static-only classes
+(`SessionStore`, `CustomerData`); favourites are a global list plus top-level
+functions. That is deliberate: a pushed screen is not a descendant of the shell,
+so a `Provider` could not reach it. Screens `addListener`/`AnimatedBuilder` on
+the store they show.
 
 | Object | File | Owns | Saved under |
 |---|---|---|---|
@@ -107,8 +109,10 @@ reach it. Screens `addListener`/`AnimatedBuilder` on the store they show.
 | `ConnectivityStore` | `services/connectivity.dart` | Online/offline | not persisted |
 | Favourites | `data/app_state.dart` | Followed vendors | `favorite_vendors_v1` |
 
-`OnboardingScreen.hasCompleted()` keeps its flag (`onboarding_completed`) because
-it is read before any store exists.
+Two screens write storage directly, and only for their own small flags:
+`home_screen.dart` (`rating_prompt_dismissed`, `profile_nudge_dismissed`) and
+`onboarding_screen.dart` (`onboarding_completed`, which is read before any store
+exists).
 
 **A browsing area is not a delivery address.** The area decides what the feed
 shows and may be typed freely; checkout only ever uses a saved `Address` with a
@@ -194,10 +198,13 @@ an order, it generally has to exist on both.
   anywhere the surface can be either theme.
 - `AppTypography` styles are light-theme coloured by default — pair with
   `.copyWith(color: C.xxx(context))` in dark mode.
-- Brand entry screens (splash, registration banner) are constant
-  `AppColors.primary` in both themes on purpose: the white-art logo sits on
-  green there. Do not "fix" them with a brightness swap.
+- Brand entry screens (splash, registration hero) paint the fixed
+  `AppColors.brand`, with `AppColors.onBrand` for anything drawn on it, in both
+  themes on purpose: the white-art logo was drawn for exactly that green. Do
+  not "fix" them with a brightness swap or `C.primary(context)` — the theme's
+  primary lifts in dark mode (#7ED36B) and would break the artwork.
 - All images go through `PlaceholderImages`; no asset path is typed in a screen.
+  (The demo gallery's two sample products are the only exception.)
 - The fixed white Google button and black Apple button are brand colours on
   purpose.
 - Appearance is restored before the first frame, so a dark-mode user never sees
@@ -213,10 +220,11 @@ an order, it generally has to exist on both.
 | `services/speech_to_text_service.dart` | The real engine (`speech_to_text`), configured once for short queries |
 | `services/voice_search_service.dart` | `VoiceSearchMatcher`: maps misheard words ("rise" → rice) onto catalogue names |
 | `services/voice_search_session.dart` | `VoiceSearchSession`: start, live partials, stop-on-silence, submit |
-| `widgets/voice_search_button.dart` + `search_screen.dart` | Draw the state and host it |
+| `widgets/voice_search_button.dart` + `search_screen.dart`, `menu_screen.dart` | Draw the state and host it (both search fields offer voice) |
 
-The screen never touches the plugin, and the timing rules are tested against a
-fake engine (`test/voice_search_test.dart`).
+Screens build a `VoiceSearchSession` with `SpeechToTextService` but only ever
+read session state — they never call the plugin themselves — and the timing
+rules are tested against a fake engine (`test/voice_search_test.dart`).
 
 ---
 
@@ -228,10 +236,13 @@ flutter analyze
 ```
 
 Tests are behaviour-named (`cart_persistence_test`, `session_entry_test`,
-`checkout_order_flow_test`, `service_areas_test`, …). Two are regression pins
-with a story in their comments: `registration_navigation_test` (a `Stack` child
-without a key rebuilt the wizard's `PageView`) and `orders_screen_test`
-(pumped manually because the old splash pulsed forever).
+`checkout_order_flow_test`, `service_areas_test`, …).
+`registration_navigation_test` is a regression pin: a mid-animation rebuild that
+inserted the back button used to reset the wizard's `PageView` (hence the stable
+`ValueKey`s on the registration `Stack` children). `orders_screen_test` pumps the
+tracking step by hand because that screen animates continuously, and
+`session_entry_test` pumps the gate's async resolve and push transition
+explicitly.
 
 `kDemoTools` (`data/mock_backend.dart`) is true in debug and in a release built
 with `--dart-define=DEMO_TOOLS=true`. It adds Profile's demo section, the
@@ -265,4 +276,4 @@ state using the *real* widgets. A normal release compiles all of it out.
 | Orders and favourites are device-wide, addresses are per account | Addresses needed a bucket per login; the rest predate that. If you make another store per-account, follow `LocalAddressRepository`'s `:<account>` key pattern |
 | `StoredOrder` and `Order` both exist | §8 |
 | The entry point is `widgets/app_entry_gate.dart`, not `main.dart` | `main.dart` only wires the app; the landing decision is the gate (§5) |
-| `state_gallery_screen.dart` is 878 lines and unreachable in a release | Demo-only; it exists to look at states without faking data |
+| `state_gallery_screen.dart` is 877 lines and unreachable in a release | Demo-only; it exists to look at states without faking data |

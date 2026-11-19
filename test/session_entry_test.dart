@@ -55,8 +55,9 @@ void main() {
         ),
       );
 
-  /// Pumps past the gate's async resolve and its push transition. The splash
-  /// pulses forever, so `pumpAndSettle` is only safe once it is gone.
+  /// Pumps past the gate's async resolve and its push transition. The
+  /// destination only exists once the resolve completes, so it is pumped
+  /// explicitly instead of settled.
   Future<void> settleEntry(WidgetTester tester) async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
