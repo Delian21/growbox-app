@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../data/placeholder_images.dart';
@@ -30,9 +29,10 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _logoScale;
   late final Animation<double> _logoOpacity;
 
-  // Subtle looping pulse on the logo glow.
-  late final AnimationController _pulseController;
-  late final Animation<double> _pulseValue;
+  // Single sheen pass across the logo art. It runs once, after the
+  // entrance, and stops: nothing on this screen loops forever.
+  late final AnimationController _sheenController;
+  late final Animation<double> _sheenProgress;
 
   // Footer fade-in.
   late final AnimationController _footerController;
@@ -42,6 +42,9 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _taglineController;
   late final Animation<Offset> _taglineOffset;
   late final Animation<double> _taglineOpacity;
+
+  /// True once [Image.asset] has reported that the logo art is missing.
+  bool _logoArtMissing = false;
 
   @override
   void initState() {
@@ -62,13 +65,14 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // ── Logo glow pulse (loops after entrance) ────────────────────
-    _pulseController = AnimationController(
+    // ── Logo sheen (one pass, after the entrance) ───────
+    _sheenController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 900),
     );
-    _pulseValue = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    _sheenProgress = CurvedAnimation(
+      parent: _sheenController,
+      curve: Curves.easeInOut,
     );
 
     // ── Footer fade-in (400 – 900 ms) ─────────────────────────────
@@ -117,16 +121,26 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     _taglineController.forward();
 
-    // Start the looping pulse after entrance finishes.
+    // One sheen pass, then the screen holds still: a highlight with a
+    // beginning and an end instead of an endless throb.
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
-    _pulseController.repeat(reverse: true);
+    _sheenController.forward();
+  }
+
+  /// The bundled logo art can fail to decode, and the fallback is plain
+  /// type, which the sheen must not paint over.
+  void _noteLogoArtMissing() {
+    if (_logoArtMissing) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _logoArtMissing = true);
+    });
   }
 
   @override
   void dispose() {
     _logoController.dispose();
-    _pulseController.dispose();
+    _sheenController.dispose();
     _footerController.dispose();
     _taglineController.dispose();
     super.dispose();
@@ -154,71 +168,69 @@ class _SplashScreenState extends State<SplashScreen>
           child: SizedBox.expand(
             child: Column(
               children: [
-                // ── Logo area with glow ────────────────────────────
+                // ── Logo area ────────────────────────────────
                 Expanded(
                   child: Center(
-                    child: AnimatedBuilder(
-                      animation: _pulseValue,
-                      builder: (context, child) {
-                        // Pulse oscillates the halo's opacity between 0.15 and
-                        // 0.35.
-                        final glowOpacity =
-                            0.15 + 0.20 * math.sin(_pulseValue.value * math.pi);
-                        return Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                // Green, not white: white over green greys the
-                                // brand out. Same hue as the gradient centre,
-                                // so the logo sits in a pool of lighter green.
-                                color: AppColors.brandHighlight
-                                    .withValues(alpha: glowOpacity),
-                                blurRadius: 60,
-                                spreadRadius: 20,
-                              ),
-                            ],
+                    child: Container(
+                      // A static pool of lighter green behind the logo. It
+                      // used to breathe on a repeating controller; the sheen
+                      // below is what carries the motion now.
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            // Green, not white: white over green greys the
+                            // brand out. Same hue as the gradient centre, so
+                            // the logo sits in a pool of lighter green.
+                            color: AppColors.brandHighlight
+                                .withValues(alpha: 0.28),
+                            blurRadius: 60,
+                            spreadRadius: 20,
                           ),
-                          child: child,
-                        );
-                      },
-                      // The animated child is built once and reused by the
-                      // pulse above; it reads the logo controllers itself.
+                        ],
+                      ),
                       child: AnimatedBuilder(
-                        animation: Listenable.merge([
-                          _logoController,
-                          _pulseController,
-                        ]),
+                        animation: _logoController,
                         builder: (context, _) {
+                          final Widget art = Image.asset(
+                            SplashScreen.logoUrl,
+                            width: logoSize,
+                            height: logoSize,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              // Type, not the planter art, so it skips the
+                              // sheen: a white band over glyphs reads as a
+                              // glitch rather than a highlight.
+                              _noteLogoArtMissing();
+                              return Text(
+                                'Growbox',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.onBrand,
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(
+                                      color: AppColors.black
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
                           return Opacity(
                             opacity: _logoOpacity.value,
                             child: Transform.scale(
                               scale: _logoScale.value,
-                              child: Image.asset(
-                                SplashScreen.logoUrl,
-                                width: logoSize,
-                                height: logoSize,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Text(
-                                    'Growbox',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: AppColors.onBrand,
-                                      fontSize: 42,
-                                      fontWeight: FontWeight.bold,
-                                      shadows: [
-                                        Shadow(
-                                          color: AppColors.black
-                                              .withValues(alpha: 0.3),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
+                              child: _logoArtMissing
+                                  ? art
+                                  : _LogoSheen(
+                                      progress: _sheenProgress,
+                                      child: art,
                                     ),
-                                  );
-                                },
-                              ),
                             ),
                           );
                         },
@@ -299,3 +311,47 @@ const RadialGradient _brandHighlight = RadialGradient(
   colors: [AppColors.brandHighlight, AppColors.brand],
   stops: [0.0, 0.85],
 );
+
+/// A single diagonal highlight that travels across the logo art once.
+///
+/// [BlendMode.srcATop] keeps the gradient only where the logo has ink, so the
+/// band catches the white planter outline and the orange wordmark and never
+/// shows through the transparent gaps between them. Outside the pass the
+/// shader is skipped entirely, so the settled screen costs no extra layer.
+class _LogoSheen extends StatelessWidget {
+  const _LogoSheen({required this.progress, required this.child});
+
+  final Animation<double> progress;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: progress,
+      builder: (context, child) {
+        final double t = progress.value;
+        // Nothing to paint before the pass starts or after it ends.
+        if (t <= 0 || t >= 1) return child!;
+
+        // Travels from off the top-left corner to off the bottom-right, so the
+        // band enters and leaves the art instead of appearing mid-logo.
+        final double travel = -1.8 + 3.6 * t;
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (bounds) => LinearGradient(
+            begin: Alignment(travel - 0.9, travel - 0.9),
+            end: Alignment(travel + 0.9, travel + 0.9),
+            colors: [
+              AppColors.white.withValues(alpha: 0.0),
+              AppColors.white.withValues(alpha: 0.30),
+              AppColors.white.withValues(alpha: 0.0),
+            ],
+            stops: const [0.45, 0.50, 0.55],
+          ).createShader(bounds),
+          child: child,
+        );
+      },
+      child: child,
+    );
+  }
+}
