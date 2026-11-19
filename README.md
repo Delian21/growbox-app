@@ -2,8 +2,10 @@
 
 A Flutter (Material 3) grocery-delivery app for consumers. There is no backend:
 the catalog, cart, and orders live in in-memory mock data and every image is a
-bundled asset, so the app runs fully offline. It shares branding and design
-language with the vendor app in a sibling project (`growbox_vendor`).
+bundled asset, so the app's own screens need no network. Two parts still do:
+Google Maps for the address picker, and Google Fonts, which fetches its font
+files on first run. It shares branding and design language with the vendor app
+in a sibling project (`growbox_vendor`).
 
 **New here?** [ARCHITECTURE.md §1](ARCHITECTURE.md#1-the-app-in-ten-lines) is the
 ten-line map of the app, and §3 answers "where do I change this?" without a
@@ -11,26 +13,28 @@ search through the code.
 
 ## Highlights
 
-- **Branded entry flow** — animated splash screen, first-run onboarding, and a
-  5-step registration wizard with email confirmation
-- **Shopping experience** — home feed (promo banners, categories, Buy Again,
-  deals), product search with **voice search**, vendor pages, product details,
-  and an animated fly-to-cart add flow
-- **Persistent cart & orders** — cart, checkout, and order history survive app
+- **Branded entry flow** — splash with a one-pass logo sheen, first-run
+  onboarding, and a 5-step registration wizard with email confirmation
+- **Shopping experience** — home feed (promo banner, category rail, Order Again,
+  nearby vendors), product search with **voice search**, vendor pages, product
+  details, and an animated fly-to-cart add flow
+- **Persistent cart & orders** — the cart and order history survive app
   restarts via `shared_preferences`; past orders freeze price/image at purchase
   time; reorder from history; simulated live delivery tracking
 - **Full profile area** — saved addresses, favorites, dark mode toggle, account
   settings (email/phone), privacy controls, FAQ, notifications
-- **Works offline** — zero network dependency at runtime; every asset bundled
+- **No backend** — catalogue, cart and orders are in-app, every image is
+  bundled, and only the map picker and Google Fonts reach the network
 
 ## Tech stack
 
 | Package | Used for |
 |---|---|
-| Flutter + `provider` | UI and state (cart, theme) |
+| Flutter + `provider` | UI and cart state (the theme uses its own `InheritedNotifier`) |
 | `shared_preferences` | Persistence (cart, orders, profile, addresses, favorites) |
+| `cupertino_icons` | iOS-style icons |
 | `google_fonts` | Inter (body) + Poppins (headlines/buttons) |
-| `google_maps_flutter` | Location picker and delivery-tracking maps |
+| `google_maps_flutter` | The address picker's map; tracking draws its route with painters |
 | `connectivity_plus` | Online/offline signal for the banner and checkout (native builds only; web uses the browser's own events) |
 | `speech_to_text` | Voice search |
 
@@ -56,7 +60,7 @@ The repo includes a Netlify setup for hosting the web build:
 
 - `netlify.toml` / `netlify-build.sh` — build config (installs the pinned
   Flutter SDK, then `flutter build web --release`, publishing `build/web`).
-- The site deploys automatically on every push to `main`.
+- The site deploys automatically on every push to the connected branch.
 
 Local web build for a quick check:
 
@@ -98,5 +102,5 @@ on the first reload either way.
 
 ## Docs
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — folder structure, theme system, state
-  management, navigation flow, screen/widget maps, and conventions.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — the ten-line map, the store table, a
+  "where do I change this?" index, and the seams worth knowing.
